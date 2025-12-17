@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { GootiMetaData, GootiMetaHandler } from '@common';
+import { SignerMetaData, SignerMetaHandler } from '@common';
 import browser from 'webextension-polyfill';
 
-export class FirefoxMetaHandler extends GootiMetaHandler {
+export class FirefoxMetaHandler extends SignerMetaHandler {
   async loadFullData(): Promise<Partial<Record<string, any>>> {
     const dataWithPossibleAlienProperties = await browser.storage.local.get(
       null
@@ -20,7 +20,7 @@ export class FirefoxMetaHandler extends GootiMetaHandler {
     return data;
   }
 
-  async saveFullData(data: GootiMetaData): Promise<void> {
+  async saveFullData(data: SignerMetaData): Promise<void> {
     await browser.storage.local.set(data as Record<string, any>);
     console.log(data);
   }

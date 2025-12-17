@@ -1,9 +1,9 @@
 {
   "manifest_version": 3,
-  "name": "Gooti - Nostr Identity Manager & Signer",
+  "name": "Plebian Signer - Nostr Identity Manager & Signer",
   "description": "Manage and switch between multiple identities while interacting with Nostr apps",
   "version": "0.0.4",
-  "homepage_url": "https://getgooti.com",
+  "homepage_url": "https://git.mleku.dev/mleku/plebeian-signer",
   "options_page": "options.html",
   "permissions": [
     "windows",
@@ -23,7 +23,7 @@
         "<all_urls>"
       ],
       "js": [
-        "gooti-content-script.js"
+        "plebian-signer-content-script.js"
       ],
       "all_frames": true
     }
@@ -31,7 +31,7 @@
   "web_accessible_resources": [
     {
       "resources": [
-        "gooti-extension.js"
+        "plebian-signer-extension.js"
       ],
       "matches": [
         "https://*/*",

@@ -4,7 +4,7 @@ import {
   BrowserSyncData,
   BrowserSyncFlow,
   CryptoHelper,
-  GootiMetaData,
+  SignerMetaData,
   Identity_DECRYPTED,
   Nip07Method,
   Nip07MethodPolicy,
@@ -17,7 +17,7 @@ import { Event, EventTemplate, finalizeEvent, nip04, nip44 } from 'nostr-tools';
 
 export const debug = function (message: any) {
   const dateString = new Date().toISOString();
-  console.log(`[Gooti - ${dateString}]: ${JSON.stringify(message)}`);
+  console.log(`[Plebian Signer - ${dateString}]: ${JSON.stringify(message)}`);
 };
 
 export type PromptResponse =
@@ -51,15 +51,15 @@ export const getBrowserSessionData = async function (): Promise<
 export const getBrowserSyncData = async function (): Promise<
   BrowserSyncData | undefined
 > {
-  const gootiMetaHandler = new ChromeMetaHandler();
-  const gootiMetaData =
-    (await gootiMetaHandler.loadFullData()) as GootiMetaData;
+  const signerMetaHandler = new ChromeMetaHandler();
+  const signerMetaData =
+    (await signerMetaHandler.loadFullData()) as SignerMetaData;
 
   let browserSyncData: BrowserSyncData | undefined;
 
-  if (gootiMetaData.syncFlow === BrowserSyncFlow.NO_SYNC) {
+  if (signerMetaData.syncFlow === BrowserSyncFlow.NO_SYNC) {
     browserSyncData = (await chrome.storage.local.get(null)) as BrowserSyncData;
-  } else if (gootiMetaData.syncFlow === BrowserSyncFlow.BROWSER_SYNC) {
+  } else if (signerMetaData.syncFlow === BrowserSyncFlow.BROWSER_SYNC) {
     browserSyncData = (await chrome.storage.sync.get(null)) as BrowserSyncData;
   }
 
@@ -69,13 +69,13 @@ export const getBrowserSyncData = async function (): Promise<
 export const savePermissionsToBrowserSyncStorage = async function (
   permissions: Permission_ENCRYPTED[]
 ): Promise<void> {
-  const gootiMetaHandler = new ChromeMetaHandler();
-  const gootiMetaData =
-    (await gootiMetaHandler.loadFullData()) as GootiMetaData;
+  const signerMetaHandler = new ChromeMetaHandler();
+  const signerMetaData =
+    (await signerMetaHandler.loadFullData()) as SignerMetaData;
 
-  if (gootiMetaData.syncFlow === BrowserSyncFlow.NO_SYNC) {
+  if (signerMetaData.syncFlow === BrowserSyncFlow.NO_SYNC) {
     await chrome.storage.local.set({ permissions });
-  } else if (gootiMetaData.syncFlow === BrowserSyncFlow.BROWSER_SYNC) {
+  } else if (signerMetaData.syncFlow === BrowserSyncFlow.BROWSER_SYNC) {
     await chrome.storage.sync.set({ permissions });
   }
 };

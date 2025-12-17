@@ -2,7 +2,7 @@ import { Component, inject, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import {
   BrowserSyncFlow,
-  GootiMetaData_VaultSnapshot,
+  SignerMetaData_VaultSnapshot,
   IconButtonComponent,
   NavComponent,
   StartupService,
@@ -18,8 +18,8 @@ import { getNewStorageServiceConfig } from '../../common/data/get-new-storage-se
   styleUrl: './vault-import.component.scss',
 })
 export class VaultImportComponent extends NavComponent implements OnInit {
-  snapshots: GootiMetaData_VaultSnapshot[] = [];
-  selectedSnapshot: GootiMetaData_VaultSnapshot | undefined;
+  snapshots: SignerMetaData_VaultSnapshot[] = [];
+  selectedSnapshot: SignerMetaData_VaultSnapshot | undefined;
   syncText: string | undefined;
 
   readonly #storage = inject(StorageService);
@@ -51,11 +51,11 @@ export class VaultImportComponent extends NavComponent implements OnInit {
 
   async #loadData() {
     this.snapshots = (
-      this.#storage.getGootiMetaHandler().gootiMetaData?.vaultSnapshots ?? []
+      this.#storage.getSignerMetaHandler().signerMetaData?.vaultSnapshots ?? []
     ).sortBy((x) => x.fileName, 'desc');
 
     const syncFlow =
-      this.#storage.getGootiMetaHandler().gootiMetaData?.syncFlow;
+      this.#storage.getSignerMetaHandler().signerMetaData?.syncFlow;
 
     switch (syncFlow) {
       case BrowserSyncFlow.BROWSER_SYNC:

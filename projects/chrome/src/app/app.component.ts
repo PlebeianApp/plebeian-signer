@@ -14,7 +14,7 @@ export class AppComponent implements OnInit {
   readonly #logger = inject(LoggerService);
 
   ngOnInit(): void {
-    this.#logger.initialize('Gooti Chrome Extension');
+    this.#logger.initialize('Plebian Signer Chrome Extension');
 
     this.#startup.startOver(getNewStorageServiceConfig());
   }

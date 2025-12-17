@@ -8,7 +8,7 @@ export const getNewStorageServiceConfig = () => {
     browserSessionHandler: new FirefoxSessionHandler(),
     browserSyncYesHandler: new FirefoxSyncYesHandler(),
     browserSyncNoHandler: new FirefoxSyncNoHandler(),
-    gootiMetaHandler: new FirefoxMetaHandler(),
+    signerMetaHandler: new FirefoxMetaHandler(),
   };
 
   return storageConfig;

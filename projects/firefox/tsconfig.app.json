@@ -9,8 +9,8 @@
   "files": [
     "src/main.ts",
     "src/background.ts",
-    "src/gooti-extension.ts",
-    "src/gooti-content-script.ts",
+    "src/plebian-signer-extension.ts",
+    "src/plebian-signer-content-script.ts",
     "src/prompt.ts",
     "src/options.ts"
   ],

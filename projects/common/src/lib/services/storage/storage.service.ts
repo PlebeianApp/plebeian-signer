@@ -6,10 +6,10 @@ import {
   BrowserSessionData,
   BrowserSyncData,
   BrowserSyncFlow,
-  GootiMetaData,
+  SignerMetaData,
   Relay_DECRYPTED,
 } from './types';
-import { GootiMetaHandler } from './gooti-meta-handler';
+import { SignerMetaHandler } from './signer-meta-handler';
 import { CryptoHelper } from '@common';
 import {
   addIdentity,
@@ -24,7 +24,7 @@ export interface StorageServiceConfig {
   browserSessionHandler: BrowserSessionHandler;
   browserSyncYesHandler: BrowserSyncHandler;
   browserSyncNoHandler: BrowserSyncHandler;
-  gootiMetaHandler: GootiMetaHandler;
+  signerMetaHandler: SignerMetaHandler;
 }
 
 @Injectable({
@@ -37,7 +37,7 @@ export class StorageService {
   #browserSessionHandler!: BrowserSessionHandler;
   #browserSyncYesHandler!: BrowserSyncHandler;
   #browserSyncNoHandler!: BrowserSyncHandler;
-  #gootiMetaHandler!: GootiMetaHandler;
+  #signerMetaHandler!: SignerMetaHandler;
 
   initialize(config: StorageServiceConfig): void {
     if (this.isInitialized) {
@@ -46,27 +46,27 @@ export class StorageService {
     this.#browserSessionHandler = config.browserSessionHandler;
     this.#browserSyncYesHandler = config.browserSyncYesHandler;
     this.#browserSyncNoHandler = config.browserSyncNoHandler;
-    this.#gootiMetaHandler = config.gootiMetaHandler;
+    this.#signerMetaHandler = config.signerMetaHandler;
     this.isInitialized = true;
   }
 
   async enableBrowserSyncFlow(flow: BrowserSyncFlow): Promise<void> {
     this.assureIsInitialized();
 
-    this.#gootiMetaHandler.setBrowserSyncFlow(flow);
+    this.#signerMetaHandler.setBrowserSyncFlow(flow);
   }
 
-  async loadGootiMetaData(): Promise<GootiMetaData | undefined> {
+  async loadSignerMetaData(): Promise<SignerMetaData | undefined> {
     this.assureIsInitialized();
 
-    const data = await this.#gootiMetaHandler.loadFullData();
+    const data = await this.#signerMetaHandler.loadFullData();
     if (Object.keys(data).length === 0) {
       // No data available yet.
       return undefined;
     }
 
-    this.#gootiMetaHandler.setFullData(data as GootiMetaData);
-    return data as GootiMetaData;
+    this.#signerMetaHandler.setFullData(data as SignerMetaData);
+    return data as SignerMetaData;
   }
 
   async loadBrowserSessionData(): Promise<BrowserSessionData | undefined> {
@@ -119,7 +119,7 @@ export class StorageService {
     this.assureIsInitialized();
     await this.getBrowserSyncHandler().clearData();
     await this.getBrowserSessionHandler().clearData();
-    await this.getGootiMetaHandler().clearData([]);
+    await this.getSignerMetaHandler().clearData([]);
     this.isInitialized = false;
   }
 
@@ -195,7 +195,7 @@ export class StorageService {
   getBrowserSyncHandler(): BrowserSyncHandler {
     this.assureIsInitialized();
 
-    switch (this.#gootiMetaHandler.gootiMetaData?.syncFlow) {
+    switch (this.#signerMetaHandler.signerMetaData?.syncFlow) {
       case BrowserSyncFlow.NO_SYNC:
         return this.#browserSyncNoHandler;
 
@@ -211,10 +211,10 @@ export class StorageService {
     return this.#browserSessionHandler;
   }
 
-  getGootiMetaHandler(): GootiMetaHandler {
+  getSignerMetaHandler(): SignerMetaHandler {
     this.assureIsInitialized();
 
-    return this.#gootiMetaHandler;
+    return this.#signerMetaHandler;
   }
 
   /**

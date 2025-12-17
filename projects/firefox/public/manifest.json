@@ -1,9 +1,9 @@
 {
   "manifest_version": 3,
-  "name": "Gooti",
+  "name": "Plebian Signer",
   "description": "Nostr Identity Manager & Signer",
   "version": "0.0.4",
-  "homepage_url": "https://getgooti.com",
+  "homepage_url": "https://git.mleku.dev/mleku/plebeian-signer",
   "options_page": "options.html",
   "permissions": [
     "storage"
@@ -24,7 +24,7 @@
         "<all_urls>"
       ],
       "js": [
-        "gooti-content-script.js"
+        "plebian-signer-content-script.js"
       ],
       "all_frames": true
     }
@@ -32,7 +32,7 @@
   "web_accessible_resources": [
     {
       "resources": [
-        "gooti-extension.js"
+        "plebian-signer-extension.js"
       ],
       "matches": [
         "<all_urls>"
@@ -41,7 +41,7 @@
   ],
   "browser_specific_settings": {
     "gecko": {
-      "id": "fox@getgooti.com"
+      "id": "plebian-signer@mleku.dev"
     }
   }
 }

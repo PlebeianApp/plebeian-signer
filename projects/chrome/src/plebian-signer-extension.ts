@@ -25,7 +25,7 @@ class Messenger {
       window.postMessage(
         {
           id,
-          ext: 'gooti',
+          ext: 'plebian-signer',
           method,
           params,
         },
@@ -41,7 +41,7 @@ class Messenger {
       !message.data ||
       message.data.response === null ||
       message.data.response === undefined ||
-      message.data.ext !== 'gooti' ||
+      message.data.ext !== 'plebian-signer' ||
       !this.#requests.has(message.data.id)
     ) {
       return;

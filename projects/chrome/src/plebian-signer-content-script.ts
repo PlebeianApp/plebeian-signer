@@ -7,7 +7,7 @@ import { BackgroundRequestMessage } from './background-common';
 const script = document.createElement('script');
 script.setAttribute('async', 'false');
 script.setAttribute('type', 'text/javascript');
-script.setAttribute('src', browser.runtime.getURL('gooti-extension.js'));
+script.setAttribute('src', browser.runtime.getURL('plebian-signer-extension.js'));
 (document.head || document.documentElement).appendChild(script);
 
 // listen for messages from that script
@@ -18,7 +18,7 @@ window.addEventListener('message', async (message) => {
   if (message.source !== window) return;
   if (!message.data) return;
   if (!message.data.params) return;
-  if (message.data.ext !== 'gooti') return;
+  if (message.data.ext !== 'plebian-signer') return;
 
   // pass on to background
   let response;
@@ -36,7 +36,7 @@ window.addEventListener('message', async (message) => {
 
   // return response
   window.postMessage(
-    { id: message.data.id, ext: 'gooti', response },
+    { id: message.data.id, ext: 'plebian-signer', response },
     message.origin
   );
 });

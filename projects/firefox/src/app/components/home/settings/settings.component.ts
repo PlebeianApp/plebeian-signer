@@ -27,7 +27,7 @@ export class SettingsComponent extends NavComponent implements OnInit {
     );
     console.log(vault.length / 1024 + ' KB');
 
-    switch (this.#storage.getGootiMetaHandler().gootiMetaData?.syncFlow) {
+    switch (this.#storage.getSignerMetaHandler().signerMetaData?.syncFlow) {
       case BrowserSyncFlow.NO_SYNC:
         this.syncFlow = 'Off';
         break;
@@ -55,7 +55,7 @@ export class SettingsComponent extends NavComponent implements OnInit {
     const jsonVault = this.#storage.exportVault();
 
     const dateTimeString = DateHelper.dateToISOLikeButLocal(new Date());
-    const fileName = `Gooti Chrome - Vault Export - ${dateTimeString}.json`;
+    const fileName = `Plebian Signer Firefox - Vault Export - ${dateTimeString}.json`;
 
     this.#downloadJson(jsonVault, fileName);
   }

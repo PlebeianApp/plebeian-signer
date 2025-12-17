@@ -9,7 +9,7 @@ export const getNewStorageServiceConfig = () => {
     browserSessionHandler: new ChromeSessionHandler(),
     browserSyncYesHandler: new ChromeSyncYesHandler(),
     browserSyncNoHandler: new ChromeSyncNoHandler(),
-    gootiMetaHandler: new ChromeMetaHandler(),
+    signerMetaHandler: new ChromeMetaHandler(),
   };
 
   return storageConfig;

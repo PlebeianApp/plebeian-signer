@@ -19,17 +19,17 @@ export class StartupService {
 
     // Step 0:
     storageConfig.browserSyncNoHandler.setIgnoreProperties(
-      storageConfig.gootiMetaHandler.metaProperties
+      storageConfig.signerMetaHandler.metaProperties
     );
 
-    // Step 1: Load the gooti's user settings
-    const gootiMetaData = await this.#storage.loadGootiMetaData();
-    if (typeof gootiMetaData?.syncFlow === 'undefined') {
-      // Very first run. The user has not set up Gooti yet.
+    // Step 1: Load the user settings
+    const signerMetaData = await this.#storage.loadSignerMetaData();
+    if (typeof signerMetaData?.syncFlow === 'undefined') {
+      // Very first run. The user has not set up Plebian Signer yet.
       this.#router.navigateByUrl('/welcome');
       return;
     }
-    this.#storage.enableBrowserSyncFlow(gootiMetaData.syncFlow);
+    this.#storage.enableBrowserSyncFlow(signerMetaData.syncFlow);
 
     // Load the browser session data.
     const browserSessionData = await this.#storage.loadBrowserSessionData();

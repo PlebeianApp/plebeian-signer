@@ -19,7 +19,7 @@ export * from './lib/services/storage/storage.service';
 export * from './lib/services/storage/types';
 export * from './lib/services/storage/browser-sync-handler';
 export * from './lib/services/storage/browser-session-handler';
-export * from './lib/services/storage/gooti-meta-handler';
+export * from './lib/services/storage/signer-meta-handler';
 export * from './lib/services/logger/logger.service';
 export * from './lib/services/startup/startup.service';
 

@@ -1,8 +1,8 @@
-# Gooti
+# Plebian Signer
 
 ## Nostr Identity Manager & Signer
 
-Gooti is a browser extension for managing multiple [Nostr](https://github.com/nostr-protocol/nostr) identities and for signing events on web apps without having to give them your keys.
+Plebian Signer is a browser extension for managing multiple [Nostr](https://github.com/nostr-protocol/nostr) identities and for signing events on web apps without having to give them your keys.
 
 It implements these mandatory [NIP-07](https://github.com/nostr-protocol/nips/blob/master/07.md) methods:
 
@@ -21,19 +21,15 @@ async window.nostr.nip44.encrypt(pubkey, plaintext): string
 async window.nostr.nip44.decrypt(pubkey, ciphertext): string
 ```
 
-The repository is configured as monorepo to hold the extensions for Chrome and Firefox. 
-
-[Get the Firefox extension here!](https://addons.mozilla.org/en-US/firefox/addon/gooti/)
-
-[Get the Chrome extension here!](https://chromewebstore.google.com/detail/gooti/cpcnmacmpalecmijkbcajanpdlcgjpgj)
+The repository is configured as monorepo to hold the extensions for Chrome and Firefox.
 
 ## Develop Chrome Extension
 
 To build and run the Chrome extension from this code:
 
 ```
-git clone https://github.com/sam-hayes-org/gooti-extension
-cd gooti-extension
+git clone https://git.mleku.dev/mleku/plebeian-signer
+cd plebeian-signer
 npm ci
 npm run build:chrome
 ```
@@ -50,8 +46,8 @@ then
 To build and run the Firefox extension from this code:
 
 ```
-git clone https://github.com/sam-hayes-org/gooti-extension
-cd gooti-extension
+git clone https://git.mleku.dev/mleku/plebeian-signer
+cd plebeian-signer
 npm ci
 npm run build:firefox
 ```

@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { GootiMetaData, GootiMetaHandler } from '@common';
+import { SignerMetaData, SignerMetaHandler } from '@common';
 
-export class ChromeMetaHandler extends GootiMetaHandler {
+export class ChromeMetaHandler extends SignerMetaHandler {
   async loadFullData(): Promise<Partial<Record<string, any>>> {
     const dataWithPossibleAlienProperties = await chrome.storage.local.get(
       null
@@ -19,7 +19,7 @@ export class ChromeMetaHandler extends GootiMetaHandler {
     return data;
   }
 
-  async saveFullData(data: GootiMetaData): Promise<void> {
+  async saveFullData(data: SignerMetaData): Promise<void> {
     await chrome.storage.local.set(data);
   }
 

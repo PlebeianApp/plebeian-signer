@@ -14,7 +14,7 @@ export class AppComponent implements OnInit {
   readonly #logger = inject(LoggerService);
 
   ngOnInit(): void {
-    this.#logger.initialize('Gooti Firefox Extension');
+    this.#logger.initialize('Plebian Signer Firefox Extension');
 
     this.#startup.startOver(getNewStorageServiceConfig());
   }

@@ -6,12 +6,12 @@ module.exports = {
       import: 'src/background.ts',
       runtime: false,
     },
-    'gooti-extension': {
-      import: 'src/gooti-extension.ts',
+    'plebian-signer-extension': {
+      import: 'src/plebian-signer-extension.ts',
       runtime: false,
     },
-    'gooti-content-script': {
-      import: 'src/gooti-content-script.ts',
+    'plebian-signer-content-script': {
+      import: 'src/plebian-signer-content-script.ts',
       runtime: false,
     },
     prompt: {

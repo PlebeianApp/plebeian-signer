@@ -10,7 +10,7 @@ import {
 /**
  * Handles the browser "sync data" when the user does not want to sync anything.
  * It uses the chrome.storage.local API to store the data. Since we also use this API
- * to store local Gooti system data (like the user's decision to not sync), we
+ * to store local Signer system data (like the user's decision to not sync), we
  * have to exclude these properties from the sync data.
  */
 export class ChromeSyncNoHandler extends BrowserSyncHandler {

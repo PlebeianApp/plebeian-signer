@@ -113,7 +113,7 @@ export const deleteVault = async function (
   doNotSetIsInitializedToFalse: boolean
 ): Promise<void> {
   this.assureIsInitialized();
-  const syncFlow = this.getGootiMetaHandler().gootiMetaData?.syncFlow;
+  const syncFlow = this.getSignerMetaHandler().signerMetaData?.syncFlow;
   if (typeof syncFlow === 'undefined') {
     throw new Error('Sync flow is not set.');
   }

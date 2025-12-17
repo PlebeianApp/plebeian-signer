@@ -62,7 +62,7 @@ export type BrowserSyncData = BrowserSyncData_PART_Unencrypted &
 export enum BrowserSyncFlow {
   NO_SYNC = 0,
   BROWSER_SYNC = 1,
-  GOOTI_SYNC = 2,
+  SIGNER_SYNC = 2,
   CUSTOM_SYNC = 3,
 }
 
@@ -79,17 +79,17 @@ export interface BrowserSessionData {
   relays: Relay_DECRYPTED[];
 }
 
-export interface GootiMetaData_VaultSnapshot {
+export interface SignerMetaData_VaultSnapshot {
   fileName: string;
   data: BrowserSyncData;
 }
 
-export const GOOTI_META_DATA_KEY = {
+export const SIGNER_META_DATA_KEY = {
   vaultSnapshots: 'vaultSnapshots',
 };
 
-export interface GootiMetaData {
-  syncFlow?: number; // 0 = no sync, 1 = browser sync, (future: 2 = Gooti sync, 3 = Custom sync (bring your own sync))
+export interface SignerMetaData {
+  syncFlow?: number; // 0 = no sync, 1 = browser sync, (future: 2 = Signer sync, 3 = Custom sync (bring your own sync))
 
-  vaultSnapshots?: GootiMetaData_VaultSnapshot[];
+  vaultSnapshots?: SignerMetaData_VaultSnapshot[];
 }

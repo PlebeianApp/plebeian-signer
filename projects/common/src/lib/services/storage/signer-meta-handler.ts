@@ -1,12 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { BrowserSyncFlow, GootiMetaData } from './types';
+import { BrowserSyncFlow, SignerMetaData } from './types';
 
-export abstract class GootiMetaHandler {
-  get gootiMetaData(): GootiMetaData | undefined {
-    return this.#gootiMetaData;
+export abstract class SignerMetaHandler {
+  get signerMetaData(): SignerMetaData | undefined {
+    return this.#signerMetaData;
   }
 
-  #gootiMetaData?: GootiMetaData;
+  #signerMetaData?: SignerMetaData;
 
   readonly metaProperties = ['syncFlow', 'vaultSnapshots'];
   /**
@@ -18,25 +18,25 @@ export abstract class GootiMetaHandler {
    */
   abstract loadFullData(): Promise<Partial<Record<string, any>>>;
 
-  setFullData(data: GootiMetaData) {
-    this.#gootiMetaData = data;
+  setFullData(data: SignerMetaData) {
+    this.#signerMetaData = data;
   }
 
-  abstract saveFullData(data: GootiMetaData): Promise<void>;
+  abstract saveFullData(data: SignerMetaData): Promise<void>;
 
   /**
    * Sets the browser sync flow for the user and immediately saves it.
    */
   async setBrowserSyncFlow(flow: BrowserSyncFlow): Promise<void> {
-    if (!this.#gootiMetaData) {
-      this.#gootiMetaData = {
+    if (!this.#signerMetaData) {
+      this.#signerMetaData = {
         syncFlow: flow,
       };
     } else {
-      this.#gootiMetaData.syncFlow = flow;
+      this.#signerMetaData.syncFlow = flow;
     }
 
-    await this.saveFullData(this.#gootiMetaData);
+    await this.saveFullData(this.#signerMetaData);
   }
 
   abstract clearData(keep: string[]): Promise<void>;

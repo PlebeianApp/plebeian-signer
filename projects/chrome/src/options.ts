@@ -1,7 +1,7 @@
 import {
   BrowserSyncData,
-  GOOTI_META_DATA_KEY,
-  GootiMetaData_VaultSnapshot,
+  SIGNER_META_DATA_KEY,
+  SignerMetaData_VaultSnapshot,
 } from '@common';
 import './app/common/extensions/array';
 import browser from 'webextension-polyfill';
@@ -10,13 +10,13 @@ import browser from 'webextension-polyfill';
 // Functions
 //
 
-async function getGootiMetaDataVaultSnapshots(): Promise<
-  GootiMetaData_VaultSnapshot[]
+async function getSignerMetaDataVaultSnapshots(): Promise<
+  SignerMetaData_VaultSnapshot[]
 > {
   const data = (await browser.storage.local.get(
-    GOOTI_META_DATA_KEY.vaultSnapshots
+    SIGNER_META_DATA_KEY.vaultSnapshots
   )) as {
-    vaultSnapshots?: GootiMetaData_VaultSnapshot[];
+    vaultSnapshots?: SignerMetaData_VaultSnapshot[];
   };
 
   return typeof data.vaultSnapshots === 'undefined'
@@ -24,15 +24,15 @@ async function getGootiMetaDataVaultSnapshots(): Promise<
     : data.vaultSnapshots.sortBy((x) => x.fileName, 'desc');
 }
 
-async function setGootiMetaDataVaultSnapshots(
-  vaultSnapshots: GootiMetaData_VaultSnapshot[]
+async function setSignerMetaDataVaultSnapshots(
+  vaultSnapshots: SignerMetaData_VaultSnapshot[]
 ): Promise<void> {
   await browser.storage.local.set({
     vaultSnapshots,
   });
 }
 
-function rebuildSnapshotsList(snapshots: GootiMetaData_VaultSnapshot[]) {
+function rebuildSnapshotsList(snapshots: SignerMetaData_VaultSnapshot[]) {
   const ul = document.getElementById('snapshotsList');
   if (!ul) {
     return;
@@ -77,7 +77,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   ) as HTMLInputElement;
 
   deleteSnapshotsButton?.addEventListener('click', async () => {
-    await setGootiMetaDataVaultSnapshots([]);
+    await setSignerMetaDataVaultSnapshots([]);
     rebuildSnapshotsList([]);
   });
 
@@ -92,9 +92,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     try {
-      const existingSnapshots = await getGootiMetaDataVaultSnapshots();
+      const existingSnapshots = await getSignerMetaDataVaultSnapshots();
 
-      const newSnapshots: GootiMetaData_VaultSnapshot[] = [];
+      const newSnapshots: SignerMetaData_VaultSnapshot[] = [];
       for (const file of files) {
         const text = await file.text();
         const vault = JSON.parse(text) as BrowserSyncData;
@@ -116,7 +116,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       );
 
       // Persist the new snapshots to the local storage
-      await setGootiMetaDataVaultSnapshots(snapshots);
+      await setSignerMetaDataVaultSnapshots(snapshots);
 
       //
       rebuildSnapshotsList(snapshots);
@@ -125,6 +125,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
-  const snapshots = await getGootiMetaDataVaultSnapshots();
+  const snapshots = await getSignerMetaDataVaultSnapshots();
   rebuildSnapshotsList(snapshots);
 });
