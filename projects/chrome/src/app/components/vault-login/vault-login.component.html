@@ -1,11 +1,11 @@
 <div class="sam-text-header">
-  <span class="brand">Plebian Signer</span>
+  <span class="brand">Plebeian Signer</span>
 </div>
 
 <div class="content-login-vault">
   <div class="sam-flex-column gap" style="align-items: center">
     <div class="logo-frame">
-      <img src="gooti.svg" height="120" width="120" alt="" />
+      <img src="logo.svg" height="120" width="120" alt="" />
     </div>
 
     <div class="sam-mt-2 input-group">
@@ -15,6 +15,7 @@
         class="form-control"
         placeholder="vault password"
         [(ngModel)]="loginPassword"
+        (keyup.enter)="loginPassword && loginVault()"
       />
       <button
         class="btn btn-outline-secondary"

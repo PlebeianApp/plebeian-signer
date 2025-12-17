@@ -3,16 +3,84 @@
 @use "_typography.scss";
 @use "_spacing.scss";
 @use "_color.scss";
+@use "_fonts.scss";
 
 :root {
+  // Sizing
   --size-2: 32px;
   --size: 16px;
   --size-h: 8px;
   --size-hh: 4px;
 
-  --background: #161c26;
-  --background-light: #202733;
-  --background-light-hover: #383844;
-  --border: #525b6a;
-  --primary: #0d6efd;
+  // Fonts
+  --font-sans: 'IBM Plex Mono', monospace;
+  --font-heading: 'reglisse', sans-serif;
+  --font-theylive: 'theylive', sans-serif;
+
+  // Background colors (dark theme based on market)
+  --background: #0a0a0a;
+  --background-light: #131313;
+  --background-light-hover: #1d1d1d;
+  --foreground: #fafafa;
+
+  // Border colors (adapted from market --border: #dac8d3)
+  --border: #3d3d3d;
+  --border-light: #4d4d4d;
+
+  // Primary colors (dark buttons like market, inverted for dark theme)
+  --primary: #fafafa;
+  --primary-hover: #ff3eb5;
+  --primary-foreground: #1d1d1d;
+  --primary-foreground-hover: #ff3eb5;
+  --primary-border: #fafafa;
+  --primary-border-hover: #ff3eb5;
+
+  // Secondary colors (pink accent - the main brand color from market)
+  --secondary: #ff3eb5;
+  --secondary-hover: #0a0a0a;
+  --secondary-foreground: #0a0a0a;
+  --secondary-foreground-hover: #ff3eb5;
+  --secondary-border: #ff3eb5;
+  --secondary-border-hover: #ff3eb5;
+
+  // Focus colors (yellow from market)
+  --focus: #ffd53d;
+  --focus-hover: #0a0a0a;
+  --focus-foreground: #0a0a0a;
+  --focus-foreground-hover: #ffd53d;
+  --focus-border: #ffd53d;
+  --focus-border-hover: #ffd53d;
+
+  // Muted colors
+  --muted: #1d1d1d;
+  --muted-foreground: #666666;
+
+  // Accent colors
+  --accent: #2a2a2a;
+  --accent-foreground: #fafafa;
+
+  // Destructive colors
+  --destructive: #bf4040;
+  --destructive-foreground: #fafafa;
+
+  // Additional brand colors (from market)
+  --off-black: #0a0a0a;
+  --neo-purple: #ff3eb5;
+  --secondary-black: #131313;
+  --tertiary-black: #1d1d1d;
+  --neo-blue: #18b9fe;
+  --neo-yellow: #ffd53d;
+  --light-gray: #ebebeb;
+  --neo-gray: #f8f8f8;
+
+  // Ring color for focus states
+  --ring: #ff3eb5;
+  --input: #996685;
+
+  // Border radius (from market)
+  --radius: 0.25rem;
+  --radius-sm: 2px;
+  --radius-md: 4px;
+  --radius-lg: 8px;
+  --radius-xl: 24px;
 }

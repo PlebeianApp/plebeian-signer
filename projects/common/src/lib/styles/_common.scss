@@ -30,8 +30,9 @@
 .sam-card {
   padding: var(--size);
   background: var(--background-light);
-  border-radius: 8px;
-  color: #ffffff;
+  border-radius: var(--radius-lg);
+  color: var(--foreground);
   display: flex;
   flex-direction: column;
+  border: 1px solid var(--border);
 }

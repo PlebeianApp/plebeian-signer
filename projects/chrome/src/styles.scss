@@ -12,9 +12,16 @@ body {
   height: 600px;
   width: 375px;
 
-  color: #ffffff;
+  color: var(--foreground);
+  font-family: var(--font-sans);
   font-size: 16px;
   background: var(--background);
 
   margin: 0;
+}
+
+// Button styling to match market
+button {
+  text-transform: uppercase;
+  font-family: var(--font-sans);
 }

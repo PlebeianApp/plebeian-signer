@@ -51,7 +51,7 @@ browser.runtime.onMessage.addListener(async (message /*, sender*/) => {
   const browserSessionData = await getBrowserSessionData();
 
   if (!browserSessionData) {
-    throw new Error('Plebian Signer vault not unlocked by the user.');
+    throw new Error('Plebeian Signer vault not unlocked by the user.');
   }
 
   const currentIdentity = browserSessionData.identities.find(

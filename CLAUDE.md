@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Plebian Signer is a browser extension for managing multiple Nostr identities and signing events without exposing private keys to web applications. It implements NIP-07 (window.nostr interface) with support for NIP-04 and NIP-44 encryption.
+Plebeian Signer is a browser extension for managing multiple Nostr identities and signing events without exposing private keys to web applications. It implements NIP-07 (window.nostr interface) with support for NIP-04 and NIP-44 encryption.
 
 ## Build Commands
 

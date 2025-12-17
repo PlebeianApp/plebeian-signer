@@ -10,6 +10,17 @@
     align-items: center;
   }
 
+  .title {
+    font-size: 20px;
+    font-weight: 500;
+    margin-bottom: var(--size);
+  }
+
+  .logo-frame {
+    border: 2px solid var(--secondary);
+    border-radius: 100%;
+  }
+
   .file-input {
     position: absolute;
     visibility: hidden;

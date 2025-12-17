@@ -25,7 +25,7 @@ export class StartupService {
     // Step 1: Load the user settings
     const signerMetaData = await this.#storage.loadSignerMetaData();
     if (typeof signerMetaData?.syncFlow === 'undefined') {
-      // Very first run. The user has not set up Plebian Signer yet.
+      // Very first run. The user has not set up Plebeian Signer yet.
       this.#router.navigateByUrl('/welcome');
       return;
     }

@@ -55,7 +55,7 @@ export class SettingsComponent extends NavComponent implements OnInit {
     const jsonVault = this.#storage.exportVault();
 
     const dateTimeString = DateHelper.dateToISOLikeButLocal(new Date());
-    const fileName = `Plebian Signer Firefox - Vault Export - ${dateTimeString}.json`;
+    const fileName = `Plebeian Signer Firefox - Vault Export - ${dateTimeString}.json`;
 
     this.#downloadJson(jsonVault, fileName);
   }

@@ -2,6 +2,33 @@
   color: var(--primary);
 }
 
+.sam-color-secondary {
+  color: var(--secondary);
+}
+
+.sam-color-focus {
+  color: var(--focus);
+}
+
 .sam-color-danger {
-    color: var(--bs-danger);
+  color: var(--destructive);
+}
+
+.sam-color-muted {
+  color: var(--muted-foreground);
+}
+
+// Background color utilities
+.sam-bg-primary {
+  background-color: var(--primary);
+  color: var(--primary-foreground);
+}
+
+.sam-bg-secondary {
+  background-color: var(--secondary);
+  color: var(--secondary-foreground);
+}
+
+.sam-bg-muted {
+  background-color: var(--muted);
 }

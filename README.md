@@ -1,8 +1,8 @@
-# Plebian Signer
+# Plebeian Signer
 
 ## Nostr Identity Manager & Signer
 
-Plebian Signer is a browser extension for managing multiple [Nostr](https://github.com/nostr-protocol/nostr) identities and for signing events on web apps without having to give them your keys.
+Plebeian Signer is a browser extension for managing multiple [Nostr](https://github.com/nostr-protocol/nostr) identities and for signing events on web apps without having to give them your keys.
 
 It implements these mandatory [NIP-07](https://github.com/nostr-protocol/nips/blob/master/07.md) methods:
 

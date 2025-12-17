@@ -1,5 +1,5 @@
 .sam-text-muted {
-  color: gray;
+  color: var(--muted-foreground);
 }
 
 .sam-text-lg {
@@ -14,6 +14,26 @@
   font-size: 12px;
 }
 
+.sam-text-xs {
+  font-size: 10px;
+}
+
 .sam-text-align-center {
   text-align: center;
+}
+
+.sam-text-uppercase {
+  text-transform: uppercase;
+}
+
+.sam-text-bold {
+  font-weight: 700;
+}
+
+.sam-text-semibold {
+  font-weight: 600;
+}
+
+.sam-text-medium {
+  font-weight: 500;
 }

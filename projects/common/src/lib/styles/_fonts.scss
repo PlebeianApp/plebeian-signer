@@ -1,0 +1,86 @@
+// Plebeian Market Font Definitions
+
+// Reglisse - Heading font
+@font-face {
+  font-family: 'reglisse';
+  src: url('../assets/fonts/Reglisse_Fill.otf') format('opentype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+  font-synthesis: none;
+}
+
+// IBM Plex Mono - Body font
+@font-face {
+  font-family: 'IBM Plex Mono';
+  src: url('../assets/fonts/IBMPlexMono-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'IBM Plex Mono';
+  src: url('../assets/fonts/IBMPlexMono-Medium.ttf') format('truetype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'IBM Plex Mono';
+  src: url('../assets/fonts/IBMPlexMono-SemiBold.ttf') format('truetype');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'IBM Plex Mono';
+  src: url('../assets/fonts/IBMPlexMono-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+// TheYLive - Display font
+@font-face {
+  font-family: 'theylive';
+  src: url('../assets/fonts/theylive.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+  font-synthesis: none;
+}
+
+// Font utility classes
+.font-heading {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  letter-spacing: 0.1rem;
+  font-synthesis: none;
+}
+
+.font-theylive {
+  font-family: var(--font-theylive);
+  font-weight: normal;
+  letter-spacing: 0.1em;
+  font-synthesis: none;
+}
+
+.font-mono {
+  font-family: var(--font-sans);
+}
+
+// Heading sizes
+h1.font-heading {
+  font-size: 2rem;
+}
+
+h2.font-heading {
+  font-size: 1.6rem;
+}
+
+h3.font-heading {
+  font-size: 1.4rem;
+}

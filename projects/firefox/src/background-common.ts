@@ -18,7 +18,7 @@ import browser from 'webextension-polyfill';
 
 export const debug = function (message: any) {
   const dateString = new Date().toISOString();
-  console.log(`[Plebian Signer - ${dateString}]: ${JSON.stringify(message)}`);
+  console.log(`[Plebeian Signer - ${dateString}]: ${JSON.stringify(message)}`);
 };
 
 export type PromptResponse =

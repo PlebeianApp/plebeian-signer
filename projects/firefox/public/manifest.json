@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Plebian Signer",
+  "name": "Plebeian Signer",
   "description": "Nostr Identity Manager & Signer",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "homepage_url": "https://git.mleku.dev/mleku/plebeian-signer",
   "options_page": "options.html",
   "permissions": [
@@ -10,7 +10,14 @@
   ],
   "action": {
     "default_popup": "index.html",
-    "default_icon": "gooti-with-bg.png"
+    "default_icon": {
+      "48": "icon-48.png",
+      "128": "icon-128.png"
+    }
+  },
+  "icons": {
+    "48": "icon-48.png",
+    "128": "icon-128.png"
   },
   "background": {
     "scripts": [

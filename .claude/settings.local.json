@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(sudo tee:*)",
+      "Bash(sudo apt install:*)",
+      "Bash(sudo sed:*)",
+      "Bash(sudo systemctl enable:*)",
+      "Bash(sudo systemctl start:*)",
+      "Bash(sudo tlp start:*)",
+      "Bash(chown:*)",
+      "Bash(find:*)"
+    ]
+  }
+}

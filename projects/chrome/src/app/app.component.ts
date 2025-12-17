@@ -14,7 +14,7 @@ export class AppComponent implements OnInit {
   readonly #logger = inject(LoggerService);
 
   ngOnInit(): void {
-    this.#logger.initialize('Plebian Signer Chrome Extension');
+    this.#logger.initialize('Plebeian Signer Chrome Extension');
 
     this.#startup.startOver(getNewStorageServiceConfig());
   }
