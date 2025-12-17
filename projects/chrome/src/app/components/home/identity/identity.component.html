@@ -3,52 +3,66 @@
   <span>You</span>
 </div>
 
-<div class="vertically-centered">
-  <div class="sam-flex-column center">
-    <div class="sam-flex-column gap center">
-      <div class="picture-frame" [class.padding]="!loadedData.profile?.image">
+<div class="identity-container">
+  <!-- Banner background -->
+  <div
+    class="banner-background"
+    [style.background-image]="bannerUrl ? 'url(' + bannerUrl + ')' : 'none'"
+  >
+    <div class="banner-overlay"></div>
+
+    <div class="profile-content">
+      <!-- Avatar -->
+      <div class="avatar-frame" [class.has-image]="avatarUrl">
         <img
-          [src]="
-            !loadedData.profile?.image
-              ? 'person-fill.svg'
-              : loadedData.profile?.image
-          "
+          [src]="avatarUrl || 'person-fill.svg'"
           alt=""
+          class="avatar-image"
         />
       </div>
 
+      <!-- Display name (primary, large) -->
       <!-- eslint-disable-next-line @angular-eslint/template/click-events-have-key-events -->
-      <span class="name" (click)="onClickShowDetails()">
-        {{ selectedIdentity?.nick }}
-      </span>
+      <div class="name-badge-container" (click)="onClickShowDetails()">
+        <span class="display-name">
+          {{ displayName || selectedIdentity?.nick || 'Unknown' }}
+        </span>
+        @if(username) {
+        <span class="username">
+          {{ username }}
+        </span>
+        }
+      </div>
 
-      @if(loadedData.profile) {
-      <div class="sam-flex-row gap-h">
-        @if(loadedData.validating) {
+      <!-- NIP-05 verification -->
+      @if(profile?.nip05) {
+      <div class="nip05-row">
+        @if(validating) {
         <i class="bi bi-circle color-activity"></i>
-        } @else { @if(loadedData.nip05isValidated) {
+        } @else { @if(nip05isValidated) {
         <i class="bi bi-patch-check sam-color-primary"></i>
         } @else {
         <i class="bi bi-exclamation-octagon-fill sam-color-danger"></i>
         } }
 
-        <span class="sam-color-primary">{{
-          loadedData.profile.nip05 | visualNip05
+        <span class="nip05-badge">{{
+          profile?.nip05 | visualNip05
         }}</span>
       </div>
-      } @else {
-      <span>&nbsp;</span>
       }
 
-      <lib-pubkey
-        [value]="selectedIdentityNpub ?? 'na'"
-        [first]="14"
-        [last]="8"
-        (click)="
-          copyToClipboard(selectedIdentityNpub);
-          toast.show('Copied to clipboard')
-        "
-      ></lib-pubkey>
+      <!-- npub display -->
+      <div class="npub-wrapper">
+        <lib-pubkey
+          [value]="selectedIdentityNpub ?? 'na'"
+          [first]="14"
+          [last]="8"
+          (click)="
+            copyToClipboard(selectedIdentityNpub);
+            toast.show('Copied to clipboard')
+          "
+        ></lib-pubkey>
+      </div>
     </div>
   </div>
 </div>

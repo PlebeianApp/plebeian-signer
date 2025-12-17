@@ -17,70 +17,130 @@
   --font-heading: 'reglisse', sans-serif;
   --font-theylive: 'theylive', sans-serif;
 
-  // Background colors (dark theme based on market)
-  --background: #0a0a0a;
-  --background-light: #131313;
-  --background-light-hover: #1d1d1d;
-  --foreground: #fafafa;
-
-  // Border colors (adapted from market --border: #dac8d3)
-  --border: #3d3d3d;
-  --border-light: #4d4d4d;
-
-  // Primary colors (dark buttons like market, inverted for dark theme)
-  --primary: #fafafa;
-  --primary-hover: #ff3eb5;
-  --primary-foreground: #1d1d1d;
-  --primary-foreground-hover: #ff3eb5;
-  --primary-border: #fafafa;
-  --primary-border-hover: #ff3eb5;
-
-  // Secondary colors (pink accent - the main brand color from market)
-  --secondary: #ff3eb5;
-  --secondary-hover: #0a0a0a;
-  --secondary-foreground: #0a0a0a;
-  --secondary-foreground-hover: #ff3eb5;
-  --secondary-border: #ff3eb5;
-  --secondary-border-hover: #ff3eb5;
-
-  // Focus colors (yellow from market)
-  --focus: #ffd53d;
-  --focus-hover: #0a0a0a;
-  --focus-foreground: #0a0a0a;
-  --focus-foreground-hover: #ffd53d;
-  --focus-border: #ffd53d;
-  --focus-border-hover: #ffd53d;
-
-  // Muted colors
-  --muted: #1d1d1d;
-  --muted-foreground: #666666;
-
-  // Accent colors
-  --accent: #2a2a2a;
-  --accent-foreground: #fafafa;
-
-  // Destructive colors
-  --destructive: #bf4040;
-  --destructive-foreground: #fafafa;
-
-  // Additional brand colors (from market)
-  --off-black: #0a0a0a;
-  --neo-purple: #ff3eb5;
-  --secondary-black: #131313;
-  --tertiary-black: #1d1d1d;
-  --neo-blue: #18b9fe;
-  --neo-yellow: #ffd53d;
-  --light-gray: #ebebeb;
-  --neo-gray: #f8f8f8;
-
-  // Ring color for focus states
-  --ring: #ff3eb5;
-  --input: #996685;
-
   // Border radius (from market)
   --radius: 0.25rem;
   --radius-sm: 2px;
   --radius-md: 4px;
   --radius-lg: 8px;
   --radius-xl: 24px;
+
+  // Primary colors - Pink action buttons (Plebeian Market style)
+  --primary: #ff3eb5;
+  --primary-hover: #e6359f;
+  --primary-foreground: #ffffff;
+  --primary-foreground-hover: #ffffff;
+  --primary-border: #ff3eb5;
+  --primary-border-hover: #e6359f;
+
+  // Secondary colors (pink accent)
+  --secondary: #ff3eb5;
+  --secondary-border: #ff3eb5;
+  --secondary-border-hover: #ff3eb5;
+
+  // Focus colors (yellow from market)
+  --focus: #ffd53d;
+  --focus-border: #ffd53d;
+  --focus-border-hover: #ffd53d;
+
+  // Brand colors
+  --neo-purple: #ff3eb5;
+  --neo-blue: #18b9fe;
+  --neo-yellow: #ffd53d;
+
+  // Ring color for focus states
+  --ring: #ff3eb5;
+
+  // Destructive colors
+  --destructive: #dc2626;
+  --destructive-foreground: #ffffff;
+}
+
+// ============================================
+// DARK THEME (default)
+// ============================================
+:root {
+  // Background colors
+  --background: #0a0a0a;
+  --background-light: #131313;
+  --background-light-hover: #1d1d1d;
+  --foreground: #fafafa;
+
+  // Border colors
+  --border: #3d3d3d;
+  --border-light: #4d4d4d;
+
+  // Secondary theme-dependent colors
+  --secondary-hover: #0a0a0a;
+  --secondary-foreground: #0a0a0a;
+  --secondary-foreground-hover: #ff3eb5;
+
+  // Focus theme-dependent colors
+  --focus-hover: #0a0a0a;
+  --focus-foreground: #0a0a0a;
+  --focus-foreground-hover: #ffd53d;
+
+  // Muted colors
+  --muted: #1d1d1d;
+  --muted-foreground: #a1a1a1;
+
+  // Accent colors
+  --accent: #2a2a2a;
+  --accent-foreground: #fafafa;
+
+  // Input colors
+  --input: #2a2a2a;
+  --input-border: #3d3d3d;
+
+  // Additional brand colors
+  --off-black: #0a0a0a;
+  --secondary-black: #131313;
+  --tertiary-black: #1d1d1d;
+  --light-gray: #ebebeb;
+  --neo-gray: #f8f8f8;
+}
+
+// ============================================
+// LIGHT THEME (follows browser preference)
+// ============================================
+@media (prefers-color-scheme: light) {
+  :root {
+    // Background colors
+    --background: #ffffff;
+    --background-light: #f5f5f5;
+    --background-light-hover: #ebebeb;
+    --foreground: #0a0a0a;
+
+    // Border colors
+    --border: #e0e0e0;
+    --border-light: #d0d0d0;
+
+    // Secondary theme-dependent colors
+    --secondary-hover: #fce7f3;
+    --secondary-foreground: #ffffff;
+    --secondary-foreground-hover: #ff3eb5;
+
+    // Focus theme-dependent colors
+    --focus-hover: #fef9c3;
+    --focus-foreground: #0a0a0a;
+    --focus-foreground-hover: #ca8a04;
+
+    // Muted colors
+    --muted: #f5f5f5;
+    --muted-foreground: #737373;
+
+    // Accent colors
+    --accent: #f5f5f5;
+    --accent-foreground: #0a0a0a;
+
+    // Input colors
+    --input: #ffffff;
+    --input-border: #d0d0d0;
+
+    // Additional brand colors (inverted for light)
+    --off-black: #ffffff;
+    --secondary-black: #f5f5f5;
+    --tertiary-black: #ebebeb;
+    --light-gray: #404040;
+    --neo-gray: #262626;
+  }
 }

@@ -4,6 +4,20 @@ import { Nip07Method } from '@common';
 
 type Relays = Record<string, { read: boolean; write: boolean }>;
 
+// Fallback UUID generator for contexts where crypto.randomUUID is unavailable
+function generateUUID(): string {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  // Fallback using crypto.getRandomValues
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  bytes[6] = (bytes[6] & 0x0f) | 0x40; // Version 4
+  bytes[8] = (bytes[8] & 0x3f) | 0x80; // Variant 10
+  const hex = [...bytes].map(b => b.toString(16).padStart(2, '0')).join('');
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
+
 class Messenger {
   #requests = new Map<
     string,
@@ -18,7 +32,7 @@ class Messenger {
   }
 
   async request(method: Nip07Method, params: any): Promise<any> {
-    const id = crypto.randomUUID();
+    const id = generateUUID();
 
     return new Promise((resolve, reject) => {
       this.#requests.set(id, { resolve, reject });

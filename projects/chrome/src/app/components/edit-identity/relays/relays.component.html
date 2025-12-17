@@ -6,23 +6,16 @@
       <div class="sam-flex-row gap-h">
         <lib-relay-rw
           type="read"
-          [(model)]="relay.read"
-          (modelChange)="onRelayChanged(relay)"
+          [model]="relay.read"
+          [readonly]="true"
         ></lib-relay-rw>
         <lib-relay-rw
           type="write"
-          [(model)]="relay.write"
-          (modelChange)="onRelayChanged(relay)"
+          [model]="relay.write"
+          [readonly]="true"
         ></lib-relay-rw>
       </div>
     </div>
-
-    <lib-icon-button
-      icon="trash"
-      title="Remove relay"
-      (click)="onClickRemoveRelay(relay)"
-      style="margin-top: 4px"
-    ></lib-icon-button>
   </div>
 </ng-template>
 
@@ -31,48 +24,37 @@
     icon="chevron-left"
     (click)="navigateBack()"
   ></lib-icon-button>
-  <span>Relays</span>
+  <span class="header-title">Relays</span>
 </div>
 
-<div class="sam-mb-2 sam-flex-row gap">
-  <div class="sam-flex-column sam-flex-grow">
-    <input
-      type="text"
-      (focus)="addRelayInputHasFocus = true"
-      (blur)="addRelayInputHasFocus = false"
-      [placeholder]="addRelayInputHasFocus ? 'server.com' : 'Add a relay'"
-      class="form-control"
-      [(ngModel)]="newRelay.url"
-      (ngModelChange)="evaluateCanAdd()"
-    />
-    <div class="sam-flex-row gap-h" style="margin-top: 4px">
-      <lib-relay-rw
-        class="sam-flex-grow"
-        type="read"
-        [(model)]="newRelay.read"
-        (modelChange)="evaluateCanAdd()"
-      ></lib-relay-rw>
-      <lib-relay-rw
-        class="sam-flex-grow"
-        type="write"
-        [(model)]="newRelay.write"
-        (modelChange)="evaluateCanAdd()"
-      ></lib-relay-rw>
-    </div>
-  </div>
-
-  <button
-    type="button"
-    class="btn btn-primary"
-    style="height: 100%"
-    (click)="onClickAddRelay()"
-    [disabled]="!canAdd"
-  >
-    Add
-  </button>
+<div class="info-banner">
+  <i class="bi bi-info-circle"></i>
+  <span>These relays are fetched from your NIP-65 relay list (kind 10002). To update your relay list, use a Nostr client that supports NIP-65.</span>
 </div>
 
-@for(relay of relays; track relay) {
+@if(loading) {
+<div class="loading-state">
+  <i class="bi bi-circle color-activity"></i>
+  <span>Fetching relay list...</span>
+</div>
+}
+
+@if(!loading && errorMessage) {
+<div class="error-state">
+  <i class="bi bi-exclamation-triangle sam-color-danger"></i>
+  <span>{{ errorMessage }}</span>
+</div>
+}
+
+@if(!loading && !errorMessage && relays.length === 0) {
+<div class="empty-state">
+  <i class="bi bi-broadcast"></i>
+  <span>No relay list found</span>
+  <span class="hint">Publish a NIP-65 relay list using a Nostr client to see your relays here.</span>
+</div>
+}
+
+@for(relay of relays; track relay.url) {
 <ng-container
   *ngTemplateOutlet="relayTemplate; context: { relay: relay }"
 ></ng-container>

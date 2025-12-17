@@ -1,16 +1,22 @@
 <!DOCTYPE html>
 
-<html data-bs-theme="dark">
+<html>
   <head>
     <title>Plebeian Signer - Options</title>
     <link rel="stylesheet" type="text/css" href="styles.css" />
     <script src="scripts.js"></script>
     <style>
+      /* Prevent white flash on load */
+      html { background-color: #0a0a0a; }
+      @media (prefers-color-scheme: light) {
+        html { background-color: #ffffff; }
+      }
+
       body {
         background: var(--background);
         height: 100vh;
         width: 100vw;
-        color: #ffffff;
+        color: var(--foreground);
         font-size: 16px;
         box-sizing: border-box;
       }

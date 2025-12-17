@@ -93,3 +93,26 @@ export interface SignerMetaData {
 
   vaultSnapshots?: SignerMetaData_VaultSnapshot[];
 }
+
+/**
+ * Cached profile metadata from kind 0 events
+ */
+export interface ProfileMetadata {
+  pubkey: string;
+  name?: string;
+  display_name?: string;
+  displayName?: string; // Some clients use this instead
+  picture?: string;
+  banner?: string;
+  about?: string;
+  website?: string;
+  nip05?: string;
+  lud06?: string;
+  lud16?: string;
+  fetchedAt: number; // Timestamp when this was fetched
+}
+
+/**
+ * Cache for profile metadata, stored in session storage
+ */
+export type ProfileMetadataCache = Record<string, ProfileMetadata>;

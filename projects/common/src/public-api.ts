@@ -5,6 +5,9 @@
 // Common
 export * from './lib/common/nav-component';
 
+// Constants
+export * from './lib/constants/fallback-relays';
+
 // Helpers
 export * from './lib/helpers/crypto-helper';
 export * from './lib/helpers/nostr-helper';
@@ -22,6 +25,8 @@ export * from './lib/services/storage/browser-session-handler';
 export * from './lib/services/storage/signer-meta-handler';
 export * from './lib/services/logger/logger.service';
 export * from './lib/services/startup/startup.service';
+export * from './lib/services/profile-metadata/profile-metadata.service';
+export * from './lib/services/relay-list/relay-list.service';
 
 // Components
 export * from './lib/components/icon-button/icon-button.component';

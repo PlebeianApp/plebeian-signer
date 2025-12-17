@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Plebeian Signer - Nostr Identity Manager & Signer",
   "description": "Manage and switch between multiple identities while interacting with Nostr apps",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "homepage_url": "https://git.mleku.dev/mleku/plebeian-signer",
   "options_page": "options.html",
   "permissions": [
@@ -42,10 +42,7 @@
       ],
       "matches": [
         "https://*/*",
-        "http://localhost:*/*",
-        "http://0.0.0.0:*/*",
-        "http://127.0.0.1:*/*",
-        "http://*.localhost/*"
+        "http://*/*"
       ]
     }
   ]

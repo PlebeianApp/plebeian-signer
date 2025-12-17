@@ -25,3 +25,79 @@ button {
   text-transform: uppercase;
   font-family: var(--font-sans);
 }
+
+// Override Bootstrap primary button with orange
+.btn-primary {
+  background-color: var(--primary);
+  border-color: var(--primary-border);
+  color: var(--primary-foreground);
+
+  &:hover,
+  &:focus {
+    background-color: var(--primary-hover);
+    border-color: var(--primary-border-hover);
+    color: var(--primary-foreground-hover);
+  }
+
+  &:active,
+  &.active {
+    background-color: var(--primary-hover);
+    border-color: var(--primary-border-hover);
+  }
+
+  &:disabled,
+  &.disabled {
+    background-color: var(--primary);
+    border-color: var(--primary-border);
+    opacity: 0.5;
+  }
+
+  &:focus-visible {
+    box-shadow: 0 0 0 0.25rem rgba(255, 62, 181, 0.25);
+  }
+}
+
+// Style for outline variant
+.btn-outline-primary {
+  color: var(--primary);
+  border-color: var(--primary-border);
+
+  &:hover,
+  &:focus {
+    background-color: var(--primary);
+    border-color: var(--primary-border);
+    color: var(--primary-foreground);
+  }
+}
+
+// Form inputs styling
+.form-control {
+  background-color: var(--input);
+  border-color: var(--input-border);
+  color: var(--foreground);
+
+  &:focus {
+    background-color: var(--input);
+    border-color: var(--primary);
+    color: var(--foreground);
+    box-shadow: 0 0 0 0.25rem rgba(255, 62, 181, 0.25);
+  }
+
+  &::placeholder {
+    color: var(--muted-foreground);
+  }
+}
+
+// Ensure alerts work in both themes
+.alert-danger {
+  background-color: var(--destructive);
+  border-color: var(--destructive);
+  color: var(--destructive-foreground);
+}
+
+// Cards and panels
+.sam-card {
+  background: var(--background-light);
+  border-color: var(--border);
+  color: var(--foreground);
+}

@@ -9,8 +9,10 @@
   justify-content: center;
 
   span {
-    font-size: 20px;
-    font-weight: 500;
+    font-family: var(--font-heading);
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: 0.1rem;
   }
 }
 

@@ -3,19 +3,14 @@ import { Router } from '@angular/router';
 import {
   Identity_DECRYPTED,
   NostrHelper,
+  ProfileMetadata,
+  ProfileMetadataService,
   PubkeyComponent,
   StorageService,
   ToastComponent,
   VisualNip05Pipe,
 } from '@common';
-import NDK, { NDKUserProfile } from '@nostr-dev-kit/ndk';
-
-interface LoadedData {
-  profile: NDKUserProfile | undefined;
-  nip05: string | undefined;
-  nip05isValidated: boolean | undefined;
-  validating: boolean;
-}
+import NDK from '@nostr-dev-kit/ndk';
 
 @Component({
   selector: 'app-identity',
@@ -26,18 +21,33 @@ interface LoadedData {
 export class IdentityComponent implements OnInit {
   selectedIdentity: Identity_DECRYPTED | undefined;
   selectedIdentityNpub: string | undefined;
-  loadedData: LoadedData = {
-    profile: undefined,
-    nip05: undefined,
-    nip05isValidated: undefined,
-    validating: false,
-  };
+  profile: ProfileMetadata | null = null;
+  nip05isValidated: boolean | undefined;
+  validating = false;
+  loading = true;
 
   readonly #storage = inject(StorageService);
   readonly #router = inject(Router);
+  readonly #profileMetadata = inject(ProfileMetadataService);
 
   ngOnInit(): void {
     this.#loadData();
+  }
+
+  get displayName(): string | undefined {
+    return this.#profileMetadata.getDisplayName(this.profile);
+  }
+
+  get username(): string | undefined {
+    return this.#profileMetadata.getUsername(this.profile);
+  }
+
+  get avatarUrl(): string | undefined {
+    return this.profile?.picture;
+  }
+
+  get bannerUrl(): string | undefined {
+    return this.profile?.banner;
   }
 
   copyToClipboard(pubkey: string | undefined) {
@@ -70,6 +80,7 @@ export class IdentityComponent implements OnInit {
         );
 
       if (!identity) {
+        this.loading = false;
         return;
       }
 
@@ -77,41 +88,66 @@ export class IdentityComponent implements OnInit {
       const pubkey = NostrHelper.pubkeyFromPrivkey(identity.privkey);
       this.selectedIdentityNpub = NostrHelper.pubkey2npub(pubkey);
 
-      // Determine the user's relays to check for his profile.
+      // Initialize the profile metadata service (loads cache from storage)
+      await this.#profileMetadata.initialize();
+
+      // Check if we have cached profile data
+      const cachedProfile = this.#profileMetadata.getCachedProfile(pubkey);
+      if (cachedProfile) {
+        this.profile = cachedProfile;
+        this.loading = false;
+        // Validate NIP-05 if present (in background)
+        if (cachedProfile.nip05) {
+          this.#validateNip05(pubkey, cachedProfile.nip05);
+        }
+        return; // Use cached data, don't fetch again
+      }
+
+      // No cached data, fetch from relays
+      this.loading = true;
+      const fetchedProfile = await this.#profileMetadata.fetchProfile(pubkey);
+      if (fetchedProfile) {
+        this.profile = fetchedProfile;
+        // Validate NIP-05 if present
+        if (fetchedProfile.nip05) {
+          this.#validateNip05(pubkey, fetchedProfile.nip05);
+        }
+      }
+
+      this.loading = false;
+    } catch (error) {
+      console.error(error);
+      this.loading = false;
+    }
+  }
+
+  async #validateNip05(pubkey: string, nip05: string) {
+    try {
+      this.validating = true;
+
+      // Get relays for validation
       const relays =
         this.#storage
           .getBrowserSessionHandler()
           .browserSessionData?.relays.filter(
-            (x) => x.identityId === identity.id
+            (x) => x.identityId === this.selectedIdentity?.id
           ) ?? [];
-      if (relays.length === 0) {
-        return;
-      }
 
       const relevantRelays = relays.filter((x) => x.write).map((x) => x.url);
 
-      // Fetch the user's profile.
-      const ndk = new NDK({
-        explicitRelayUrls: relevantRelays,
-      });
-
-      await ndk.connect();
-
-      const user = ndk.getUser({
-        pubkey: NostrHelper.pubkeyFromPrivkey(identity.privkey),
-        //relayUrls: relevantRelays,
-      });
-      this.loadedData.profile = (await user.fetchProfile()) ?? undefined;
-      if (this.loadedData.profile?.nip05) {
-        this.loadedData.validating = true;
-        this.loadedData.nip05isValidated =
-          (await user.validateNip05(this.loadedData.profile.nip05)) ??
-          undefined;
-        this.loadedData.validating = false;
+      if (relevantRelays.length > 0) {
+        const ndk = new NDK({
+          explicitRelayUrls: relevantRelays,
+        });
+        await ndk.connect();
+        const user = ndk.getUser({ pubkey });
+        this.nip05isValidated = (await user.validateNip05(nip05)) ?? undefined;
       }
+
+      this.validating = false;
     } catch (error) {
-      console.error(error);
-      // TODO
+      console.error('NIP-05 validation failed:', error);
+      this.validating = false;
     }
   }
 }

@@ -17,6 +17,7 @@ import {
 export class RelayRwComponent {
   @Input({ required: true }) type!: 'read' | 'write';
   @Input({ required: true }) model!: boolean;
+  @Input() readonly = false;
   @Output() modelChange = new EventEmitter<boolean>();
 
   @HostBinding('class.read') get isRead() {
@@ -27,7 +28,14 @@ export class RelayRwComponent {
     return this.model;
   }
 
+  @HostBinding('class.is-readonly') get isReadonly() {
+    return this.readonly;
+  }
+
   @HostListener('click') onClick() {
+    if (this.readonly) {
+      return;
+    }
     this.model = !this.model;
     this.modelChange.emit(this.model);
   }

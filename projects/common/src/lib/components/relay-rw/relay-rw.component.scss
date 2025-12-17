@@ -9,6 +9,11 @@
 
   cursor: pointer;
 
+  &.is-readonly {
+    cursor: default;
+    opacity: 0.8;
+  }
+
   &.read {
     &:not(.is-selected) {
       border: 1px solid var(--bs-green);

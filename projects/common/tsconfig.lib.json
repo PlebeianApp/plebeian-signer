@@ -7,7 +7,7 @@
     "declaration": true,
     "declarationMap": true,
     "inlineSources": true,
-    "types": []
+    "types": ["chrome"]
   },
   "exclude": [
     "**/*.spec.ts"

@@ -1,10 +1,17 @@
 <!doctype html>
-<html lang="en" data-bs-theme="dark">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <title>Plebeian Signer</title>
   <base href="/">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    /* Prevent white flash on load - default to dark, light theme overrides */
+    html, body { background-color: #0a0a0a; }
+    @media (prefers-color-scheme: light) {
+      html, body { background-color: #ffffff; }
+    }
+  </style>
 </head>
 <body>
   <app-root></app-root>

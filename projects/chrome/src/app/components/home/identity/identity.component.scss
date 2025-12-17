@@ -3,39 +3,162 @@
   display: flex;
   flex-direction: column;
 
-  .vertically-centered {
-    height: 100%;
+  .identity-container {
+    flex: 1;
     display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .banner-background {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
     justify-content: center;
     align-items: center;
+    position: relative;
+    background-size: cover;
+    background-position: center;
+    background-color: var(--background-light);
+
+    // Create square aspect ratio centered on vertical
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: inherit;
+      background-size: cover;
+      background-position: center center;
+    }
   }
 
-  .name {
-    font-size: 20px;
-    font-weight: 500;
-    cursor: pointer;
-    max-width: 343px;
-    overflow-x: hidden;
-    text-overflow: ellipsis;
+  .banner-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(
+      to bottom,
+      rgba(0, 0, 0, 0.3) 0%,
+      rgba(0, 0, 0, 0.5) 50%,
+      rgba(0, 0, 0, 0.3) 100%
+    );
+    z-index: 1;
   }
 
-  .picture-frame {
+  .profile-content {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 20px;
+  }
+
+  .avatar-frame {
     height: 120px;
     width: 120px;
-    border: 2px solid white;
+    border: 3px solid rgba(255, 255, 255, 0.9);
     border-radius: 100%;
-    &.padding {
-      padding: 12px;
+    background: var(--background);
+    padding: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+
+    &.has-image {
+      padding: 0;
     }
 
-    img {
+    .avatar-image {
       border-radius: 100%;
       width: 100%;
       height: 100%;
+      object-fit: cover;
+    }
+  }
+
+  // Common badge styling - rounded corners, black background
+  %text-badge {
+    background-color: rgba(0, 0, 0, 0.75);
+    padding: 6px 14px;
+    border-radius: 6px;
+    max-width: 300px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    backdrop-filter: blur(4px);
+  }
+
+  .name-badge-container {
+    @extend %text-badge;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+    white-space: normal;
+    text-align: center;
+
+    &:hover {
+      background-color: rgba(0, 0, 0, 0.85);
+    }
+
+    .display-name {
+      font-family: var(--font-heading);
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: 0.05rem;
+      color: #ffffff;
+    }
+
+    .username {
+      font-size: 13px;
+      font-weight: 400;
+      color: rgba(255, 255, 255, 0.85);
+    }
+  }
+
+  .nip05-row {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+
+    i {
+      font-size: 16px;
+    }
+  }
+
+  .nip05-badge {
+    @extend %text-badge;
+    font-size: 13px;
+    color: var(--primary);
+  }
+
+  .npub-wrapper {
+    @extend %text-badge;
+    padding: 8px 14px;
+
+    lib-pubkey {
+      cursor: pointer;
     }
   }
 
   .color-activity {
-    color: var(--bs-border-color);
+    color: var(--muted-foreground);
+    animation: pulse 1.5s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% {
+      opacity: 0.4;
+    }
+    50% {
+      opacity: 1;
+    }
   }
 }
