@@ -1,12 +1,12 @@
 {
   "name": "plebeian-signer",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "custom": {
     "chrome": {
-      "version": "0.0.6"
+      "version": "0.0.7"
     },
     "firefox": {
-      "version": "0.0.6"
+      "version": "0.0.7"
     }
   },
   "scripts": {

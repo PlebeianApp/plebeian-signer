@@ -35,34 +35,53 @@
     }
   }
 
+  .empty-state {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
+
   .identity {
-    height: 48px;
-    min-height: 48px;
+    height: 56px;
+    min-height: 56px;
     display: flex;
     flex-direction: row;
     align-items: center;
-    padding-left: 16px;
+    gap: 12px;
+    padding-left: 12px;
     padding-right: 8px;
     background: var(--background-light);
     border-radius: 8px;
     margin-bottom: 8px;
     cursor: pointer;
-
-    .not-active {
-      //color: #525b6a;
-      opacity: 0.4;
-    }
+    transition: background-color 0.15s ease;
 
     &:hover {
       background: var(--background-light-hover);
-
-      .buttons {
-        visibility: visible;
-      }
     }
 
-    .buttons {
-      visibility: hidden;
+    &.selected {
+      background: rgba(255, 62, 181, 0.15);
+      border: 1px solid var(--primary);
+    }
+
+    .avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      object-fit: cover;
+      flex-shrink: 0;
+      background: var(--muted);
+    }
+
+    .name {
+      flex-grow: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-weight: 500;
     }
   }
 }

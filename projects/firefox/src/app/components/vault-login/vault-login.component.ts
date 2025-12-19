@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { AfterViewInit, Component, ElementRef, inject, ViewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import {
@@ -16,7 +16,9 @@ import { getNewStorageServiceConfig } from '../../common/data/get-new-storage-se
   styleUrl: './vault-login.component.scss',
   imports: [FormsModule, ConfirmComponent],
 })
-export class VaultLoginComponent {
+export class VaultLoginComponent implements AfterViewInit {
+  @ViewChild('passwordInputElement') passwordInput!: ElementRef<HTMLInputElement>;
+
   loginPassword = '';
   showInvalidPasswordAlert = false;
 
@@ -24,6 +26,10 @@ export class VaultLoginComponent {
   readonly #router = inject(Router);
   readonly #startup = inject(StartupService);
   readonly #profileMetadata = inject(ProfileMetadataService);
+
+  ngAfterViewInit() {
+    this.passwordInput.nativeElement.focus();
+  }
 
   toggleType(element: HTMLInputElement) {
     if (element.type === 'password') {

@@ -18,6 +18,11 @@ npm test                  # Run unit tests with Karma
 npm run lint              # Run ESLint
 ```
 
+**Important:** After making any code changes, rebuild both extensions before testing:
+```bash
+npm run build:chrome && npm run build:firefox
+```
+
 ## Architecture
 
 ### Monorepo Structure
