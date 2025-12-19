@@ -12,6 +12,7 @@ import {
   nip44Encrypt,
   PromptResponse,
   PromptResponseMessage,
+  shouldRecklessModeApprove,
   signEvent,
   storePermission,
 } from './background-common';
@@ -63,57 +64,65 @@ browser.runtime.onMessage.addListener(async (message /*, sender*/) => {
   }
 
   const req = request as BackgroundRequestMessage;
-  const permissionState = checkPermissions(
-    browserSessionData,
-    currentIdentity,
-    req.host,
-    req.method,
-    req.params
-  );
 
-  if (permissionState === false) {
-    throw new Error('Permission denied');
-  }
+  // Check reckless mode first
+  const recklessApprove = await shouldRecklessModeApprove(req.host);
+  if (recklessApprove) {
+    debug('Request auto-approved via reckless mode.');
+  } else {
+    // Normal permission flow
+    const permissionState = checkPermissions(
+      browserSessionData,
+      currentIdentity,
+      req.host,
+      req.method,
+      req.params
+    );
 
-  if (permissionState === undefined) {
-    // Ask user for permission.
-    const width = 375;
-    const height = 600;
-    const { top, left } = await getPosition(width, height);
-
-    const base64Event = Buffer.from(
-      JSON.stringify(req.params ?? {}, undefined, 2)
-    ).toString('base64');
-
-    const response = await new Promise<PromptResponse>((resolve, reject) => {
-      const id = crypto.randomUUID();
-      openPrompts.set(id, { resolve, reject });
-      browser.windows.create({
-        type: 'popup',
-        url: `prompt.html?method=${req.method}&host=${req.host}&id=${id}&nick=${currentIdentity.nick}&event=${base64Event}`,
-        height,
-        width,
-        top,
-        left,
-      });
-    });
-    debug(response);
-    if (response === 'approve' || response === 'reject') {
-      await storePermission(
-        browserSessionData,
-        currentIdentity,
-        req.host,
-        req.method,
-        response === 'approve' ? 'allow' : 'deny',
-        req.params?.kind
-      );
-    }
-
-    if (['reject', 'reject-once'].includes(response)) {
+    if (permissionState === false) {
       throw new Error('Permission denied');
     }
-  } else {
-    debug('Request allowed (via saved permission).');
+
+    if (permissionState === undefined) {
+      // Ask user for permission.
+      const width = 375;
+      const height = 600;
+      const { top, left } = await getPosition(width, height);
+
+      const base64Event = Buffer.from(
+        JSON.stringify(req.params ?? {}, undefined, 2)
+      ).toString('base64');
+
+      const response = await new Promise<PromptResponse>((resolve, reject) => {
+        const id = crypto.randomUUID();
+        openPrompts.set(id, { resolve, reject });
+        browser.windows.create({
+          type: 'popup',
+          url: `prompt.html?method=${req.method}&host=${req.host}&id=${id}&nick=${currentIdentity.nick}&event=${base64Event}`,
+          height,
+          width,
+          top,
+          left,
+        });
+      });
+      debug(response);
+      if (response === 'approve' || response === 'reject') {
+        await storePermission(
+          browserSessionData,
+          currentIdentity,
+          req.host,
+          req.method,
+          response === 'approve' ? 'allow' : 'deny',
+          req.params?.kind
+        );
+      }
+
+      if (['reject', 'reject-once'].includes(response)) {
+        throw new Error('Permission denied');
+      }
+    } else {
+      debug('Request allowed (via saved permission).');
+    }
   }
 
   const relays: Relays = {};

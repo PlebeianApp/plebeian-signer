@@ -8,7 +8,7 @@ export abstract class SignerMetaHandler {
 
   #signerMetaData?: SignerMetaData;
 
-  readonly metaProperties = ['syncFlow', 'vaultSnapshots'];
+  readonly metaProperties = ['syncFlow', 'vaultSnapshots', 'recklessMode', 'whitelistedHosts'];
   /**
    * Load the full data from the storage. If the storage is used for storing
    * other data (e.g. browser sync data when the user decided to NOT sync),
@@ -40,4 +40,53 @@ export abstract class SignerMetaHandler {
   }
 
   abstract clearData(keep: string[]): Promise<void>;
+
+  /**
+   * Sets the reckless mode and immediately saves it.
+   */
+  async setRecklessMode(enabled: boolean): Promise<void> {
+    if (!this.#signerMetaData) {
+      this.#signerMetaData = {
+        recklessMode: enabled,
+      };
+    } else {
+      this.#signerMetaData.recklessMode = enabled;
+    }
+
+    await this.saveFullData(this.#signerMetaData);
+  }
+
+  /**
+   * Adds a host to the whitelist and immediately saves it.
+   */
+  async addWhitelistedHost(host: string): Promise<void> {
+    if (!this.#signerMetaData) {
+      this.#signerMetaData = {
+        whitelistedHosts: [host],
+      };
+    } else {
+      const hosts = this.#signerMetaData.whitelistedHosts ?? [];
+      if (!hosts.includes(host)) {
+        hosts.push(host);
+        this.#signerMetaData.whitelistedHosts = hosts;
+      }
+    }
+
+    await this.saveFullData(this.#signerMetaData);
+  }
+
+  /**
+   * Removes a host from the whitelist and immediately saves it.
+   */
+  async removeWhitelistedHost(host: string): Promise<void> {
+    if (!this.#signerMetaData?.whitelistedHosts) {
+      return;
+    }
+
+    this.#signerMetaData.whitelistedHosts = this.#signerMetaData.whitelistedHosts.filter(
+      (h) => h !== host
+    );
+
+    await this.saveFullData(this.#signerMetaData);
+  }
 }

@@ -49,6 +49,40 @@ export const getBrowserSessionData = async function (): Promise<
   return browserSessionData as unknown as BrowserSessionData;
 };
 
+export const getSignerMetaData = async function (): Promise<SignerMetaData> {
+  const signerMetaHandler = new FirefoxMetaHandler();
+  return (await signerMetaHandler.loadFullData()) as SignerMetaData;
+};
+
+/**
+ * Check if reckless mode should auto-approve the request.
+ * Returns true if should auto-approve, false if should use normal permission flow.
+ *
+ * Logic:
+ * - If reckless mode is OFF → return false (use normal flow)
+ * - If reckless mode is ON and whitelist is empty → return true (approve all)
+ * - If reckless mode is ON and whitelist has entries → return true only if host is in whitelist
+ */
+export const shouldRecklessModeApprove = async function (
+  host: string
+): Promise<boolean> {
+  const signerMetaData = await getSignerMetaData();
+
+  if (!signerMetaData.recklessMode) {
+    return false;
+  }
+
+  const whitelistedHosts = signerMetaData.whitelistedHosts ?? [];
+
+  if (whitelistedHosts.length === 0) {
+    // Reckless mode ON, no whitelist → approve all
+    return true;
+  }
+
+  // Reckless mode ON, whitelist has entries → only approve if host is whitelisted
+  return whitelistedHosts.includes(host);
+};
+
 export const getBrowserSyncData = async function (): Promise<
   BrowserSyncData | undefined
 > {

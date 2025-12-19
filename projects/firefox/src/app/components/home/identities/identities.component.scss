@@ -28,10 +28,63 @@
       grid-column-end: 2;
       grid-row-start: 1;
       grid-row-end: 2;
-      font-size: 20px;
-      font-weight: 500;
+      font-family: var(--font-heading);
+      font-size: 24px;
+      font-weight: 700;
+      letter-spacing: 0.1rem;
       justify-self: center;
       height: 32px;
+    }
+  }
+
+  .reckless-mode-row {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    margin-bottom: 12px;
+    background: var(--background-light);
+    border-radius: 8px;
+
+    .reckless-label {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      user-select: none;
+
+      input[type="checkbox"] {
+        width: 16px;
+        height: 16px;
+        accent-color: var(--primary);
+        cursor: pointer;
+      }
+
+      .reckless-text {
+        font-size: 14px;
+        color: var(--foreground);
+      }
+    }
+
+    .gear-btn {
+      background: transparent;
+      border: none;
+      color: var(--muted-foreground);
+      padding: 4px 8px;
+      cursor: pointer;
+      border-radius: 4px;
+      transition: color 0.15s ease, background-color 0.15s ease;
+
+      &:hover {
+        color: var(--foreground);
+        background: var(--background-light-hover);
+      }
+
+      i {
+        font-size: 16px;
+      }
     }
   }
 

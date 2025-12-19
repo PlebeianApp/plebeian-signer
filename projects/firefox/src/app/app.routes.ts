@@ -16,6 +16,7 @@ import { WelcomeComponent } from './components/welcome/welcome.component';
 import { VaultLoginComponent } from './components/vault-login/vault-login.component';
 import { VaultCreateComponent } from './components/vault-create/vault-create.component';
 import { VaultImportComponent } from './components/vault-import/vault-import.component';
+import { WhitelistedAppsComponent } from './components/whitelisted-apps/whitelisted-apps.component';
 
 export const routes: Routes = [
   {
@@ -69,6 +70,10 @@ export const routes: Routes = [
   {
     path: 'new-identity',
     component: NewIdentityComponent,
+  },
+  {
+    path: 'whitelisted-apps',
+    component: WhitelistedAppsComponent,
   },
   {
     path: 'edit-identity/:id',

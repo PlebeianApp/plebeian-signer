@@ -11,6 +11,30 @@
   </button>
 </div>
 
+<div class="reckless-mode-row">
+  <label class="reckless-label" (click)="onToggleRecklessMode()">
+    <input
+      type="checkbox"
+      [checked]="isRecklessMode"
+      (click)="$event.stopPropagation()"
+      (change)="onToggleRecklessMode()"
+    />
+    <span
+      class="reckless-text"
+      data-bs-toggle="tooltip"
+      data-bs-placement="bottom"
+      title="Auto-approve all actions. If whitelist has entries, only those apps are auto-approved."
+    >Reckless mode</span>
+  </label>
+  <button
+    class="gear-btn"
+    title="Manage whitelisted apps"
+    (click)="onClickWhitelistedApps()"
+  >
+    <i class="bi bi-gear"></i>
+  </button>
+</div>
+
 @let sessionData = storage.getBrowserSessionHandler().browserSessionData;
 @let identities = sessionData?.identities ?? [];
 
@@ -34,7 +58,7 @@
       class="avatar"
       [src]="getAvatarUrl(identity)"
       alt=""
-      (error)="$any($event.target).src = 'assets/person-fill.svg'"
+      (error)="$any($event.target).src = 'person-fill.svg'"
     />
     <span class="name">{{ getDisplayName(identity) }}</span>
     <lib-icon-button

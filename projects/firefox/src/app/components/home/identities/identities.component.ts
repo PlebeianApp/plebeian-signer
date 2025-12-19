@@ -24,6 +24,10 @@ export class IdentitiesComponent implements OnInit {
   // Cache of pubkey -> profile for quick lookup
   #profileCache = new Map<string, ProfileMetadata | null>();
 
+  get isRecklessMode(): boolean {
+    return this.storage.getSignerMetaHandler().signerMetaData?.recklessMode ?? false;
+  }
+
   async ngOnInit() {
     await this.#profileMetadata.initialize();
     this.#loadProfiles();
@@ -40,7 +44,7 @@ export class IdentitiesComponent implements OnInit {
 
   getAvatarUrl(identity: Identity_DECRYPTED): string {
     const profile = this.#profileCache.get(identity.id);
-    return profile?.picture || 'assets/person-fill.svg';
+    return profile?.picture || 'person-fill.svg';
   }
 
   getDisplayName(identity: Identity_DECRYPTED): string {
@@ -59,5 +63,14 @@ export class IdentitiesComponent implements OnInit {
 
   async onClickSelectIdentity(identityId: string) {
     await this.storage.switchIdentity(identityId);
+  }
+
+  async onToggleRecklessMode() {
+    const newValue = !this.isRecklessMode;
+    await this.storage.getSignerMetaHandler().setRecklessMode(newValue);
+  }
+
+  onClickWhitelistedApps() {
+    this.#router.navigateByUrl('/whitelisted-apps');
   }
 }

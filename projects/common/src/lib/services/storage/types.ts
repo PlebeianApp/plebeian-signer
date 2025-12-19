@@ -92,6 +92,12 @@ export interface SignerMetaData {
   syncFlow?: number; // 0 = no sync, 1 = browser sync, (future: 2 = Signer sync, 3 = Custom sync (bring your own sync))
 
   vaultSnapshots?: SignerMetaData_VaultSnapshot[];
+
+  // Reckless mode: auto-approve all actions without prompting
+  recklessMode?: boolean;
+
+  // Whitelisted hosts: auto-approve all actions from these hosts
+  whitelistedHosts?: string[];
 }
 
 /**

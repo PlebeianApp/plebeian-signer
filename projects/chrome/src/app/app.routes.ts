@@ -16,6 +16,7 @@ import { KeysComponent as EditIdentityKeysComponent } from './components/edit-id
 import { PermissionsComponent as EditIdentityPermissionsComponent } from './components/edit-identity/permissions/permissions.component';
 import { RelaysComponent as EditIdentityRelaysComponent } from './components/edit-identity/relays/relays.component';
 import { VaultImportComponent } from './components/vault-import/vault-import.component';
+import { WhitelistedAppsComponent } from './components/whitelisted-apps/whitelisted-apps.component';
 
 export const routes: Routes = [
   {
@@ -69,6 +70,10 @@ export const routes: Routes = [
   {
     path: 'new-identity',
     component: NewIdentityComponent,
+  },
+  {
+    path: 'whitelisted-apps',
+    component: WhitelistedAppsComponent,
   },
   {
     path: 'edit-identity/:id',
