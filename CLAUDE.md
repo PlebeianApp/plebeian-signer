@@ -27,7 +27,7 @@ npm run build:chrome && npm run build:firefox
 
 ### Monorepo Structure
 
-This is an Angular CLI monorepo with three projects:
+This is an Angular 19 CLI monorepo with three projects:
 
 - **projects/chrome**: Chrome extension (MV3)
 - **projects/firefox**: Firefox extension
@@ -49,9 +49,19 @@ Message flow: Web App → `window.nostr` → Content Script → Background → C
 
 - **BrowserSyncHandler**: Encrypted vault data synced across browser instances (or local-only based on user preference)
 - **BrowserSessionHandler**: Session-scoped decrypted data (unlocked vault state)
-- **SignerMetaHandler**: Extension metadata (sync flow preference)
+- **SignerMetaHandler**: Extension metadata (sync flow preference, reckless mode, whitelisted hosts)
 
 Each browser (Chrome/Firefox) has its own handler implementations in `projects/{browser}/src/app/common/data/`.
+
+### Vault Encryption (v2)
+
+The vault uses Argon2id + AES-256-GCM for password-based encryption:
+- **Key derivation**: Argon2id with 256MB memory, 4 threads, 8 iterations (~3 second derivation)
+- **Encryption**: AES-256-GCM with random 12-byte IV per encryption
+- **Salt**: Random 32-byte salt per vault (stored in `BrowserSyncData.salt`)
+- The derived key is cached in session storage (`BrowserSessionData.vaultKey`) to avoid re-derivation on each operation
+
+Note: Argon2id runs on main thread via WebAssembly (hash-wasm) because Web Workers cannot load external scripts in browser extensions due to CSP restrictions. A deriving modal provides user feedback during the ~3 second operation.
 
 ### Custom Webpack Build
 
@@ -66,8 +76,17 @@ Both extensions use `@angular-builders/custom-webpack` to bundle additional entr
 
 The `@common` import alias resolves to `projects/common/src/public-api.ts`. Key exports:
 - `StorageService`: Central data management with encryption/decryption
-- `CryptoHelper`, `NostrHelper`: Cryptographic utilities
+- `CryptoHelper`, `NostrHelper`: Cryptographic utilities (nostr-tools based)
+- `Argon2Crypto`: Vault encryption with Argon2id key derivation
 - Shared Angular components and pipes
+
+### Permission System
+
+Permissions are stored per identity+host+method combination. The background script checks permissions before executing NIP-07 methods:
+- `allow`/`deny` policies can be stored for each method
+- Kind-specific permissions supported for `signEvent`
+- **Reckless mode**: Auto-approves all actions without prompting (global setting)
+- **Whitelisted hosts**: Auto-approves all actions from specific hosts
 
 ## Testing Extensions Locally
 
