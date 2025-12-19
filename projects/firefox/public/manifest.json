@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Plebeian Signer",
   "description": "Nostr Identity Manager & Signer",
-  "version": "0.0.7",
+  "version": "v0.0.8",
   "homepage_url": "https://git.mleku.dev/mleku/plebeian-signer",
   "options_page": "options.html",
   "permissions": [

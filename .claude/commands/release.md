@@ -5,15 +5,21 @@ Review all changes in the repository and create a release with proper commit mes
 ## Argument: $ARGUMENTS
 
 The argument should be one of:
-- `patch` - Bump the patch version (e.g., 0.0.4 -> 0.0.5)
-- `minor` - Bump the minor version and reset patch to 0 (e.g., 0.0.4 -> 0.1.0)
-- `major` - Bump the major version and reset minor/patch to 0 (e.g., 0.0.4 -> 1.0.0)
+- `patch` - Bump the patch version (e.g., v0.0.4 -> v0.0.5)
+- `minor` - Bump the minor version and reset patch to 0 (e.g., v0.0.4 -> v0.1.0)
+- `major` - Bump the major version and reset minor/patch to 0 (e.g., v0.0.4 -> v1.0.0)
 
 If no argument provided, default to `patch`.
+
+## Version Format
+
+This project uses **standard semver with `v` prefix** (e.g., `v0.0.8`, `v1.2.3`).
 
 ## Steps to perform:
 
 1. **Read the current version** from `package.json` (the `version` field)
+   - Strip any existing `v` prefix if present (for backward compatibility with old `0.0.x` format)
+   - The raw version should be in format: MAJOR.MINOR.PATCH
 
 2. **Calculate the new version** based on the argument:
    - Parse the current version (format: MAJOR.MINOR.PATCH)
@@ -21,10 +27,10 @@ If no argument provided, default to `patch`.
    - If `minor`: increment MINOR by 1, set PATCH to 0
    - If `major`: increment MAJOR by 1, set MINOR and PATCH to 0
 
-3. **Update package.json** with the new version in all three places:
-   - `version`
-   - `custom.chrome.version`
-   - `custom.firefox.version`
+3. **Update package.json** with the new version (with `v` prefix) in all three places:
+   - `version` -> `vX.Y.Z`
+   - `custom.chrome.version` -> `vX.Y.Z`
+   - `custom.firefox.version` -> `vX.Y.Z`
 
 4. **Review changes** using `git status` and `git diff --stat HEAD`
 
@@ -37,7 +43,7 @@ If no argument provided, default to `patch`.
    If any step fails, fix issues before proceeding.
 
 6. **Compose a commit message** following this format:
-   - First line: 72 chars max, imperative mood summary (e.g., "Release v0.0.5")
+   - First line: 72 chars max, imperative mood summary (e.g., "Release v0.0.8")
    - Blank line
    - Bullet points describing each significant change
    - "Files modified:" section listing affected files
@@ -47,7 +53,7 @@ If no argument provided, default to `patch`.
 
 8. **Create the commit** with the composed message
 
-9. **Create a git tag** with the new version prefixed with 'v' (e.g., `v0.0.5`)
+9. **Create a git tag** matching the version (e.g., `v0.0.8`)
 
 10. **Push to origin** with tags:
     ```
@@ -60,3 +66,5 @@ If no argument provided, default to `patch`.
 - This is a browser extension with separate Chrome and Firefox builds
 - All three version fields in package.json must be updated together
 - Always verify both Chrome and Firefox builds compile before committing
+- Version format is standard semver with `v` prefix: `vMAJOR.MINOR.PATCH`
+- Legacy versions without `v` prefix (e.g., `0.0.7`) are automatically upgraded to the new format
