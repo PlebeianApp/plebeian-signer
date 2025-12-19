@@ -11,6 +11,7 @@ import {
 } from './types';
 import { SignerMetaHandler } from './signer-meta-handler';
 import { CryptoHelper } from '@common';
+import { Buffer } from 'buffer';
 import {
   addIdentity,
   deleteIdentity,
@@ -31,7 +32,7 @@ export interface StorageServiceConfig {
   providedIn: 'root',
 })
 export class StorageService {
-  readonly latestVersion = 1;
+  readonly latestVersion = 2;
   isInitialized = false;
 
   #browserSessionHandler!: BrowserSessionHandler;
@@ -231,15 +232,48 @@ export class StorageService {
   async encrypt(value: string): Promise<string> {
     const browserSessionData =
       this.getBrowserSessionHandler().browserSessionData;
-    if (!browserSessionData || !browserSessionData.vaultPassword) {
+    if (!browserSessionData) {
       throw new Error('Browser session data is undefined.');
     }
 
+    // v2: Use pre-derived key directly with AES-GCM
+    if (browserSessionData.vaultKey) {
+      return this.encryptV2(value, browserSessionData.iv, browserSessionData.vaultKey);
+    }
+
+    // v1: Use PBKDF2 with password
+    if (!browserSessionData.vaultPassword) {
+      throw new Error('No vault password or key available.');
+    }
     return CryptoHelper.encrypt(
       value,
       browserSessionData.iv,
       browserSessionData.vaultPassword
     );
+  }
+
+  /**
+   * v2 encryption: Use pre-derived key bytes directly with AES-GCM (no key derivation)
+   */
+  async encryptV2(text: string, ivBase64: string, keyBase64: string): Promise<string> {
+    const keyBytes = Buffer.from(keyBase64, 'base64');
+    const iv = Buffer.from(ivBase64, 'base64');
+
+    const key = await crypto.subtle.importKey(
+      'raw',
+      keyBytes,
+      { name: 'AES-GCM' },
+      false,
+      ['encrypt']
+    );
+
+    const cipherText = await crypto.subtle.encrypt(
+      { name: 'AES-GCM', iv },
+      key,
+      new TextEncoder().encode(text)
+    );
+
+    return Buffer.from(cipherText).toString('base64');
   }
 
   async decrypt(
@@ -248,10 +282,24 @@ export class StorageService {
   ): Promise<any> {
     const browserSessionData =
       this.getBrowserSessionHandler().browserSessionData;
-    if (!browserSessionData || !browserSessionData.vaultPassword) {
+    if (!browserSessionData) {
       throw new Error('Browser session data is undefined.');
     }
 
+    // v2: Use pre-derived key directly with AES-GCM
+    if (browserSessionData.vaultKey) {
+      const decryptedValue = await this.decryptV2(
+        value,
+        browserSessionData.iv,
+        browserSessionData.vaultKey
+      );
+      return this.parseDecryptedValue(decryptedValue, returnType);
+    }
+
+    // v1: Use PBKDF2 with password
+    if (!browserSessionData.vaultPassword) {
+      throw new Error('No vault password or key available.');
+    }
     return this.decryptWithLockedVault(
       value,
       returnType,
@@ -260,6 +308,52 @@ export class StorageService {
     );
   }
 
+  /**
+   * v2 decryption: Use pre-derived key bytes directly with AES-GCM (no key derivation)
+   */
+  async decryptV2(encryptedBase64: string, ivBase64: string, keyBase64: string): Promise<string> {
+    const keyBytes = Buffer.from(keyBase64, 'base64');
+    const iv = Buffer.from(ivBase64, 'base64');
+    const cipherText = Buffer.from(encryptedBase64, 'base64');
+
+    const key = await crypto.subtle.importKey(
+      'raw',
+      keyBytes,
+      { name: 'AES-GCM' },
+      false,
+      ['decrypt']
+    );
+
+    const decrypted = await crypto.subtle.decrypt(
+      { name: 'AES-GCM', iv },
+      key,
+      cipherText
+    );
+
+    return new TextDecoder().decode(decrypted);
+  }
+
+  /**
+   * Parse a decrypted string value into the desired type
+   */
+  private parseDecryptedValue(
+    decryptedValue: string,
+    returnType: 'string' | 'number' | 'boolean'
+  ): any {
+    switch (returnType) {
+      case 'number':
+        return parseInt(decryptedValue);
+      case 'boolean':
+        return decryptedValue === 'true';
+      case 'string':
+      default:
+        return decryptedValue;
+    }
+  }
+
+  /**
+   * v1: Decrypt with locked vault using password (PBKDF2)
+   */
   async decryptWithLockedVault(
     value: string,
     returnType: 'string' | 'number' | 'boolean',
@@ -267,18 +361,20 @@ export class StorageService {
     password: string
   ): Promise<any> {
     const decryptedValue = await CryptoHelper.decrypt(value, iv, password);
+    return this.parseDecryptedValue(decryptedValue, returnType);
+  }
 
-    switch (returnType) {
-      case 'number':
-        return parseInt(decryptedValue);
-
-      case 'boolean':
-        return decryptedValue === 'true';
-
-      case 'string':
-      default:
-        return decryptedValue;
-    }
+  /**
+   * v2: Decrypt with locked vault using pre-derived key (Argon2id)
+   */
+  async decryptWithLockedVaultV2(
+    value: string,
+    returnType: 'string' | 'number' | 'boolean',
+    iv: string,
+    keyBase64: string
+  ): Promise<any> {
+    const decryptedValue = await this.decryptV2(value, iv, keyBase64);
+    return this.parseDecryptedValue(decryptedValue, returnType);
   }
 
   /**

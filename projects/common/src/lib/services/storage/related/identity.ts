@@ -166,10 +166,19 @@ export const encryptIdentity = async function (
   return encryptedIdentity;
 };
 
+/**
+ * Locked vault context for decryption during unlock
+ * - v1 vaults use password (PBKDF2)
+ * - v2 vaults use keyBase64 (pre-derived Argon2id key)
+ */
+export type LockedVaultContext =
+  | { iv: string; password: string; keyBase64?: undefined }
+  | { iv: string; keyBase64: string; password?: undefined };
+
 export const decryptIdentities = async function (
   this: StorageService,
   identities: Identity_ENCRYPTED[],
-  withLockedVault: { iv: string; password: string } | undefined = undefined
+  withLockedVault: LockedVaultContext | undefined = undefined
 ): Promise<Identity_DECRYPTED[]> {
   const decryptedIdentities: Identity_DECRYPTED[] = [];
 
@@ -188,7 +197,7 @@ export const decryptIdentities = async function (
 export const decryptIdentity = async function (
   this: StorageService,
   identity: Identity_ENCRYPTED,
-  withLockedVault: { iv: string; password: string } | undefined = undefined
+  withLockedVault: LockedVaultContext | undefined = undefined
 ): Promise<Identity_DECRYPTED> {
   if (typeof withLockedVault === 'undefined') {
     const decryptedIdentity: Identity_DECRYPTED = {
@@ -201,30 +210,62 @@ export const decryptIdentity = async function (
     return decryptedIdentity;
   }
 
+  // v2: Use pre-derived key
+  if (withLockedVault.keyBase64) {
+    const decryptedIdentity: Identity_DECRYPTED = {
+      id: await this.decryptWithLockedVaultV2(
+        identity.id,
+        'string',
+        withLockedVault.iv,
+        withLockedVault.keyBase64
+      ),
+      nick: await this.decryptWithLockedVaultV2(
+        identity.nick,
+        'string',
+        withLockedVault.iv,
+        withLockedVault.keyBase64
+      ),
+      createdAt: await this.decryptWithLockedVaultV2(
+        identity.createdAt,
+        'string',
+        withLockedVault.iv,
+        withLockedVault.keyBase64
+      ),
+      privkey: await this.decryptWithLockedVaultV2(
+        identity.privkey,
+        'string',
+        withLockedVault.iv,
+        withLockedVault.keyBase64
+      ),
+    };
+    return decryptedIdentity;
+  }
+
+  // v1: Use password (PBKDF2)
   const decryptedIdentity: Identity_DECRYPTED = {
     id: await this.decryptWithLockedVault(
       identity.id,
       'string',
       withLockedVault.iv,
-      withLockedVault.password
+      withLockedVault.password!
     ),
     nick: await this.decryptWithLockedVault(
       identity.nick,
       'string',
       withLockedVault.iv,
-      withLockedVault.password
+      withLockedVault.password!
     ),
     createdAt: await this.decryptWithLockedVault(
       identity.createdAt,
       'string',
       withLockedVault.iv,
-      withLockedVault.password
+      withLockedVault.password!
     ),
     privkey: await this.decryptWithLockedVault(
       identity.privkey,
       'string',
       withLockedVault.iv,
-      withLockedVault.password
+      withLockedVault.password!
     ),
   };
 

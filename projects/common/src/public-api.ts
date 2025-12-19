@@ -10,9 +10,12 @@ export * from './lib/constants/fallback-relays';
 
 // Helpers
 export * from './lib/helpers/crypto-helper';
+export * from './lib/helpers/argon2-crypto';
 export * from './lib/helpers/nostr-helper';
 export * from './lib/helpers/text-helper';
 export * from './lib/helpers/date-helper';
+export * from './lib/helpers/websocket-auth';
+export * from './lib/helpers/nip05-validator';
 
 // Models
 export * from './lib/models/nostr';
@@ -35,6 +38,7 @@ export * from './lib/components/toast/toast.component';
 export * from './lib/components/nav-item/nav-item.component';
 export * from './lib/components/pubkey/pubkey.component';
 export * from './lib/components/relay-rw/relay-rw.component';
+export * from './lib/components/deriving-modal/deriving-modal.component';
 
 // Pipes
 export * from './lib/pipes/visual-relay.pipe';

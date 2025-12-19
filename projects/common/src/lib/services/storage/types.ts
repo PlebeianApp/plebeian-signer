@@ -47,6 +47,9 @@ export interface BrowserSyncData_PART_Unencrypted {
   version: number;
   iv: string;
   vaultHash: string;
+  // Version 2+: Random 32-byte salt for Argon2id key derivation (base64)
+  // Version 1: Not present (uses PBKDF2 with hardcoded salt)
+  salt?: string;
 }
 
 export interface BrowserSyncData_PART_Encrypted {
@@ -69,10 +72,13 @@ export enum BrowserSyncFlow {
 export interface BrowserSessionData {
   // The following properties purely come from the browser session storage
   // and will never be going into the browser sync storage.
-  vaultPassword?: string;
+  vaultPassword?: string; // v1 only: raw password for PBKDF2
+  vaultKey?: string; // v2+: pre-derived key bytes (base64) from Argon2id
 
   // The following properties initially come from the browser sync storage.
   iv: string;
+  // Version 2+: Random salt for Argon2id (base64)
+  salt?: string;
   permissions: Permission_DECRYPTED[];
   identities: Identity_DECRYPTED[];
   selectedIdentityId: string | null;

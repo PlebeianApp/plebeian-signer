@@ -9,8 +9,8 @@ import {
   StorageService,
   ToastComponent,
   VisualNip05Pipe,
+  validateNip05,
 } from '@common';
-import NDK from '@nostr-dev-kit/ndk';
 
 @Component({
   selector: 'app-identity',
@@ -65,6 +65,13 @@ export class IdentityComponent implements OnInit {
     this.#router.navigateByUrl(
       `/edit-identity/${this.selectedIdentity.id}/home`
     );
+  }
+
+  onClickEditProfile() {
+    if (!this.selectedIdentity) {
+      return;
+    }
+    this.#router.navigateByUrl('/profile-edit');
   }
 
   async #loadData() {
@@ -125,28 +132,18 @@ export class IdentityComponent implements OnInit {
     try {
       this.validating = true;
 
-      // Get relays for validation
-      const relays =
-        this.#storage
-          .getBrowserSessionHandler()
-          .browserSessionData?.relays.filter(
-            (x) => x.identityId === this.selectedIdentity?.id
-          ) ?? [];
+      // Direct NIP-05 validation - fetches .well-known/nostr.json directly
+      const result = await validateNip05(nip05, pubkey);
+      this.nip05isValidated = result.valid;
 
-      const relevantRelays = relays.filter((x) => x.write).map((x) => x.url);
-
-      if (relevantRelays.length > 0) {
-        const ndk = new NDK({
-          explicitRelayUrls: relevantRelays,
-        });
-        await ndk.connect();
-        const user = ndk.getUser({ pubkey });
-        this.nip05isValidated = (await user.validateNip05(nip05)) ?? undefined;
+      if (!result.valid) {
+        console.log('NIP-05 validation failed:', result.error);
       }
 
       this.validating = false;
     } catch (error) {
       console.error('NIP-05 validation failed:', error);
+      this.nip05isValidated = false;
       this.validating = false;
     }
   }

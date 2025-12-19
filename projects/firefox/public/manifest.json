@@ -2,12 +2,15 @@
   "manifest_version": 3,
   "name": "Plebeian Signer",
   "description": "Nostr Identity Manager & Signer",
-  "version": "0.0.9",
+  "version": "1.0.0",
   "homepage_url": "https://git.mleku.dev/mleku/plebeian-signer",
   "options_page": "options.html",
   "permissions": [
     "storage"
   ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
+  },
   "action": {
     "default_popup": "index.html",
     "default_icon": {

@@ -1,0 +1,148 @@
+<div class="sam-text-header">
+  <span>Edit Profile</span>
+</div>
+
+@if(loading) {
+<div class="loading-container">
+  <span class="sam-text-muted">Loading profile...</span>
+</div>
+} @else {
+<div class="content">
+  <div class="form-group">
+    <label for="name">Name</label>
+    <input
+      id="name"
+      type="text"
+      placeholder="Your name"
+      class="form-control"
+      [(ngModel)]="profile.name"
+      autocomplete="off"
+    />
+  </div>
+
+  <div class="form-group">
+    <label for="display_name">Display Name</label>
+    <input
+      id="display_name"
+      type="text"
+      placeholder="Display name"
+      class="form-control"
+      [(ngModel)]="profile.display_name"
+      autocomplete="off"
+    />
+  </div>
+
+  <div class="form-group">
+    <label for="picture">Avatar URL</label>
+    <input
+      id="picture"
+      type="url"
+      placeholder="https://example.com/avatar.jpg"
+      class="form-control"
+      [(ngModel)]="profile.picture"
+      autocomplete="off"
+    />
+  </div>
+
+  <div class="form-group">
+    <label for="banner">Banner URL</label>
+    <input
+      id="banner"
+      type="url"
+      placeholder="https://example.com/banner.jpg"
+      class="form-control"
+      [(ngModel)]="profile.banner"
+      autocomplete="off"
+    />
+  </div>
+
+  <div class="form-group">
+    <label for="website">Website</label>
+    <input
+      id="website"
+      type="url"
+      placeholder="https://yourwebsite.com"
+      class="form-control"
+      [(ngModel)]="profile.website"
+      autocomplete="off"
+    />
+  </div>
+
+  <div class="form-group">
+    <label for="about">About</label>
+    <textarea
+      id="about"
+      placeholder="Tell us about yourself..."
+      class="form-control"
+      rows="4"
+      [(ngModel)]="profile.about"
+    ></textarea>
+  </div>
+
+  <div class="form-group">
+    <label for="nip05">NIP-05 Identifier</label>
+    <input
+      id="nip05"
+      type="text"
+      placeholder="you@example.com"
+      class="form-control"
+      [(ngModel)]="profile.nip05"
+      autocomplete="off"
+    />
+  </div>
+
+  <div class="form-group">
+    <label for="lud16">Lightning Address (LUD-16)</label>
+    <input
+      id="lud16"
+      type="text"
+      placeholder="you@getalby.com"
+      class="form-control"
+      [(ngModel)]="profile.lud16"
+      autocomplete="off"
+    />
+  </div>
+
+  <div class="form-group">
+    <label for="lnurl">LNURL</label>
+    <input
+      id="lnurl"
+      type="text"
+      placeholder="lnurl1..."
+      class="form-control"
+      [(ngModel)]="profile.lnurl"
+      autocomplete="off"
+    />
+  </div>
+</div>
+
+<div class="sam-footer-grid-2">
+  <button type="button" class="btn btn-secondary" (click)="onClickCancel()">
+    Cancel
+  </button>
+
+  <button
+    [disabled]="saving"
+    type="button"
+    class="btn btn-primary"
+    (click)="onClickSave()"
+  >
+    @if(saving) {
+      Saving...
+    } @else {
+      Save
+    }
+  </button>
+</div>
+
+@if(alertMessage) {
+<div class="alert-container">
+  <div class="alert alert-danger sam-flex-row gap" role="alert">
+    <i class="bi bi-exclamation-triangle"></i>
+    <span>{{ alertMessage }}</span>
+  </div>
+</div>
+}
+}
+
+<lib-toast #toast></lib-toast>

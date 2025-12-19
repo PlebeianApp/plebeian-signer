@@ -1,12 +1,12 @@
 {
   "name": "plebeian-signer",
-  "version": "v0.0.9",
+  "version": "v1.0.0",
   "custom": {
     "chrome": {
-      "version": "v0.0.9"
+      "version": "v1.0.0"
     },
     "firefox": {
-      "version": "v0.0.9"
+      "version": "v1.0.0"
     }
   },
   "scripts": {
@@ -40,6 +40,7 @@
     "bootstrap": "^5.3.3",
     "bootstrap-icons": "^1.11.3",
     "buffer": "^6.0.3",
+    "hash-wasm": "^4.11.0",
     "nostr-tools": "^2.10.4",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0",

@@ -4,6 +4,7 @@ import {
   Relay_ENCRYPTED,
   StorageService,
 } from '@common';
+import { LockedVaultContext } from './identity';
 
 export const addRelay = async function (
   this: StorageService,
@@ -126,7 +127,7 @@ export const updateRelay = async function (
 export const decryptRelay = async function (
   this: StorageService,
   relay: Relay_ENCRYPTED,
-  withLockedVault: { iv: string; password: string } | undefined = undefined
+  withLockedVault: LockedVaultContext | undefined = undefined
 ): Promise<Relay_DECRYPTED> {
   if (typeof withLockedVault === 'undefined') {
     const decryptedRelay: Relay_DECRYPTED = {
@@ -139,36 +140,74 @@ export const decryptRelay = async function (
     return decryptedRelay;
   }
 
+  // v2: Use pre-derived key
+  if (withLockedVault.keyBase64) {
+    const decryptedRelay: Relay_DECRYPTED = {
+      id: await this.decryptWithLockedVaultV2(
+        relay.id,
+        'string',
+        withLockedVault.iv,
+        withLockedVault.keyBase64
+      ),
+      identityId: await this.decryptWithLockedVaultV2(
+        relay.identityId,
+        'string',
+        withLockedVault.iv,
+        withLockedVault.keyBase64
+      ),
+      url: await this.decryptWithLockedVaultV2(
+        relay.url,
+        'string',
+        withLockedVault.iv,
+        withLockedVault.keyBase64
+      ),
+      read: await this.decryptWithLockedVaultV2(
+        relay.read,
+        'boolean',
+        withLockedVault.iv,
+        withLockedVault.keyBase64
+      ),
+      write: await this.decryptWithLockedVaultV2(
+        relay.write,
+        'boolean',
+        withLockedVault.iv,
+        withLockedVault.keyBase64
+      ),
+    };
+    return decryptedRelay;
+  }
+
+  // v1: Use password (PBKDF2)
   const decryptedRelay: Relay_DECRYPTED = {
     id: await this.decryptWithLockedVault(
       relay.id,
       'string',
       withLockedVault.iv,
-      withLockedVault.password
+      withLockedVault.password!
     ),
     identityId: await this.decryptWithLockedVault(
       relay.identityId,
       'string',
       withLockedVault.iv,
-      withLockedVault.password
+      withLockedVault.password!
     ),
     url: await this.decryptWithLockedVault(
       relay.url,
       'string',
       withLockedVault.iv,
-      withLockedVault.password
+      withLockedVault.password!
     ),
     read: await this.decryptWithLockedVault(
       relay.read,
       'boolean',
       withLockedVault.iv,
-      withLockedVault.password
+      withLockedVault.password!
     ),
     write: await this.decryptWithLockedVault(
       relay.write,
       'boolean',
       withLockedVault.iv,
-      withLockedVault.password
+      withLockedVault.password!
     ),
   };
   return decryptedRelay;
@@ -177,7 +216,7 @@ export const decryptRelay = async function (
 export const decryptRelays = async function (
   this: StorageService,
   relays: Relay_ENCRYPTED[],
-  withLockedVault: { iv: string; password: string } | undefined = undefined
+  withLockedVault: LockedVaultContext | undefined = undefined
 ): Promise<Relay_DECRYPTED[]> {
   const decryptedRelays: Relay_DECRYPTED[] = [];
 

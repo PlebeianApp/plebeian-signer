@@ -1,6 +1,10 @@
 <!-- eslint-disable @angular-eslint/template/interactive-supports-focus -->
+<!-- eslint-disable @angular-eslint/template/click-events-have-key-events -->
 <div class="sam-text-header">
   <span>You</span>
+  <button class="edit-btn" title="Edit profile" (click)="onClickEditProfile()">
+    <img src="edit.svg" alt="Edit" class="edit-icon" />
+  </button>
 </div>
 
 <div class="identity-container">
@@ -22,7 +26,6 @@
       </div>
 
       <!-- Display name (primary, large) -->
-      <!-- eslint-disable-next-line @angular-eslint/template/click-events-have-key-events -->
       <div class="name-badge-container" (click)="onClickShowDetails()">
         <span class="display-name">
           {{ displayName || selectedIdentity?.nick || 'Unknown' }}

@@ -3,6 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import {
   ConfirmComponent,
+  DerivingModalComponent,
   NostrHelper,
   ProfileMetadataService,
   StartupService,
@@ -14,10 +15,11 @@ import { getNewStorageServiceConfig } from '../../common/data/get-new-storage-se
   selector: 'app-vault-login',
   templateUrl: './vault-login.component.html',
   styleUrl: './vault-login.component.scss',
-  imports: [FormsModule, ConfirmComponent],
+  imports: [FormsModule, ConfirmComponent, DerivingModalComponent],
 })
 export class VaultLoginComponent implements AfterViewInit {
   @ViewChild('passwordInputElement') passwordInput!: ElementRef<HTMLInputElement>;
+  @ViewChild('derivingModal') derivingModal!: DerivingModalComponent;
 
   loginPassword = '';
   showInvalidPasswordAlert = false;
@@ -40,24 +42,38 @@ export class VaultLoginComponent implements AfterViewInit {
   }
 
   async loginVault() {
+    console.log('[login] loginVault called');
     if (!this.loginPassword) {
+      console.log('[login] No password, returning');
       return;
     }
 
+    console.log('[login] Showing deriving modal');
+    // Show deriving modal during key derivation (~3-6 seconds)
+    this.derivingModal.show('Unlocking vault');
+
     try {
+      console.log('[login] Calling unlockVault...');
       await this.#storage.unlockVault(this.loginPassword);
-
-      // Fetch profile metadata for all identities in the background
-      this.#fetchAllProfiles();
-
-      this.#router.navigateByUrl('/home/identity');
+      console.log('[login] unlockVault succeeded!');
     } catch (error) {
+      console.error('[login] unlockVault FAILED:', error);
+      this.derivingModal.hide();
       this.showInvalidPasswordAlert = true;
-      console.log(error);
       window.setTimeout(() => {
         this.showInvalidPasswordAlert = false;
       }, 2000);
+      return;
     }
+
+    // Unlock succeeded - hide modal and navigate
+    console.log('[login] Hiding modal and navigating');
+    this.derivingModal.hide();
+
+    // Fetch profile metadata for all identities in the background
+    this.#fetchAllProfiles();
+
+    this.#router.navigateByUrl('/home/identity');
   }
 
   /**

@@ -101,3 +101,30 @@ button {
   border-color: var(--border);
   color: var(--foreground);
 }
+
+// Bootstrap modal overrides - always use dark theme for modals
+.modal-content {
+  background-color: #1a1a1a;
+  border-color: #3d3d3d;
+  color: #fafafa;
+}
+
+.modal-header {
+  border-bottom-color: #3d3d3d;
+
+  .modal-title {
+    color: #fafafa;
+  }
+
+  .btn-close {
+    filter: invert(1);
+  }
+}
+
+.modal-footer {
+  border-top-color: #3d3d3d;
+}
+
+.modal-body {
+  color: #fafafa;
+}

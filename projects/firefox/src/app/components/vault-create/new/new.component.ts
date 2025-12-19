@@ -1,15 +1,17 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, ViewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { NavComponent, StorageService } from '@common';
+import { NavComponent, StorageService, DerivingModalComponent } from '@common';
 
 @Component({
   selector: 'app-new',
-  imports: [FormsModule],
+  imports: [FormsModule, DerivingModalComponent],
   templateUrl: './new.component.html',
   styleUrl: './new.component.scss',
 })
 export class NewComponent extends NavComponent {
+  @ViewChild('derivingModal') derivingModal!: DerivingModalComponent;
+
   password = '';
 
   readonly #router = inject(Router);
@@ -28,7 +30,15 @@ export class NewComponent extends NavComponent {
       return;
     }
 
-    await this.#storage.createNewVault(this.password);
-    this.#router.navigateByUrl('/home/identities');
+    // Show deriving modal during key derivation (~3-6 seconds)
+    this.derivingModal.show('Creating secure vault');
+    try {
+      await this.#storage.createNewVault(this.password);
+      this.derivingModal.hide();
+      this.#router.navigateByUrl('/home/identities');
+    } catch (error) {
+      this.derivingModal.hide();
+      console.error('Failed to create vault:', error);
+    }
   }
 }

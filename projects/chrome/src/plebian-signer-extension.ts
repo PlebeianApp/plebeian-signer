@@ -2,6 +2,13 @@
 import { Event, EventTemplate } from 'nostr-tools';
 import { Nip07Method } from '@common';
 
+// Extend Window interface for NIP-07
+declare global {
+  interface Window {
+    nostr?: any;
+  }
+}
+
 type Relays = Record<string, { read: boolean; write: boolean }>;
 
 // Fallback UUID generator for contexts where crypto.randomUUID is unavailable

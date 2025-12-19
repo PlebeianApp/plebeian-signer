@@ -3,6 +3,34 @@
   display: flex;
   flex-direction: column;
 
+  .sam-text-header {
+    position: relative;
+
+    .edit-btn {
+      position: absolute;
+      right: var(--size);
+      background: transparent;
+      border: none;
+      padding: 4px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 4px;
+      transition: background-color 0.2s;
+
+      &:hover {
+        background-color: var(--background-light);
+      }
+
+      .edit-icon {
+        width: 20px;
+        height: 20px;
+        filter: brightness(0) invert(1);
+      }
+    }
+  }
+
   .identity-container {
     flex: 1;
     display: flex;
@@ -123,6 +151,7 @@
   }
 
   .nip05-row {
+    @extend %text-badge;
     display: flex;
     flex-direction: row;
     align-items: center;
@@ -134,7 +163,6 @@
   }
 
   .nip05-badge {
-    @extend %text-badge;
     font-size: 13px;
     color: var(--primary);
   }
