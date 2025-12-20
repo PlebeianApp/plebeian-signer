@@ -42,25 +42,33 @@ This project uses **standard semver with `v` prefix** (e.g., `v0.0.8`, `v1.2.3`)
    ```
    If any step fails, fix issues before proceeding.
 
-6. **Compose a commit message** following this format:
+6. **Create release zip files** in the `releases/` folder:
+   ```
+   mkdir -p releases
+   cd dist/chrome && zip -r ../../releases/plebeian-signer-chrome-vX.Y.Z.zip . && cd ../..
+   cd dist/firefox && zip -r ../../releases/plebeian-signer-firefox-vX.Y.Z.zip . && cd ../..
+   ```
+   Replace `vX.Y.Z` with the actual version number.
+
+7. **Compose a commit message** following this format:
    - First line: 72 chars max, imperative mood summary (e.g., "Release v0.0.8")
    - Blank line
    - Bullet points describing each significant change
    - "Files modified:" section listing affected files
    - Footer with Claude Code attribution
 
-7. **Stage all changes** with `git add -A`
+8. **Stage all changes** with `git add -A`
 
-8. **Create the commit** with the composed message
+9. **Create the commit** with the composed message
 
-9. **Create a git tag** matching the version (e.g., `v0.0.8`)
+10. **Create a git tag** matching the version (e.g., `v0.0.8`)
 
-10. **Push to origin** with tags:
+11. **Push to origin** with tags:
     ```
     git push origin main --tags
     ```
 
-11. **Report completion** with the new version and commit hash
+12. **Report completion** with the new version and commit hash
 
 ## Important:
 - This is a browser extension with separate Chrome and Firefox builds
