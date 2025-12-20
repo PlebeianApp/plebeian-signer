@@ -45,10 +45,11 @@ This project uses **standard semver with `v` prefix** (e.g., `v0.0.8`, `v1.2.3`)
 6. **Create release zip files** in the `releases/` folder:
    ```
    mkdir -p releases
+   rm -f releases/plebeian-signer-chrome-v*.zip releases/plebeian-signer-firefox-v*.zip
    cd dist/chrome && zip -r ../../releases/plebeian-signer-chrome-vX.Y.Z.zip . && cd ../..
    cd dist/firefox && zip -r ../../releases/plebeian-signer-firefox-vX.Y.Z.zip . && cd ../..
    ```
-   Replace `vX.Y.Z` with the actual version number.
+   Replace `vX.Y.Z` with the actual version number. Old zip files are deleted to keep only the latest release.
 
 7. **Compose a commit message** following this format:
    - First line: 72 chars max, imperative mood summary (e.g., "Release v0.0.8")
