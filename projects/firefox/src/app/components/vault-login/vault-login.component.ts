@@ -4,6 +4,7 @@ import { Router } from '@angular/router';
 import {
   ConfirmComponent,
   DerivingModalComponent,
+  LoggerService,
   NostrHelper,
   ProfileMetadataService,
   StartupService,
@@ -28,6 +29,7 @@ export class VaultLoginComponent implements AfterViewInit {
   readonly #router = inject(Router);
   readonly #startup = inject(StartupService);
   readonly #profileMetadata = inject(ProfileMetadataService);
+  readonly #logger = inject(LoggerService);
 
   ngAfterViewInit() {
     this.passwordInput.nativeElement.focus();
@@ -69,6 +71,7 @@ export class VaultLoginComponent implements AfterViewInit {
     // Unlock succeeded - hide modal and navigate
     console.log('[login] Hiding modal and navigating');
     this.derivingModal.hide();
+    this.#logger.logVaultUnlock();
 
     // Fetch profile metadata for all identities in the background
     this.#fetchAllProfiles();
@@ -102,6 +105,7 @@ export class VaultLoginComponent implements AfterViewInit {
 
   async onClickResetExtension() {
     try {
+      this.#logger.logVaultReset();
       await this.#storage.resetExtension();
       this.#startup.startOver(getNewStorageServiceConfig());
     } catch (error) {

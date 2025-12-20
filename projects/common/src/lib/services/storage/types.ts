@@ -94,6 +94,16 @@ export const SIGNER_META_DATA_KEY = {
   vaultSnapshots: 'vaultSnapshots',
 };
 
+/**
+ * Bookmark entry for storing user bookmarks
+ */
+export interface Bookmark {
+  id: string;
+  url: string;
+  title: string;
+  createdAt: number;
+}
+
 export interface SignerMetaData {
   syncFlow?: number; // 0 = no sync, 1 = browser sync, (future: 2 = Signer sync, 3 = Custom sync (bring your own sync))
 
@@ -104,6 +114,9 @@ export interface SignerMetaData {
 
   // Whitelisted hosts: auto-approve all actions from these hosts
   whitelistedHosts?: string[];
+
+  // User bookmarks
+  bookmarks?: Bookmark[];
 }
 
 /**

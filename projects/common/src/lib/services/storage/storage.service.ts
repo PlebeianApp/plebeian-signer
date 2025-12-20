@@ -124,6 +124,14 @@ export class StorageService {
     this.isInitialized = false;
   }
 
+  async lockVault(): Promise<void> {
+    this.assureIsInitialized();
+    await this.getBrowserSessionHandler().clearData();
+    this.getBrowserSessionHandler().clearInMemoryData();
+    // Note: We don't set isInitialized = false here because the sync data
+    // (encrypted vault) is still loaded and we need it to unlock again
+  }
+
   async unlockVault(password: string): Promise<void> {
     await unlockVault.call(this, password);
   }

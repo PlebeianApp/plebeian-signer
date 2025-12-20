@@ -1,22 +1,31 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { LoggerService, LogEntry } from '@common';
-import { DatePipe, JsonPipe } from '@angular/common';
+import { DatePipe } from '@angular/common';
 
 @Component({
   selector: 'app-logs',
   templateUrl: './logs.component.html',
   styleUrl: './logs.component.scss',
-  imports: [DatePipe, JsonPipe],
+  imports: [DatePipe],
 })
-export class LogsComponent {
+export class LogsComponent implements OnInit {
   readonly #logger = inject(LoggerService);
 
   get logs(): LogEntry[] {
     return this.#logger.logs;
   }
 
-  onClear() {
-    this.#logger.clear();
+  ngOnInit() {
+    // Refresh logs from storage to get background script logs
+    this.#logger.refreshLogs();
+  }
+
+  async onRefresh() {
+    await this.#logger.refreshLogs();
+  }
+
+  async onClear() {
+    await this.#logger.clear();
   }
 
   getLevelClass(level: LogEntry['level']): string {

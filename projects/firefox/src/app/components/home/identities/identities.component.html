@@ -31,7 +31,7 @@
     title="Manage whitelisted apps"
     (click)="onClickWhitelistedApps()"
   >
-    <i class="bi bi-gear"></i>
+    <span class="emoji">⚙️</span>
   </button>
 </div>
 
@@ -62,7 +62,7 @@
     />
     <span class="name">{{ getDisplayName(identity) }}</span>
     <lib-icon-button
-      icon="gear"
+      icon="⚙️"
       title="Identity settings"
       (click)="onClickEditIdentity(identity.id, $event)"
     ></lib-icon-button>

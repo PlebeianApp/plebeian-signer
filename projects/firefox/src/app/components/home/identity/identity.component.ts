@@ -2,6 +2,7 @@ import { Component, inject, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import {
   Identity_DECRYPTED,
+  LoggerService,
   NostrHelper,
   ProfileMetadata,
   ProfileMetadataService,
@@ -29,6 +30,7 @@ export class IdentityComponent implements OnInit {
   readonly #storage = inject(StorageService);
   readonly #router = inject(Router);
   readonly #profileMetadata = inject(ProfileMetadataService);
+  readonly #logger = inject(LoggerService);
 
   ngOnInit(): void {
     this.#loadData();
@@ -136,13 +138,16 @@ export class IdentityComponent implements OnInit {
       const result = await validateNip05(nip05, pubkey);
       this.nip05isValidated = result.valid;
 
-      if (!result.valid) {
-        console.log('NIP-05 validation failed:', result.error);
+      if (result.valid) {
+        this.#logger.logNip05ValidationSuccess(nip05, pubkey);
+      } else {
+        this.#logger.logNip05ValidationError(nip05, result.error ?? 'Unknown error');
       }
 
       this.validating = false;
     } catch (error) {
-      console.error('NIP-05 validation failed:', error);
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      this.#logger.logNip05ValidationError(nip05, errorMsg);
       this.nip05isValidated = false;
       this.validating = false;
     }

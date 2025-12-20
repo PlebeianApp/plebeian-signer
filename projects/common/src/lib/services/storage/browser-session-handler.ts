@@ -20,6 +20,10 @@ export abstract class BrowserSessionHandler {
     this.#browserSessionData = JSON.parse(JSON.stringify(data));
   }
 
+  clearInMemoryData() {
+    this.#browserSessionData = undefined;
+  }
+
   /**
    * Persist the full data to the session data storage.
    *

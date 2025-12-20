@@ -1,7 +1,8 @@
-import { Injectable } from '@angular/core';
+import { inject, Injectable } from '@angular/core';
 import { SimplePool } from 'nostr-tools/pool';
 import { FALLBACK_PROFILE_RELAYS } from '../../constants/fallback-relays';
 import { ProfileMetadata, ProfileMetadataCache } from '../storage/types';
+import { LoggerService } from '../logger/logger.service';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 declare const chrome: any;
@@ -14,6 +15,7 @@ const STORAGE_KEY = 'profileMetadataCache';
   providedIn: 'root',
 })
 export class ProfileMetadataService {
+  readonly #logger = inject(LoggerService);
   #cache: ProfileMetadataCache = {};
   #pool: SimplePool | null = null;
   #fetchPromises = new Map<string, Promise<ProfileMetadata | null>>();
@@ -52,7 +54,8 @@ export class ProfileMetadataService {
         }
       }
     } catch (error) {
-      console.error('Failed to load profile cache from storage:', error);
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      this.#logger.logStorageError('load profile cache', errorMsg);
     }
   }
 
@@ -65,7 +68,8 @@ export class ProfileMetadataService {
         await chrome.storage.session.set({ [STORAGE_KEY]: this.#cache });
       }
     } catch (error) {
-      console.error('Failed to save profile cache to storage:', error);
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      this.#logger.logStorageError('save profile cache', errorMsg);
     }
   }
 
@@ -209,7 +213,7 @@ export class ProfileMetadataService {
           this.#cache[pubkey] = profile;
           results.set(pubkey, profile);
         } catch {
-          console.error(`Failed to parse profile for ${pubkey}`);
+          this.#logger.logProfileParseError(pubkey);
           results.set(pubkey, null);
         }
       }
@@ -225,7 +229,8 @@ export class ProfileMetadataService {
       await this.#saveCacheToStorage();
 
     } catch (error) {
-      console.error('Failed to fetch profiles:', error);
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      this.#logger.logProfileFetchError('multiple', errorMsg);
       // Set null for all unfetched pubkeys on error
       for (const pubkey of uncachedPubkeys) {
         if (!results.has(pubkey)) {
@@ -283,11 +288,12 @@ export class ProfileMetadataService {
 
         return profile;
       } catch {
-        console.error(`Failed to parse profile content for ${pubkey}`);
+        this.#logger.logProfileParseError(pubkey);
         return null;
       }
     } catch (error) {
-      console.error(`Failed to fetch profile for ${pubkey}:`, error);
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      this.#logger.logProfileFetchError(pubkey, errorMsg);
       return null;
     }
   }

@@ -1,0 +1,36 @@
+<!-- eslint-disable @angular-eslint/template/interactive-supports-focus -->
+<!-- eslint-disable @angular-eslint/template/click-events-have-key-events -->
+<div class="bookmarks-header">
+  <span class="bookmarks-title">Bookmarks</span>
+  <button class="btn btn-primary btn-sm" (click)="onBookmarkThisPage()">
+    <span class="emoji">🔖</span> Bookmark This Page
+  </button>
+</div>
+
+<div class="bookmarks-container">
+  @if (isLoading) {
+    <div class="loading-state">Loading...</div>
+  } @else if (bookmarks.length === 0) {
+    <div class="empty-state">
+      <span class="sam-text-muted">
+        No bookmarks yet. Click "Bookmark This Page" to add the current page.
+      </span>
+    </div>
+  } @else {
+    @for (bookmark of bookmarks; track bookmark.id) {
+      <div class="bookmark-item" (click)="openBookmark(bookmark)">
+        <div class="bookmark-info">
+          <span class="bookmark-title">{{ bookmark.title }}</span>
+          <span class="bookmark-url">{{ getDomain(bookmark.url) }}</span>
+        </div>
+        <button
+          class="remove-btn"
+          title="Remove bookmark"
+          (click)="onRemoveBookmark(bookmark); $event.stopPropagation()"
+        >
+          <span class="emoji">✕</span>
+        </button>
+      </div>
+    }
+  }
+</div>

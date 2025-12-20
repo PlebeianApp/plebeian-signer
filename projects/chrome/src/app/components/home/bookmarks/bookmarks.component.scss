@@ -1,0 +1,92 @@
+:host {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: var(--size);
+  overflow: hidden;
+}
+
+.bookmarks-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--size);
+  flex-shrink: 0;
+}
+
+.bookmarks-title {
+  font-weight: 600;
+  font-size: 1.1rem;
+}
+
+.bookmarks-container {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.empty-state,
+.loading-state {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: var(--muted-foreground);
+}
+
+.bookmark-item {
+  display: flex;
+  align-items: center;
+  gap: var(--size-h);
+  padding: var(--size-h) var(--size);
+  margin-bottom: var(--size-hh);
+  background: var(--background-light);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+
+  &:hover {
+    background: var(--background-light-hover);
+  }
+}
+
+.bookmark-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.bookmark-title {
+  font-size: 0.9rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bookmark-url {
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.remove-btn {
+  all: unset;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  cursor: pointer;
+  color: var(--muted-foreground);
+  transition: background-color 0.15s ease, color 0.15s ease;
+
+  &:hover {
+    background: var(--destructive);
+    color: var(--destructive-foreground);
+  }
+}

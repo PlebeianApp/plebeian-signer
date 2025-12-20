@@ -9,4 +9,9 @@ import { Component, Input } from '@angular/core';
 })
 export class IconButtonComponent {
   @Input({ required: true }) icon!: string;
+
+  get isEmoji(): boolean {
+    // Check if the icon is an emoji (starts with a non-ASCII character)
+    return this.icon.length > 0 && this.icon.charCodeAt(0) > 255;
+  }
 }

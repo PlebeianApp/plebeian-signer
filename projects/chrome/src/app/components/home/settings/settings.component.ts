@@ -4,6 +4,7 @@ import {
   BrowserSyncFlow,
   ConfirmComponent,
   DateHelper,
+  LoggerService,
   NavComponent,
   StartupService,
   StorageService,
@@ -21,6 +22,7 @@ export class SettingsComponent extends NavComponent implements OnInit {
 
   readonly #storage = inject(StorageService);
   readonly #startup = inject(StartupService);
+  readonly #logger = inject(LoggerService);
 
   ngOnInit(): void {
     const vault = JSON.stringify(
@@ -44,6 +46,7 @@ export class SettingsComponent extends NavComponent implements OnInit {
 
   async onResetExtension() {
     try {
+      this.#logger.logVaultReset();
       await this.#storage.resetExtension();
       this.#startup.startOver(getNewStorageServiceConfig());
     } catch (error) {
@@ -69,6 +72,7 @@ export class SettingsComponent extends NavComponent implements OnInit {
 
       await this.#storage.deleteVault(true);
       await this.#storage.importVault(vault);
+      this.#logger.logVaultImport(file.name);
       this.#storage.isInitialized = false;
       this.#startup.startOver(getNewStorageServiceConfig());
     } catch (error) {
@@ -84,6 +88,7 @@ export class SettingsComponent extends NavComponent implements OnInit {
     const fileName = `Plebeian Signer Chrome - Vault Export - ${dateTimeString}.json`;
 
     this.#downloadJson(jsonVault, fileName);
+    this.#logger.logVaultExport(fileName);
   }
 
   #downloadJson(jsonString: string, fileName: string) {

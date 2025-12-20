@@ -9,7 +9,7 @@
     routerLinkActive="active"
     title="Your selected identity"
   >
-    <i class="bi bi-person-circle"></i>
+    <span class="emoji">👤</span>
   </a>
 
   <a
@@ -18,7 +18,7 @@
     routerLinkActive="active"
     title="Identities"
   >
-    <i class="bi bi-people-fill"></i>
+    <span class="emoji">👥</span>
   </a>
 
   <a
@@ -27,14 +27,22 @@
     routerLinkActive="active"
     title="Settings"
   >
-    <i class="bi bi-gear"></i>
+    <span class="emoji">⚙️</span>
   </a>
 
-  <a class="tab" routerLink="/home/info" routerLinkActive="active" title="Info">
-    <i class="bi bi-info-circle"></i>
+  <a class="tab" routerLink="/home/bookmarks" routerLinkActive="active" title="Bookmarks">
+    <span class="emoji">🔖</span>
   </a>
 
   <a class="tab" routerLink="/home/logs" routerLinkActive="active" title="Logs">
-    <span style="font-size: 1.2rem">🪵</span>
+    <span class="emoji">🪵</span>
   </a>
+
+  <a class="tab" routerLink="/home/info" routerLinkActive="active" title="Info">
+    <span class="emoji">💡</span>
+  </a>
+
+  <button class="tab" (click)="onClickLock()" title="Lock">
+    <span class="emoji">🔒</span>
+  </button>
 </div>

@@ -1,5 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { NostrHelper } from '@common';
+import {
+  backgroundLogNip07Action,
+  backgroundLogPermissionStored,
+  NostrHelper,
+} from '@common';
 import {
   BackgroundRequestMessage,
   checkPermissions,
@@ -109,17 +113,28 @@ browser.runtime.onMessage.addListener(async (message /*, sender*/) => {
       });
       debug(response);
       if (response === 'approve' || response === 'reject') {
+        const policy = response === 'approve' ? 'allow' : 'deny';
         await storePermission(
           browserSessionData,
           currentIdentity,
           req.host,
           req.method,
-          response === 'approve' ? 'allow' : 'deny',
+          policy,
+          req.params?.kind
+        );
+        await backgroundLogPermissionStored(
+          req.host,
+          req.method,
+          policy,
           req.params?.kind
         );
       }
 
       if (['reject', 'reject-once'].includes(response)) {
+        await backgroundLogNip07Action(req.method, req.host, false, false, {
+          kind: req.params?.kind,
+          peerPubkey: req.params?.peerPubkey,
+        });
         throw new Error('Permission denied');
       }
     } else {
@@ -128,46 +143,71 @@ browser.runtime.onMessage.addListener(async (message /*, sender*/) => {
   }
 
   const relays: Relays = {};
+  let result: any;
+
   switch (req.method) {
     case 'getPublicKey':
-      return NostrHelper.pubkeyFromPrivkey(currentIdentity.privkey);
+      result = NostrHelper.pubkeyFromPrivkey(currentIdentity.privkey);
+      await backgroundLogNip07Action(req.method, req.host, true, recklessApprove);
+      return result;
 
     case 'signEvent':
-      return signEvent(req.params, currentIdentity.privkey);
+      result = signEvent(req.params, currentIdentity.privkey);
+      await backgroundLogNip07Action(req.method, req.host, true, recklessApprove, {
+        kind: req.params?.kind,
+      });
+      return result;
 
     case 'getRelays':
       browserSessionData.relays.forEach((x) => {
         relays[x.url] = { read: x.read, write: x.write };
       });
+      await backgroundLogNip07Action(req.method, req.host, true, recklessApprove);
       return relays;
 
     case 'nip04.encrypt':
-      return await nip04Encrypt(
+      result = await nip04Encrypt(
         currentIdentity.privkey,
         req.params.peerPubkey,
         req.params.plaintext
       );
+      await backgroundLogNip07Action(req.method, req.host, true, recklessApprove, {
+        peerPubkey: req.params.peerPubkey,
+      });
+      return result;
 
     case 'nip44.encrypt':
-      return await nip44Encrypt(
+      result = await nip44Encrypt(
         currentIdentity.privkey,
         req.params.peerPubkey,
         req.params.plaintext
       );
+      await backgroundLogNip07Action(req.method, req.host, true, recklessApprove, {
+        peerPubkey: req.params.peerPubkey,
+      });
+      return result;
 
     case 'nip04.decrypt':
-      return await nip04Decrypt(
+      result = await nip04Decrypt(
         currentIdentity.privkey,
         req.params.peerPubkey,
         req.params.ciphertext
       );
+      await backgroundLogNip07Action(req.method, req.host, true, recklessApprove, {
+        peerPubkey: req.params.peerPubkey,
+      });
+      return result;
 
     case 'nip44.decrypt':
-      return await nip44Decrypt(
+      result = await nip44Decrypt(
         currentIdentity.privkey,
         req.params.peerPubkey,
         req.params.ciphertext
       );
+      await backgroundLogNip07Action(req.method, req.host, true, recklessApprove, {
+        peerPubkey: req.params.peerPubkey,
+      });
+      return result;
 
     default:
       throw new Error(`Not supported request method '${req.method}'.`);

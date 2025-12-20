@@ -84,3 +84,11 @@ h2.font-heading {
 h3.font-heading {
   font-size: 1.4rem;
 }
+
+// Emoji styling
+.emoji {
+  font-family: var(--font-emoji);
+  font-style: normal;
+  font-weight: normal;
+  line-height: 1;
+}

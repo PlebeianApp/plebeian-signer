@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { BrowserSyncFlow, SignerMetaData } from './types';
+import { Bookmark, BrowserSyncFlow, SignerMetaData } from './types';
 
 export abstract class SignerMetaHandler {
   get signerMetaData(): SignerMetaData | undefined {
@@ -8,7 +8,7 @@ export abstract class SignerMetaHandler {
 
   #signerMetaData?: SignerMetaData;
 
-  readonly metaProperties = ['syncFlow', 'vaultSnapshots', 'recklessMode', 'whitelistedHosts'];
+  readonly metaProperties = ['syncFlow', 'vaultSnapshots', 'recklessMode', 'whitelistedHosts', 'bookmarks'];
   /**
    * Load the full data from the storage. If the storage is used for storing
    * other data (e.g. browser sync data when the user decided to NOT sync),
@@ -88,5 +88,27 @@ export abstract class SignerMetaHandler {
     );
 
     await this.saveFullData(this.#signerMetaData);
+  }
+
+  /**
+   * Sets the bookmarks array and immediately saves it.
+   */
+  async setBookmarks(bookmarks: Bookmark[]): Promise<void> {
+    if (!this.#signerMetaData) {
+      this.#signerMetaData = {
+        bookmarks,
+      };
+    } else {
+      this.#signerMetaData.bookmarks = bookmarks;
+    }
+
+    await this.saveFullData(this.#signerMetaData);
+  }
+
+  /**
+   * Gets the current bookmarks.
+   */
+  getBookmarks(): Bookmark[] {
+    return this.#signerMetaData?.bookmarks ?? [];
   }
 }
