@@ -146,12 +146,17 @@ export const decryptPermissions = async function (
   const decryptedPermissions: Permission_DECRYPTED[] = [];
 
   for (const permission of permissions) {
-    const decryptedPermission = await decryptPermission.call(
-      this,
-      permission,
-      withLockedVault
-    );
-    decryptedPermissions.push(decryptedPermission);
+    try {
+      const decryptedPermission = await decryptPermission.call(
+        this,
+        permission,
+        withLockedVault
+      );
+      decryptedPermissions.push(decryptedPermission);
+    } catch (error) {
+      // Skip corrupted permissions (e.g., encrypted with wrong key)
+      console.warn('[vault] Skipping corrupted permission:', error);
+    }
   }
 
   return decryptedPermissions;

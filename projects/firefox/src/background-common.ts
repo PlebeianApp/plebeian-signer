@@ -15,6 +15,7 @@ import {
 import { Event, EventTemplate, finalizeEvent, nip04, nip44 } from 'nostr-tools';
 import { FirefoxMetaHandler } from './app/common/data/firefox-meta-handler';
 import browser from 'webextension-polyfill';
+import { Buffer } from 'buffer';
 
 export const debug = function (message: any) {
   const dateString = new Date().toISOString();
@@ -67,6 +68,8 @@ export const shouldRecklessModeApprove = async function (
   host: string
 ): Promise<boolean> {
   const signerMetaData = await getSignerMetaData();
+  debug(`shouldRecklessModeApprove: recklessMode=${signerMetaData.recklessMode}, host=${host}`);
+  debug(`Full signerMetaData: ${JSON.stringify(signerMetaData)}`);
 
   if (!signerMetaData.recklessMode) {
     return false;
@@ -228,8 +231,7 @@ export const storePermission = async function (
   // Encrypt permission to store in sync storage (depending on sync flow).
   const encryptedPermission = await encryptPermission(
     permission,
-    browserSessionData.iv,
-    browserSessionData.vaultPassword as string
+    browserSessionData
   );
 
   await savePermissionsToBrowserSyncStorage([
@@ -326,22 +328,20 @@ export const nip44Decrypt = async function (
 
 const encryptPermission = async function (
   permission: Permission_DECRYPTED,
-  iv: string,
-  password: string
+  sessionData: BrowserSessionData
 ): Promise<Permission_ENCRYPTED> {
   const encryptedPermission: Permission_ENCRYPTED = {
-    id: await encrypt(permission.id, iv, password),
-    identityId: await encrypt(permission.identityId, iv, password),
-    host: await encrypt(permission.host, iv, password),
-    method: await encrypt(permission.method, iv, password),
-    methodPolicy: await encrypt(permission.methodPolicy, iv, password),
+    id: await encrypt(permission.id, sessionData),
+    identityId: await encrypt(permission.identityId, sessionData),
+    host: await encrypt(permission.host, sessionData),
+    method: await encrypt(permission.method, sessionData),
+    methodPolicy: await encrypt(permission.methodPolicy, sessionData),
   };
 
   if (typeof permission.kind !== 'undefined') {
     encryptedPermission.kind = await encrypt(
       permission.kind.toString(),
-      iv,
-      password
+      sessionData
     );
   }
 
@@ -350,8 +350,30 @@ const encryptPermission = async function (
 
 const encrypt = async function (
   value: string,
-  iv: string,
-  password: string
+  sessionData: BrowserSessionData
 ): Promise<string> {
-  return await CryptoHelper.encrypt(value, iv, password);
+  // v2: Use pre-derived key with AES-GCM directly
+  if (sessionData.vaultKey) {
+    const keyBytes = Buffer.from(sessionData.vaultKey, 'base64');
+    const iv = Buffer.from(sessionData.iv, 'base64');
+
+    const key = await crypto.subtle.importKey(
+      'raw',
+      keyBytes,
+      { name: 'AES-GCM' },
+      false,
+      ['encrypt']
+    );
+
+    const cipherText = await crypto.subtle.encrypt(
+      { name: 'AES-GCM', iv },
+      key,
+      new TextEncoder().encode(value)
+    );
+
+    return Buffer.from(cipherText).toString('base64');
+  }
+
+  // v1: Use password with PBKDF2
+  return await CryptoHelper.encrypt(value, sessionData.iv, sessionData.vaultPassword!);
 };

@@ -67,6 +67,7 @@ browser.runtime.onMessage.addListener(async (message /*, sender*/) => {
 
   // Check reckless mode first
   const recklessApprove = await shouldRecklessModeApprove(req.host);
+  debug(`recklessApprove result: ${recklessApprove}`);
   if (recklessApprove) {
     debug('Request auto-approved via reckless mode.');
   } else {
@@ -78,6 +79,7 @@ browser.runtime.onMessage.addListener(async (message /*, sender*/) => {
       req.method,
       req.params
     );
+    debug(`permissionState result: ${permissionState}`);
 
     if (permissionState === false) {
       throw new Error('Permission denied');

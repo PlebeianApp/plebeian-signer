@@ -1,0 +1,20 @@
+<div class="logs-header">
+  <span class="logs-title">Logs</span>
+  <button class="btn btn-sm btn-secondary" (click)="onClear()">Clear Log</button>
+</div>
+
+<div class="logs-container">
+  @if (logs.length === 0) {
+    <div class="logs-empty">No logs yet</div>
+  }
+  @for (log of logs; track log.timestamp) {
+    <div class="log-entry" [class]="getLevelClass(log.level)">
+      <span class="log-time">{{ log.timestamp | date:'HH:mm:ss' }}</span>
+      <span class="log-level">{{ log.level }}</span>
+      <span class="log-message">{{ log.message }}</span>
+      @if (log.data) {
+        <pre class="log-data">{{ log.data | json }}</pre>
+      }
+    </div>
+  }
+</div>

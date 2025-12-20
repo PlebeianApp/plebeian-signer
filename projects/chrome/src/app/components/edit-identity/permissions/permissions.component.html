@@ -7,7 +7,12 @@
 <span class="text-muted" style="font-size: 12px">
   Nothing configured so far.
 </span>
-} @for(hostPermissions of hostsPermissions; track hostPermissions) {
+} @else {
+<button class="btn btn-danger btn-sm remove-all-btn" (click)="onClickRemoveAllPermissions()">
+  Remove All Permissions
+</button>
+}
+@for(hostPermissions of hostsPermissions; track hostPermissions) {
 <div class="permissions-card">
   <span style="margin-bottom: 4px; font-weight: 500">
     {{ hostPermissions.host }}

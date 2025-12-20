@@ -1,14 +1,32 @@
 import browser from 'webextension-polyfill';
-import { Buffer } from 'buffer';
 import { Nip07Method } from '@common';
 import { PromptResponse, PromptResponseMessage } from './background-common';
+
+/**
+ * Decode base64 string to UTF-8 using native browser APIs.
+ * This avoids race conditions with the Buffer polyfill initialization.
+ */
+function base64ToUtf8(base64: string): string {
+  const binaryString = atob(base64);
+  const bytes = Uint8Array.from(binaryString, char => char.charCodeAt(0));
+  return new TextDecoder('utf-8').decode(bytes);
+}
 
 const params = new URLSearchParams(location.search);
 const id = params.get('id') as string;
 const method = params.get('method') as Nip07Method;
 const host = params.get('host') as string;
 const nick = params.get('nick') as string;
-const event = Buffer.from(params.get('event') as string, 'base64').toString();
+
+let event = '{}';
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let eventParsed: any = {};
+try {
+  event = base64ToUtf8(params.get('event') as string);
+  eventParsed = JSON.parse(event);
+} catch (e) {
+  console.error('Failed to parse event:', e);
+}
 
 let title = '';
 switch (method) {
@@ -62,8 +80,8 @@ Array.from(document.getElementsByClassName('host-INSERT')).forEach(
 );
 
 const kindSpanElement = document.getElementById('kindSpan');
-if (kindSpanElement) {
-  kindSpanElement.innerText = JSON.parse(event).kind;
+if (kindSpanElement && eventParsed.kind !== undefined) {
+  kindSpanElement.innerText = eventParsed.kind;
 }
 
 const cardGetPublicKeyElement = document.getElementById('cardGetPublicKey');
@@ -108,9 +126,8 @@ if (cardNip04EncryptElement && card2Nip04EncryptElement) {
       'card2Nip04Encrypt_text'
     );
     if (card2Nip04Encrypt_textElement) {
-      const eventObject: { peerPubkey: string; plaintext: string } =
-        JSON.parse(event);
-      card2Nip04Encrypt_textElement.innerText = eventObject.plaintext;
+      const eventObject = eventParsed as { peerPubkey: string; plaintext: string };
+      card2Nip04Encrypt_textElement.innerText = eventObject.plaintext || '';
     }
   } else {
     cardNip04EncryptElement.style.display = 'none';
@@ -126,9 +143,8 @@ if (cardNip44EncryptElement && card2Nip44EncryptElement) {
       'card2Nip44Encrypt_text'
     );
     if (card2Nip44Encrypt_textElement) {
-      const eventObject: { peerPubkey: string; plaintext: string } =
-        JSON.parse(event);
-      card2Nip44Encrypt_textElement.innerText = eventObject.plaintext;
+      const eventObject = eventParsed as { peerPubkey: string; plaintext: string };
+      card2Nip44Encrypt_textElement.innerText = eventObject.plaintext || '';
     }
   } else {
     cardNip44EncryptElement.style.display = 'none';
@@ -143,9 +159,8 @@ if (cardNip04DecryptElement && card2Nip04DecryptElement) {
       'card2Nip04Decrypt_text'
     );
     if (card2Nip04Decrypt_textElement) {
-      const eventObject: { peerPubkey: string; ciphertext: string } =
-        JSON.parse(event);
-      card2Nip04Decrypt_textElement.innerText = eventObject.ciphertext;
+      const eventObject = eventParsed as { peerPubkey: string; ciphertext: string };
+      card2Nip04Decrypt_textElement.innerText = eventObject.ciphertext || '';
     }
   } else {
     cardNip04DecryptElement.style.display = 'none';
@@ -161,9 +176,8 @@ if (cardNip44DecryptElement && card2Nip44DecryptElement) {
       'card2Nip44Decrypt_text'
     );
     if (card2Nip44Decrypt_textElement) {
-      const eventObject: { peerPubkey: string; ciphertext: string } =
-        JSON.parse(event);
-      card2Nip44Decrypt_textElement.innerText = eventObject.ciphertext;
+      const eventObject = eventParsed as { peerPubkey: string; ciphertext: string };
+      card2Nip44Decrypt_textElement.innerText = eventObject.ciphertext || '';
     }
   } else {
     cardNip44DecryptElement.style.display = 'none';
@@ -175,36 +189,38 @@ if (cardNip44DecryptElement && card2Nip44DecryptElement) {
 // Functions
 //
 
-function deliver(response: PromptResponse) {
+async function deliver(response: PromptResponse) {
   const message: PromptResponseMessage = {
     id,
     response,
   };
 
-  browser.runtime.sendMessage(message);
+  try {
+    await browser.runtime.sendMessage(message);
+  } catch (error) {
+    console.error('Failed to send message:', error);
+  }
   window.close();
 }
 
 document.addEventListener('DOMContentLoaded', function () {
-  const rejectJustOnceButton = document.getElementById('rejectJustOnceButton');
-  rejectJustOnceButton?.addEventListener('click', () => {
+  const rejectOnceButton = document.getElementById('rejectOnceButton');
+  rejectOnceButton?.addEventListener('click', () => {
     deliver('reject-once');
   });
 
-  const rejectButton = document.getElementById('rejectButton');
-  rejectButton?.addEventListener('click', () => {
+  const rejectAlwaysButton = document.getElementById('rejectAlwaysButton');
+  rejectAlwaysButton?.addEventListener('click', () => {
     deliver('reject');
   });
 
-  const approveJustOnceButton = document.getElementById(
-    'approveJustOnceButton'
-  );
-  approveJustOnceButton?.addEventListener('click', () => {
+  const approveOnceButton = document.getElementById('approveOnceButton');
+  approveOnceButton?.addEventListener('click', () => {
     deliver('approve-once');
   });
 
-  const approveButton = document.getElementById('approveButton');
-  approveButton?.addEventListener('click', () => {
+  const approveAlwaysButton = document.getElementById('approveAlwaysButton');
+  approveAlwaysButton?.addEventListener('click', () => {
     deliver('approve');
   });
 });

@@ -35,6 +35,14 @@ export class PermissionsComponent extends NavComponent implements OnInit {
     this.#buildHostsPermissions(this.identity?.id);
   }
 
+  async onClickRemoveAllPermissions() {
+    const allPermissions = this.hostsPermissions.flatMap(hp => hp.permissions);
+    for (const permission of allPermissions) {
+      await this.#storage.deletePermission(permission.id);
+    }
+    this.#buildHostsPermissions(this.identity?.id);
+  }
+
   #initialize(identityId: string) {
     this.identity = this.#storage
       .getBrowserSessionHandler()
