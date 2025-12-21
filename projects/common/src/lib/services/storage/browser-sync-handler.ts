@@ -1,7 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import {
   BrowserSyncData,
+  CashuMint_ENCRYPTED,
   Identity_ENCRYPTED,
+  NwcConnection_ENCRYPTED,
   Permission_ENCRYPTED,
   Relay_ENCRYPTED,
 } from './types';
@@ -102,6 +104,38 @@ export abstract class BrowserSyncHandler {
       return;
     }
     this.#browserSyncData.relays = Array.from(data.relays);
+  }
+
+  /**
+   * Persist the NWC connections to the sync data storage.
+   *
+   * ATTENTION: In your implementation, make sure to call "setPartialData_NwcConnections(..)" at the end to update the in-memory data.
+   */
+  abstract saveAndSetPartialData_NwcConnections(data: {
+    nwcConnections: NwcConnection_ENCRYPTED[];
+  }): Promise<void>;
+  setPartialData_NwcConnections(data: {
+    nwcConnections: NwcConnection_ENCRYPTED[];
+  }) {
+    if (!this.#browserSyncData) {
+      return;
+    }
+    this.#browserSyncData.nwcConnections = Array.from(data.nwcConnections);
+  }
+
+  /**
+   * Persist the Cashu mints to the sync data storage.
+   *
+   * ATTENTION: In your implementation, make sure to call "setPartialData_CashuMints(..)" at the end to update the in-memory data.
+   */
+  abstract saveAndSetPartialData_CashuMints(data: {
+    cashuMints: CashuMint_ENCRYPTED[];
+  }): Promise<void>;
+  setPartialData_CashuMints(data: { cashuMints: CashuMint_ENCRYPTED[] }) {
+    if (!this.#browserSyncData) {
+      return;
+    }
+    this.#browserSyncData.cashuMints = Array.from(data.cashuMints);
   }
 
   /**

@@ -1,12 +1,12 @@
 {
   "name": "plebeian-signer",
-  "version": "v1.0.8",
+  "version": "v1.0.9",
   "custom": {
     "chrome": {
-      "version": "v1.0.8"
+      "version": "v1.0.9"
     },
     "firefox": {
-      "version": "v1.0.8"
+      "version": "v1.0.9"
     }
   },
   "scripts": {
@@ -36,13 +36,16 @@
     "@angular/platform-browser": "^19.0.0",
     "@angular/platform-browser-dynamic": "^19.0.0",
     "@angular/router": "^19.0.0",
+    "@cashu/cashu-ts": "^3.2.0",
     "@nostr-dev-kit/ndk": "^2.11.0",
     "@popperjs/core": "^2.11.8",
+    "@types/qrcode": "^1.5.6",
     "bootstrap": "^5.3.3",
     "bootstrap-icons": "^1.11.3",
     "buffer": "^6.0.3",
     "hash-wasm": "^4.11.0",
     "nostr-tools": "^2.10.4",
+    "qrcode": "^1.5.4",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0",
     "webextension-polyfill": "^0.12.0",
@@ -56,6 +59,7 @@
     "@types/bootstrap": "^5.2.10",
     "@types/chrome": "^0.0.293",
     "@types/jasmine": "~5.1.0",
+    "@types/uuid": "^10.0.0",
     "@types/webextension-polyfill": "^0.12.1",
     "angular-eslint": "19.0.2",
     "eslint": "^9.16.0",

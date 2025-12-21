@@ -20,6 +20,17 @@ import {
 import { deletePermission } from './related/permission';
 import { createNewVault, deleteVault, unlockVault } from './related/vault';
 import { addRelay, deleteRelay, updateRelay } from './related/relay';
+import {
+  addNwcConnection,
+  deleteNwcConnection,
+  updateNwcConnectionBalance,
+} from './related/nwc';
+import {
+  addCashuMint,
+  deleteCashuMint,
+  updateCashuMintProofs,
+} from './related/cashu';
+import { CashuMint_DECRYPTED, CashuProof } from './types';
 
 export interface StorageServiceConfig {
   browserSessionHandler: BrowserSessionHandler;
@@ -176,6 +187,43 @@ export class StorageService {
     await updateRelay.call(this, relayClone);
   }
 
+  async addNwcConnection(data: {
+    name: string;
+    connectionUrl: string;
+  }): Promise<void> {
+    await addNwcConnection.call(this, data);
+  }
+
+  async deleteNwcConnection(connectionId: string): Promise<void> {
+    await deleteNwcConnection.call(this, connectionId);
+  }
+
+  async updateNwcConnectionBalance(
+    connectionId: string,
+    balanceMillisats: number
+  ): Promise<void> {
+    await updateNwcConnectionBalance.call(this, connectionId, balanceMillisats);
+  }
+
+  async addCashuMint(data: {
+    name: string;
+    mintUrl: string;
+    unit?: string;
+  }): Promise<CashuMint_DECRYPTED> {
+    return await addCashuMint.call(this, data);
+  }
+
+  async deleteCashuMint(mintId: string): Promise<void> {
+    await deleteCashuMint.call(this, mintId);
+  }
+
+  async updateCashuMintProofs(
+    mintId: string,
+    proofs: CashuProof[]
+  ): Promise<void> {
+    await updateCashuMintProofs.call(this, mintId, proofs);
+  }
+
   exportVault(): string {
     this.assureIsInitialized();
     const vaultJson = JSON.stringify(
@@ -224,6 +272,17 @@ export class StorageService {
     this.assureIsInitialized();
 
     return this.#signerMetaHandler;
+  }
+
+  /**
+   * Get the current browser sync flow setting.
+   * Returns NO_SYNC if not initialized or no setting found.
+   */
+  getSyncFlow(): BrowserSyncFlow {
+    if (!this.isInitialized || !this.#signerMetaHandler?.signerMetaData) {
+      return BrowserSyncFlow.NO_SYNC;
+    }
+    return this.#signerMetaHandler.signerMetaData.syncFlow ?? BrowserSyncFlow.NO_SYNC;
   }
 
   /**

@@ -2,13 +2,652 @@
   <button class="lock-btn" title="Lock" (click)="onClickLock()">
     <span class="emoji">🔒</span>
   </button>
-  <span>Wallet</span>
+  @if (showBackButton) {
+    <button class="back-btn" title="Go Back" (click)="goBack()">
+      <span class="emoji">←</span>
+    </button>
+  }
+  <span>{{ title }}</span>
+  <div class="section-btns">
+    <button
+      class="section-btn"
+      [class.active]="activeSection.startsWith('cashu')"
+      title="Cashu"
+      (click)="setSection('cashu')"
+    >
+      <span class="emoji">🥜</span>
+    </button>
+    <button
+      class="section-btn"
+      [class.active]="activeSection.startsWith('lightning')"
+      title="Lightning"
+      (click)="setSection('lightning')"
+    >
+      <span class="emoji">⚡</span>
+    </button>
+  </div>
 </div>
 
 <div class="wallet-container">
-  <div class="empty-state">
-    <span class="sam-text-muted">
-      Wallet functionality coming soon.
-    </span>
-  </div>
+  <!-- Main wallet menu -->
+  @if (activeSection === 'main') {
+    <div class="wallet-menu">
+      <button class="wallet-menu-item" (click)="setSection('cashu')">
+        <span class="emoji">🥜</span>
+        <span class="label">Cashu</span>
+        <span class="balance">{{ formatCashuBalance(totalCashuBalance) }} sats</span>
+      </button>
+      <button class="wallet-menu-item" (click)="setSection('lightning')">
+        <span class="emoji">⚡</span>
+        <span class="label">Lightning</span>
+        <span class="balance">{{ formatBalance(totalLightningBalance) }} sats</span>
+      </button>
+    </div>
+  }
+
+  <!-- Cashu mint list -->
+  @else if (activeSection === 'cashu') {
+    <div class="lightning-section">
+      @if (mints.length === 0) {
+        <div class="cashu-onboarding">
+          @if (showCashuInfo) {
+            <div class="info-panel">
+              <h3>Welcome to Cashu Wallet</h3>
+
+              <div class="info-section">
+                <h4>Storage Considerations</h4>
+                @if (currentSyncFlow === BrowserSyncFlow.BROWSER_SYNC) {
+                  <div class="warning-box">
+                    <p><strong>Browser Sync is enabled</strong></p>
+                    <p>
+                      Sync storage is limited to ~100KB shared across all your vault data
+                      (identities, permissions, relays, and Cashu tokens). This limits
+                      your Cashu wallet to approximately 300-400 tokens.
+                    </p>
+                    <p>
+                      For larger Cashu holdings, consider disabling browser sync which
+                      provides ~5MB of local storage (~18,000+ tokens).
+                    </p>
+                    <button class="link-btn" (click)="navigateToSettings()">
+                      Change Sync Settings
+                    </button>
+                  </div>
+                } @else {
+                  <div class="success-box">
+                    <p><strong>Local Storage Mode</strong></p>
+                    <p>
+                      You have ~5MB of local storage available, which can hold
+                      thousands of Cashu tokens. Your data stays on this device only.
+                    </p>
+                  </div>
+                }
+              </div>
+
+              <div class="info-section">
+                <h4>Backup Your Wallet</h4>
+                <p>
+                  <strong>Important:</strong> Cashu tokens are bearer assets.
+                  If you lose your vault backup, you lose your tokens permanently.
+                </p>
+                <p>
+                  Vault exports are saved to your browser's downloads folder.
+                  Configure this to point to either:
+                </p>
+                <ul>
+                  <li>Your backup storage device (external drive, NAS)</li>
+                  <li>A folder synced by your backup tool (Syncthing, rsync, etc.)</li>
+                </ul>
+                <p class="browser-url">
+                  <code>{{ browserDownloadSettingsUrl }}</code>
+                </p>
+                <button class="link-btn" (click)="navigateToSettings()">
+                  Go to Backup Settings
+                </button>
+              </div>
+
+              <button class="dismiss-btn" (click)="dismissCashuInfo()">
+                Got it, let me add a mint
+              </button>
+            </div>
+          } @else {
+            <div class="empty-state">
+              <span class="sam-text-muted">No mints connected yet.</span>
+              <button class="show-info-btn" (click)="showCashuInfo = true">
+                Show storage info
+              </button>
+            </div>
+          }
+        </div>
+      } @else {
+        <div class="wallet-list">
+          @for (mint of mints; track mint.id) {
+            <button class="wallet-list-item" (click)="selectMint(mint.id)">
+              <span class="wallet-name">{{ mint.name }}</span>
+              <span class="wallet-balance">{{ formatCashuBalance(mint.cachedBalance) }} sats</span>
+            </button>
+          }
+        </div>
+      }
+      <button class="add-wallet-btn" (click)="showAddMint()">
+        <span class="emoji">+</span>
+        <span>Add Mint</span>
+      </button>
+    </div>
+  }
+
+  <!-- Cashu mint detail -->
+  @else if (activeSection === 'cashu-detail' && selectedMint) {
+    <div class="wallet-detail">
+      <div class="balance-row">
+        <div class="balance-display compact">
+          <span class="balance-value">{{ formatCashuBalance(selectedMintBalance) }}</span>
+          <span class="balance-unit">sats</span>
+        </div>
+        <button
+          class="refresh-icon-btn"
+          (click)="refreshMint()"
+          [disabled]="refreshingMint"
+          title="Refresh"
+        >
+          <span class="emoji" [class.spinning]="refreshingMint">🔄</span>
+        </button>
+      </div>
+      @if (refreshError) {
+        <div class="error-message small">{{ refreshError }}</div>
+      }
+      <div class="action-buttons">
+        <button class="action-btn deposit-btn" (click)="showDeposit()">
+          Deposit
+        </button>
+        <button class="action-btn receive-btn" (click)="showReceive()">
+          Receive
+        </button>
+        <button class="action-btn send-btn" (click)="showSend()" [disabled]="selectedMintBalance === 0">
+          Send
+        </button>
+      </div>
+
+      <!-- Token viewer section -->
+      <div class="token-section">
+        <div class="section-title">Tokens ({{ selectedMintProofs.length }})</div>
+        @if (selectedMintProofs.length === 0) {
+          <div class="empty-text">No tokens stored</div>
+        } @else {
+          <div class="token-list">
+            @for (proof of selectedMintProofs; track proof.secret) {
+              <div class="token-item">
+                <span class="token-amount">{{ proof.amount }}</span>
+                <span class="token-time">{{ formatProofTime(proof.receivedAt) }}</span>
+              </div>
+            }
+          </div>
+        }
+      </div>
+
+      <div class="wallet-info">
+        <div class="info-row">
+          <span class="info-label">Mint URL</span>
+          <span class="info-value">{{ selectedMint.mintUrl }}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Unit</span>
+          <span class="info-value">{{ selectedMint.unit }}</span>
+        </div>
+      </div>
+      <button class="delete-btn" (click)="deleteMint()">
+        Delete Mint
+      </button>
+    </div>
+  }
+
+  <!-- Cashu add mint form -->
+  @else if (activeSection === 'cashu-add') {
+    <div class="add-wallet-form">
+      <div class="form-group">
+        <label for="mintName">Mint Name</label>
+        <input
+          id="mintName"
+          type="text"
+          [(ngModel)]="newMintName"
+          placeholder="My Mint"
+          [disabled]="addingMint"
+        />
+      </div>
+      <div class="form-group">
+        <label for="mintUrl">Mint URL</label>
+        <input
+          id="mintUrl"
+          type="text"
+          [(ngModel)]="newMintUrl"
+          placeholder="https://mint.example.com"
+          [disabled]="addingMint"
+        />
+      </div>
+      @if (mintError) {
+        <div class="error-message">{{ mintError }}</div>
+      }
+      @if (mintTestResult) {
+        <div class="success-message">{{ mintTestResult }}</div>
+      }
+      <div class="form-actions">
+        <button
+          class="test-btn"
+          (click)="testMint()"
+          [disabled]="testingMint || addingMint"
+        >
+          {{ testingMint ? 'Testing...' : 'Test Connection' }}
+        </button>
+        <button
+          class="add-btn"
+          (click)="addMint()"
+          [disabled]="addingMint"
+        >
+          {{ addingMint ? 'Adding...' : 'Add Mint' }}
+        </button>
+      </div>
+    </div>
+  }
+
+  <!-- Cashu receive token -->
+  @else if (activeSection === 'cashu-receive') {
+    <div class="add-wallet-form">
+      <div class="form-group">
+        <label for="receiveToken">Paste Cashu Token</label>
+        <textarea
+          id="receiveToken"
+          [(ngModel)]="receiveToken"
+          placeholder="cashuB..."
+          rows="5"
+          [disabled]="receivingToken"
+        ></textarea>
+      </div>
+      @if (receiveError) {
+        <div class="error-message">{{ receiveError }}</div>
+      }
+      @if (receiveResult) {
+        <div class="success-message">{{ receiveResult }}</div>
+      }
+      <div class="form-actions">
+        <button
+          class="add-btn full-width"
+          (click)="receiveTokens()"
+          [disabled]="receivingToken"
+        >
+          {{ receivingToken ? 'Receiving...' : 'Receive Tokens' }}
+        </button>
+      </div>
+    </div>
+  }
+
+  <!-- Cashu send token -->
+  @else if (activeSection === 'cashu-send') {
+    <div class="add-wallet-form">
+      <div class="balance-info">
+        Available: {{ formatCashuBalance(selectedMintBalance) }} sats
+      </div>
+      <div class="form-group">
+        <label for="sendAmount">Amount (sats)</label>
+        <input
+          id="sendAmount"
+          type="number"
+          [(ngModel)]="sendAmount"
+          placeholder="0"
+          min="1"
+          [max]="selectedMintBalance"
+          [disabled]="sendingToken"
+        />
+      </div>
+      @if (sendError) {
+        <div class="error-message">{{ sendError }}</div>
+      }
+      @if (sendResult) {
+        <div class="token-result">
+          <span class="token-label">Token to Share</span>
+          <textarea readonly rows="4">{{ sendResult }}</textarea>
+          <button class="copy-btn" (click)="copyToken()">
+            Copy Token
+          </button>
+        </div>
+      }
+      @if (!sendResult) {
+        <div class="form-actions">
+          <button
+            class="add-btn full-width"
+            (click)="sendTokens()"
+            [disabled]="sendingToken || sendAmount <= 0"
+          >
+            {{ sendingToken ? 'Creating...' : 'Create Token' }}
+          </button>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- Cashu deposit (mint via Lightning) -->
+  @else if (activeSection === 'cashu-mint' && selectedMint) {
+    <div class="add-wallet-form">
+      @if (!depositInvoice) {
+        <div class="form-group">
+          <label for="depositAmount">Amount (sats)</label>
+          <input
+            id="depositAmount"
+            type="number"
+            [(ngModel)]="depositAmount"
+            placeholder="1000"
+            min="1"
+            [disabled]="creatingDepositQuote"
+          />
+        </div>
+        @if (depositError) {
+          <div class="error-message">{{ depositError }}</div>
+        }
+        <div class="form-actions">
+          <button
+            class="add-btn full-width"
+            (click)="createDepositInvoice()"
+            [disabled]="creatingDepositQuote || depositAmount <= 0"
+          >
+            {{ creatingDepositQuote ? 'Creating...' : 'Create Invoice' }}
+          </button>
+        </div>
+      }
+      @if (depositInvoice) {
+        <div class="invoice-result">
+          @if (depositInvoiceQr) {
+            <img [src]="depositInvoiceQr" alt="Invoice QR Code" class="qr-code" />
+          }
+          <div class="deposit-status">
+            @if (depositQuoteState === 'UNPAID') {
+              <span class="status-waiting">Waiting for payment...</span>
+              @if (checkingDepositPayment) {
+                <span class="status-checking">checking</span>
+              }
+            } @else if (depositQuoteState === 'PAID') {
+              <span class="status-paid">Payment received! Claiming tokens...</span>
+            } @else if (depositQuoteState === 'ISSUED') {
+              <span class="status-issued">✓ Tokens received!</span>
+            }
+          </div>
+          @if (depositError) {
+            <div class="error-message">{{ depositError }}</div>
+          }
+          @if (depositSuccess) {
+            <div class="success-message">{{ depositSuccess }}</div>
+          }
+          @if (depositQuoteState === 'UNPAID') {
+            <div class="invoice-text">{{ depositInvoice }}</div>
+            <button class="copy-btn" (click)="copyDepositInvoice()">
+              Copy Invoice
+            </button>
+          }
+        </div>
+      }
+    </div>
+  }
+
+  <!-- Lightning wallet list -->
+  @else if (activeSection === 'lightning') {
+    <div class="lightning-section">
+      @if (connections.length === 0) {
+        <div class="empty-state">
+          <span class="sam-text-muted">
+            No wallets connected yet.
+          </span>
+        </div>
+      } @else {
+        <div class="wallet-list">
+          @for (conn of connections; track conn.id) {
+            <button class="wallet-list-item" (click)="selectConnection(conn.id)">
+              <span class="wallet-name">{{ conn.name }}</span>
+              <span class="wallet-balance">{{ formatBalance(conn.cachedBalance) }} sats</span>
+            </button>
+          }
+        </div>
+      }
+      <button class="add-wallet-btn" (click)="showAddConnection()">
+        <span class="emoji">+</span>
+        <span>Add NWC Connection</span>
+      </button>
+    </div>
+  }
+
+  <!-- Lightning wallet detail -->
+  @else if (activeSection === 'lightning-detail' && selectedConnection) {
+    <div class="wallet-detail">
+      <div class="balance-row">
+        <div class="balance-display compact">
+          <span class="balance-value">{{ formatBalance(selectedConnection.cachedBalance) }}</span>
+          <span class="balance-unit">sats</span>
+        </div>
+        <button class="refresh-icon-btn" (click)="refreshWallet()" title="Refresh">
+          <span class="emoji">🔄</span>
+        </button>
+      </div>
+
+      <div class="action-buttons">
+        <button class="action-btn receive-btn" (click)="showLnReceive()">
+          Receive
+        </button>
+        <button class="action-btn send-btn" (click)="showLnPay()">
+          Pay
+        </button>
+      </div>
+
+      <div class="wallet-info">
+        <div class="info-row">
+          <span class="info-label">Relay</span>
+          <span class="info-value">{{ selectedConnection.relayUrl }}</span>
+        </div>
+        @if (selectedConnection.lud16) {
+          <button class="info-row-btn" (click)="copyLightningAddress()">
+            <span class="info-label">Lightning Address</span>
+            <span class="info-value">
+              {{ selectedConnection.lud16 }}
+              <span class="copy-hint">{{ addressCopied ? '✓ Copied' : '(tap to copy)' }}</span>
+            </span>
+          </button>
+        }
+      </div>
+
+      <!-- Transaction History -->
+      <div class="transaction-section">
+        <div class="section-title">Transactions</div>
+        @if (loadingTransactions) {
+          <div class="loading-text">Loading...</div>
+        } @else if (transactionsNotSupported) {
+          <div class="not-supported-text">Transaction history not supported by this wallet</div>
+        } @else if (transactionsError) {
+          <div class="error-text">{{ transactionsError }}</div>
+        } @else if (transactions.length === 0) {
+          <div class="empty-text">No transactions yet</div>
+        } @else {
+          <div class="transaction-list">
+            @for (tx of transactions; track tx.payment_hash) {
+              <div class="transaction-item" [class.incoming]="tx.type === 'incoming'" [class.outgoing]="tx.type === 'outgoing'">
+                <span class="tx-icon">{{ tx.type === 'incoming' ? '⬇' : '⬆' }}</span>
+                <span class="tx-type">{{ tx.type === 'incoming' ? 'Received' : 'Sent' }}</span>
+                <span class="tx-amount">{{ formatBalance(tx.amount) }}</span>
+                <span class="tx-time">{{ formatTransactionTime(tx.created_at) }}</span>
+              </div>
+            }
+          </div>
+        }
+      </div>
+
+      <button class="delete-btn-small" (click)="deleteConnection()">
+        Delete Wallet
+      </button>
+    </div>
+  }
+
+  <!-- Lightning receive invoice -->
+  @else if (activeSection === 'lightning-receive' && selectedConnection) {
+    <div class="add-wallet-form">
+      <div class="form-group">
+        <label for="lnReceiveAmount">Amount (sats)</label>
+        <input
+          id="lnReceiveAmount"
+          type="number"
+          [(ngModel)]="lnReceiveAmount"
+          placeholder="1000"
+          min="1"
+          [disabled]="generatingInvoice"
+        />
+      </div>
+      <div class="form-group">
+        <label for="lnReceiveDescription">Description (optional)</label>
+        <input
+          id="lnReceiveDescription"
+          type="text"
+          [(ngModel)]="lnReceiveDescription"
+          placeholder="Payment for..."
+          [disabled]="generatingInvoice"
+        />
+      </div>
+      @if (lnReceiveError) {
+        <div class="error-message">{{ lnReceiveError }}</div>
+      }
+      @if (!generatedInvoice) {
+        <div class="form-actions">
+          <button
+            class="add-btn full-width"
+            (click)="createReceiveInvoice()"
+            [disabled]="generatingInvoice || lnReceiveAmount <= 0"
+          >
+            {{ generatingInvoice ? 'Generating...' : 'Generate Invoice' }}
+          </button>
+        </div>
+      }
+      @if (generatedInvoice) {
+        <div class="invoice-result">
+          @if (generatedInvoiceQr) {
+            <img [src]="generatedInvoiceQr" alt="Invoice QR Code" class="qr-code" />
+          }
+          <div class="invoice-text">{{ generatedInvoice }}</div>
+          <button class="copy-btn" (click)="copyInvoice()">
+            {{ invoiceCopied ? 'Copied!' : 'Copy Invoice' }}
+          </button>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- Pay Modal Overlay -->
+  @if (showPayModal && selectedConnection) {
+    <div class="modal-overlay" role="dialog" aria-modal="true" tabindex="-1" (click)="closePayModal()" (keydown.escape)="closePayModal()">
+      <div class="modal-content" role="document" (click)="$event.stopPropagation()" (keydown)="$event.stopPropagation()">
+        <div class="modal-header">
+          <span>Pay Invoice</span>
+          <button class="modal-close" (click)="closePayModal()">×</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="payInput">Lightning Address or Invoice</label>
+            <textarea
+              id="payInput"
+              [(ngModel)]="payInput"
+              placeholder="user@domain.com or lnbc1..."
+              rows="3"
+              [disabled]="paying"
+            ></textarea>
+          </div>
+          <div class="form-group">
+            <label for="payAmount">Amount (sats) - required for addresses</label>
+            <input
+              id="payAmount"
+              type="number"
+              [(ngModel)]="payAmount"
+              placeholder="Optional for invoices"
+              min="1"
+              [disabled]="paying"
+            />
+          </div>
+          @if (paymentError) {
+            <div class="error-message">{{ paymentError }}</div>
+          }
+          @if (paymentSuccess) {
+            <div class="success-message payment-success">Payment Successful!</div>
+          }
+          @if (!paymentSuccess) {
+            <div class="form-actions">
+              <button class="test-btn" (click)="closePayModal()" [disabled]="paying">
+                Cancel
+              </button>
+              <button
+                class="add-btn"
+                (click)="payInvoiceOrAddress()"
+                [disabled]="paying || !payInput.trim()"
+              >
+                {{ paying ? 'Paying...' : 'Pay' }}
+              </button>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Add wallet form -->
+  @else if (activeSection === 'lightning-add') {
+    <div class="add-wallet-form">
+      <div class="form-group">
+        <label for="walletName">Wallet Name</label>
+        <input
+          id="walletName"
+          type="text"
+          [(ngModel)]="newWalletName"
+          placeholder="My Lightning Wallet"
+          [disabled]="addingConnection"
+        />
+      </div>
+      <div class="form-group">
+        <label for="walletUrl">NWC Connection URL</label>
+        <textarea
+          id="walletUrl"
+          [(ngModel)]="newWalletUrl"
+          placeholder="nostr+walletconnect://..."
+          rows="3"
+          [disabled]="addingConnection"
+        ></textarea>
+      </div>
+      @if (connectionError) {
+        <div class="error-message">{{ connectionError }}</div>
+      }
+      @if (connectionTestResult) {
+        <div class="success-message">{{ connectionTestResult }}</div>
+      }
+      @if (nwcService.logs.length > 0) {
+        <div class="nwc-log">
+          <div class="log-header">
+            <span>Connection Log</span>
+            <button class="log-clear-btn" (click)="nwcService.clearLogs()">Clear</button>
+          </div>
+          <div class="log-entries">
+            @for (entry of nwcService.logs; track entry.timestamp) {
+              <div class="log-entry" [class.log-warn]="entry.level === 'warn'" [class.log-error]="entry.level === 'error'">
+                <span class="log-time">{{ entry.timestamp | date:'HH:mm:ss' }}</span>
+                <span class="log-message">{{ entry.message }}</span>
+              </div>
+            }
+          </div>
+        </div>
+      }
+      <div class="form-actions">
+        <button
+          class="test-btn"
+          (click)="testConnection()"
+          [disabled]="testingConnection || addingConnection"
+        >
+          {{ testingConnection ? 'Testing...' : 'Test Connection' }}
+        </button>
+        <button
+          class="add-btn"
+          (click)="addConnection()"
+          [disabled]="addingConnection"
+        >
+          {{ addingConnection ? 'Adding...' : 'Add Wallet' }}
+        </button>
+      </div>
+    </div>
+  }
 </div>

@@ -15,3 +15,17 @@
     visibility: hidden;
   }
 }
+
+.sync-info {
+  .sync-label {
+    display: block;
+    font-weight: 500;
+  }
+
+  .sync-note {
+    margin: var(--size-h) 0 0 0;
+    font-size: 0.85rem;
+    color: var(--muted-foreground);
+    line-height: 1.4;
+  }
+}

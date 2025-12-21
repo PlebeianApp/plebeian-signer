@@ -1,0 +1,79 @@
+<div class="sam-text-header">
+  <button class="lock-btn" title="Lock" (click)="onClickLock()">
+    <span class="emoji">🔒</span>
+  </button>
+  <button class="back-btn" title="Go Back" (click)="goBack()">
+    <span class="emoji">←</span>
+  </button>
+  <span>Backups</span>
+</div>
+
+<div class="backup-settings">
+  <div class="setting-row">
+    <label for="maxBackups">Max Auto Backups:</label>
+    <input
+      id="maxBackups"
+      type="number"
+      [value]="maxBackups"
+      min="1"
+      max="20"
+      (change)="onMaxBackupsChange($event)"
+    />
+  </div>
+  <p class="setting-note">
+    Automatic backups are created when significant changes are made.
+    Manual and pre-restore backups are not counted toward this limit.
+  </p>
+</div>
+
+<button class="btn btn-primary create-btn" (click)="createManualBackup()">
+  Create Backup Now
+</button>
+
+<div class="backups-list">
+  @if (backups.length === 0) {
+    <div class="empty-state">
+      <span>No backups yet</span>
+    </div>
+  }
+  @for (backup of backups; track backup.id) {
+    <div class="backup-item">
+      <div class="backup-info">
+        <span class="backup-date">{{ formatDate(backup.createdAt) }}</span>
+        <div class="backup-meta">
+          <span class="backup-reason" [class]="getReasonClass(backup.reason)">
+            {{ getReasonLabel(backup.reason) }}
+          </span>
+          <span class="backup-identities">{{ backup.identityCount }} identity(ies)</span>
+        </div>
+      </div>
+      <div class="backup-actions">
+        <button
+          class="btn btn-sm btn-secondary"
+          (click)="
+            confirm.show(
+              'Restore this backup? A backup of your current state will be created first.',
+              restoreBackup.bind(this, backup.id)
+            )
+          "
+          [disabled]="restoringBackupId !== null"
+        >
+          {{ restoringBackupId === backup.id ? 'Restoring...' : 'Restore' }}
+        </button>
+        <button
+          class="btn btn-sm btn-danger"
+          (click)="
+            confirm.show(
+              'Delete this backup? This cannot be undone.',
+              deleteBackup.bind(this, backup.id)
+            )
+          "
+        >
+          Delete
+        </button>
+      </div>
+    </div>
+  }
+</div>
+
+<lib-confirm #confirm></lib-confirm>

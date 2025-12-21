@@ -5,6 +5,7 @@ import {
 } from '@common';
 import './app/common/extensions/array';
 import browser from 'webextension-polyfill';
+import { v4 as uuidv4 } from 'uuid';
 
 //
 // Functions
@@ -105,8 +106,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         newSnapshots.push({
+          id: uuidv4(),
           fileName: file.name,
+          createdAt: new Date().toISOString(),
           data: vault,
+          identityCount: vault.identities?.length ?? 0,
+          reason: 'manual',
         });
       }
 

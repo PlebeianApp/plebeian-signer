@@ -8,7 +8,9 @@ import {
   deriveKeyArgon2,
 } from '@common';
 import { Buffer } from 'buffer';
+import { decryptCashuMints, encryptCashuMint } from './cashu';
 import { decryptIdentities, encryptIdentity, LockedVaultContext } from './identity';
+import { decryptNwcConnections, encryptNwcConnection } from './nwc';
 import { decryptPermissions } from './permission';
 import { decryptRelays, encryptRelay } from './relay';
 
@@ -34,6 +36,8 @@ export const createNewVault = async function (
     identities: [],
     permissions: [],
     relays: [],
+    nwcConnections: [],
+    cashuMints: [],
     selectedIdentityId: null,
   };
   await this.getBrowserSessionHandler().saveFullData(sessionData);
@@ -47,6 +51,8 @@ export const createNewVault = async function (
     identities: [],
     permissions: [],
     relays: [],
+    nwcConnections: [],
+    cashuMints: [],
     selectedIdentityId: null,
   };
   await this.getBrowserSyncHandler().saveAndSetFullData(syncData);
@@ -133,6 +139,22 @@ export const unlockVault = async function (
   );
   console.log('[vault] Decrypted', decryptedRelays.length, 'relays');
 
+  console.log('[vault] Decrypting NWC connections...');
+  const decryptedNwcConnections = await decryptNwcConnections.call(
+    this,
+    browserSyncData.nwcConnections ?? [],
+    withLockedVault
+  );
+  console.log('[vault] Decrypted', decryptedNwcConnections.length, 'NWC connections');
+
+  console.log('[vault] Decrypting Cashu mints...');
+  const decryptedCashuMints = await decryptCashuMints.call(
+    this,
+    browserSyncData.cashuMints ?? [],
+    withLockedVault
+  );
+  console.log('[vault] Decrypted', decryptedCashuMints.length, 'Cashu mints');
+
   console.log('[vault] Decrypting selectedIdentityId...');
   let decryptedSelectedIdentityId: string | null = null;
   if (browserSyncData.selectedIdentityId !== null) {
@@ -163,6 +185,8 @@ export const unlockVault = async function (
     identities: decryptedIdentities,
     selectedIdentityId: decryptedSelectedIdentityId,
     relays: decryptedRelays,
+    nwcConnections: decryptedNwcConnections,
+    cashuMints: decryptedCashuMints,
   };
 
   console.log('[vault] Saving session data...');
@@ -234,6 +258,20 @@ async function migrateVaultV1ToV2(
     encryptedPermissions.push(encryptedPermission);
   }
 
+  // Re-encrypt NWC connections
+  const encryptedNwcConnections = [];
+  for (const nwcConnection of browserSessionData.nwcConnections ?? []) {
+    const encrypted = await encryptNwcConnection.call(this, nwcConnection);
+    encryptedNwcConnections.push(encrypted);
+  }
+
+  // Re-encrypt Cashu mints
+  const encryptedCashuMints = [];
+  for (const cashuMint of browserSessionData.cashuMints ?? []) {
+    const encrypted = await encryptCashuMint.call(this, cashuMint);
+    encryptedCashuMints.push(encrypted);
+  }
+
   const encryptedSelectedIdentityId = browserSessionData.selectedIdentityId
     ? await this.encrypt(browserSessionData.selectedIdentityId)
     : null;
@@ -247,6 +285,8 @@ async function migrateVaultV1ToV2(
     identities: encryptedIdentities,
     permissions: encryptedPermissions,
     relays: encryptedRelays,
+    nwcConnections: encryptedNwcConnections,
+    cashuMints: encryptedCashuMints,
     selectedIdentityId: encryptedSelectedIdentityId,
   };
 

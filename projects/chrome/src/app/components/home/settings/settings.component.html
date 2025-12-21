@@ -5,7 +5,13 @@
   <span> Settings </span>
 </div>
 
-<span>SYNC: {{ syncFlow }}</span>
+<div class="sync-info">
+  <span class="sync-label">SYNC: {{ syncFlow }}</span>
+  <p class="sync-note">
+    To change sync mode, export your vault, reset the extension,
+    and re-import with the desired sync setting.
+  </p>
+</div>
 
 <button class="btn btn-primary" (click)="onClickExportVault()">
   Export Vault
@@ -15,6 +21,7 @@
   Import Vault
 </button>
 
+<lib-nav-item text="💾 Backups" (click)="navigate('/home/backups')"></lib-nav-item>
 <lib-nav-item text="🪵 Logs" (click)="navigate('/home/logs')"></lib-nav-item>
 <lib-nav-item text="💡 Info" (click)="navigate('/home/info')"></lib-nav-item>
 

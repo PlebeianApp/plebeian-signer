@@ -43,6 +43,80 @@ export interface Relay_ENCRYPTED {
   write: string;
 }
 
+/**
+ * NWC (Nostr Wallet Connect) connection - Decrypted
+ * Stores NIP-47 wallet connection data
+ */
+export interface NwcConnection_DECRYPTED {
+  id: string;
+  name: string;                 // User-defined wallet name
+  connectionUrl: string;        // Full nostr+walletconnect:// URL
+  walletPubkey: string;         // Wallet service pubkey
+  relayUrl: string;             // Relay URL for NWC communication
+  secret: string;               // Client secret key (32-byte hex)
+  lud16?: string;               // Optional lightning address
+  createdAt: string;            // ISO timestamp
+  cachedBalance?: number;       // Balance in millisatoshis
+  cachedBalanceAt?: string;     // ISO timestamp when balance was fetched
+}
+
+/**
+ * NWC connection - Encrypted for storage
+ */
+export interface NwcConnection_ENCRYPTED {
+  id: string;
+  name: string;
+  connectionUrl: string;
+  walletPubkey: string;
+  relayUrl: string;
+  secret: string;
+  lud16?: string;
+  createdAt: string;
+  cachedBalance?: string;       // Encrypted as string
+  cachedBalanceAt?: string;
+}
+
+/**
+ * Cashu Proof - represents a single ecash token
+ * This is the actual money stored locally
+ */
+export interface CashuProof {
+  id: string;       // Keyset ID from mint
+  amount: number;   // Satoshi amount
+  secret: string;   // Blinded secret
+  C: string;        // Unblinded signature (commitment)
+  receivedAt?: string; // ISO timestamp when token was received
+}
+
+/**
+ * Cashu Mint Connection - Decrypted
+ * Stores NIP-60 Cashu mint connection data with local proofs
+ */
+export interface CashuMint_DECRYPTED {
+  id: string;
+  name: string;                 // User-defined mint name
+  mintUrl: string;              // Mint API URL
+  unit: string;                 // Unit (default: 'sat')
+  createdAt: string;            // ISO timestamp
+  proofs: CashuProof[];         // Unspent proofs for this mint
+  cachedBalance?: number;       // Sum of proof amounts (sats)
+  cachedBalanceAt?: string;     // When balance was calculated
+}
+
+/**
+ * Cashu Mint Connection - Encrypted for storage
+ */
+export interface CashuMint_ENCRYPTED {
+  id: string;
+  name: string;
+  mintUrl: string;
+  unit: string;
+  createdAt: string;
+  proofs: string;               // JSON stringified and encrypted
+  cachedBalance?: string;
+  cachedBalanceAt?: string;
+}
+
 export interface BrowserSyncData_PART_Unencrypted {
   version: number;
   iv: string;
@@ -57,6 +131,8 @@ export interface BrowserSyncData_PART_Encrypted {
   permissions: Permission_ENCRYPTED[];
   identities: Identity_ENCRYPTED[];
   relays: Relay_ENCRYPTED[];
+  nwcConnections?: NwcConnection_ENCRYPTED[];
+  cashuMints?: CashuMint_ENCRYPTED[];
 }
 
 export type BrowserSyncData = BrowserSyncData_PART_Unencrypted &
@@ -83,11 +159,17 @@ export interface BrowserSessionData {
   identities: Identity_DECRYPTED[];
   selectedIdentityId: string | null;
   relays: Relay_DECRYPTED[];
+  nwcConnections?: NwcConnection_DECRYPTED[];
+  cashuMints?: CashuMint_DECRYPTED[];
 }
 
 export interface SignerMetaData_VaultSnapshot {
+  id: string;
   fileName: string;
+  createdAt: string; // ISO timestamp
   data: BrowserSyncData;
+  identityCount: number;
+  reason?: 'manual' | 'auto' | 'pre-restore'; // Why was this backup created
 }
 
 export const SIGNER_META_DATA_KEY = {
@@ -108,6 +190,9 @@ export interface SignerMetaData {
   syncFlow?: number; // 0 = no sync, 1 = browser sync, (future: 2 = Signer sync, 3 = Custom sync (bring your own sync))
 
   vaultSnapshots?: SignerMetaData_VaultSnapshot[];
+
+  // Maximum number of automatic backups to keep (default: 5)
+  maxBackups?: number;
 
   // Reckless mode: auto-approve all actions without prompting
   recklessMode?: boolean;

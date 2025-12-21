@@ -52,6 +52,10 @@ export class IdentityComponent implements OnInit {
     return this.profile?.banner;
   }
 
+  get aboutText(): string | undefined {
+    return this.profile?.about;
+  }
+
   copyToClipboard(pubkey: string | undefined) {
     if (!pubkey) {
       return;

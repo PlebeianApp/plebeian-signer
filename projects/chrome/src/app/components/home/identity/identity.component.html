@@ -73,4 +73,12 @@
   </div>
 </div>
 
+<!-- About section -->
+@if (aboutText) {
+  <div class="about-section">
+    <div class="about-header">About</div>
+    <div class="about-content">{{ aboutText }}</div>
+  </div>
+}
+
 <lib-toast #toast></lib-toast>

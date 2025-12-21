@@ -9,6 +9,7 @@ import { SettingsComponent } from './components/home/settings/settings.component
 import { LogsComponent } from './components/home/logs/logs.component';
 import { BookmarksComponent } from './components/home/bookmarks/bookmarks.component';
 import { WalletComponent } from './components/home/wallet/wallet.component';
+import { BackupsComponent } from './components/home/backups/backups.component';
 import { NewIdentityComponent } from './components/new-identity/new-identity.component';
 import { EditIdentityComponent } from './components/edit-identity/edit-identity.component';
 import { HomeComponent as EditIdentityHomeComponent } from './components/edit-identity/home/home.component';
@@ -80,6 +81,10 @@ export const routes: Routes = [
       {
         path: 'wallet',
         component: WalletComponent,
+      },
+      {
+        path: 'backups',
+        component: BackupsComponent,
       },
     ],
   },

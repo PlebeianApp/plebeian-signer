@@ -6,3 +6,41 @@
   padding-left: var(--size);
   padding-right: var(--size);
 }
+
+.storage-info {
+  margin-top: 1rem;
+  width: 100%;
+
+  details {
+    background: rgba(255, 193, 7, 0.1);
+    border: 1px solid var(--warning, #ffc107);
+    border-radius: 6px;
+    padding: 0.5rem;
+
+    summary {
+      cursor: pointer;
+      font-weight: 500;
+      font-size: 0.9rem;
+      color: var(--warning, #ffc107);
+
+      &:hover {
+        text-decoration: underline;
+      }
+    }
+
+    p {
+      margin: 0.75rem 0 0 0;
+      font-size: 0.85rem;
+      line-height: 1.4;
+      color: var(--text-muted, #6c757d);
+
+      &:last-child {
+        margin-bottom: 0.5rem;
+      }
+
+      strong {
+        color: var(--text, #212529);
+      }
+    }
+  }
+}

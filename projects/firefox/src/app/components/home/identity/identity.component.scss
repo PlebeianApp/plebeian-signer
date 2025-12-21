@@ -185,4 +185,33 @@
       opacity: 1;
     }
   }
+
+  .about-section {
+    margin: var(--size);
+    margin-top: 0;
+    flex-shrink: 0;
+    max-height: 150px;
+    display: flex;
+    flex-direction: column;
+
+    .about-header {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--muted-foreground);
+      margin-bottom: var(--size-h);
+    }
+
+    .about-content {
+      flex: 1;
+      overflow-y: auto;
+      font-size: 0.9rem;
+      line-height: 1.5;
+      color: var(--foreground);
+      background: var(--background-light);
+      border-radius: var(--radius-sm);
+      padding: var(--size);
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+  }
 }

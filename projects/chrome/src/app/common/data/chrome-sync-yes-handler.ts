@@ -1,7 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import {
   BrowserSyncData,
+  CashuMint_ENCRYPTED,
   Identity_ENCRYPTED,
+  NwcConnection_ENCRYPTED,
   Permission_ENCRYPTED,
   BrowserSyncHandler,
   Relay_ENCRYPTED,
@@ -47,6 +49,20 @@ export class ChromeSyncYesHandler extends BrowserSyncHandler {
   }): Promise<void> {
     await chrome.storage.sync.set(data);
     this.setPartialData_Relays(data);
+  }
+
+  async saveAndSetPartialData_NwcConnections(data: {
+    nwcConnections: NwcConnection_ENCRYPTED[];
+  }): Promise<void> {
+    await chrome.storage.sync.set(data);
+    this.setPartialData_NwcConnections(data);
+  }
+
+  async saveAndSetPartialData_CashuMints(data: {
+    cashuMints: CashuMint_ENCRYPTED[];
+  }): Promise<void> {
+    await chrome.storage.sync.set(data);
+    this.setPartialData_CashuMints(data);
   }
 
   async clearData(): Promise<void> {
