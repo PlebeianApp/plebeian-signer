@@ -5,7 +5,7 @@ Developer accounts are set up. This document covers the remaining steps.
 ## Privacy Policy URL
 
 ```
-https://git.mleku.dev/mleku/plebeian-signer/src/branch/main/docs/store/PRIVACY_POLICY.md
+https://github.com/PlebeianApp/plebeian-signer/blob/main/docs/store/PRIVACY_POLICY.md
 ```
 
 ## Screenshots Needed
@@ -48,7 +48,7 @@ Upload your screenshots.
 | Field | Value |
 |-------|-------|
 | Single Purpose | Manage Nostr identities and sign cryptographic events for web applications |
-| Privacy Policy URL | `https://git.mleku.dev/mleku/plebeian-signer/src/branch/main/docs/store/PRIVACY_POLICY.md` |
+| Privacy Policy URL | `https://github.com/PlebeianApp/plebeian-signer/blob/main/docs/store/PRIVACY_POLICY.md` |
 
 **Permission Justifications:**
 
@@ -100,9 +100,9 @@ Build instructions to provide:
 | Summary | Secure Nostr identity manager. Sign events without exposing private keys. Multi-identity support with NIP-07 compatibility. |
 | Description | Copy from `docs/store/STORE_DESCRIPTION.md` |
 | Categories | Privacy & Security |
-| Homepage | `https://git.mleku.dev/mleku/plebeian-signer` |
-| Support URL | `https://git.mleku.dev/mleku/plebeian-signer/issues` |
-| Privacy Policy | `https://git.mleku.dev/mleku/plebeian-signer/src/branch/main/docs/store/PRIVACY_POLICY.md` |
+| Homepage | `https://github.com/PlebeianApp/plebeian-signer` |
+| Support URL | `https://github.com/PlebeianApp/plebeian-signer/issues` |
+| Privacy Policy | `https://github.com/PlebeianApp/plebeian-signer/blob/main/docs/store/PRIVACY_POLICY.md` |
 
 Upload your screenshots.
 

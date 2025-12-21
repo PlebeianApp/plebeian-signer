@@ -28,7 +28,7 @@ The repository is configured as monorepo to hold the extensions for Chrome and F
 To build and run the Chrome extension from this code:
 
 ```
-git clone https://git.mleku.dev/mleku/plebeian-signer
+git clone https://github.com/PlebeianApp/plebeian-signer.git
 cd plebeian-signer
 npm ci
 npm run build:chrome
@@ -46,7 +46,7 @@ then
 To build and run the Firefox extension from this code:
 
 ```
-git clone https://git.mleku.dev/mleku/plebeian-signer
+git clone https://github.com/PlebeianApp/plebeian-signer.git
 cd plebeian-signer
 npm ci
 npm run build:firefox

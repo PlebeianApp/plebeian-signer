@@ -86,7 +86,7 @@ You have full control over your data:
 ## Open Source
 
 Plebeian Signer is open source software. You can audit the code yourself:
-- Repository: https://git.mleku.dev/mleku/plebeian-signer
+- Repository: https://github.com/PlebeianApp/plebeian-signer
 
 ## Children's Privacy
 
@@ -99,7 +99,7 @@ If we make changes to this privacy policy, we will update the "Last Updated" dat
 ## Contact
 
 For privacy-related questions or concerns, please open an issue on our repository:
-https://git.mleku.dev/mleku/plebeian-signer/issues
+https://github.com/PlebeianApp/plebeian-signer/issues
 
 ---
 

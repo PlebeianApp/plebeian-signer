@@ -69,7 +69,7 @@ You need to host the privacy policy at a public URL. Options:
 2. **Simple webpage** - Create a basic HTML page
 3. **Gist** - Create a public GitHub gist
 
-Example URL format: `https://git.mleku.dev/mleku/plebeian-signer/src/branch/main/docs/store/PRIVACY_POLICY.md`
+Example URL format: `https://github.com/PlebeianApp/plebeian-signer/blob/main/docs/store/PRIVACY_POLICY.md`
 
 ---
 
@@ -102,8 +102,8 @@ Example URL format: `https://git.mleku.dev/mleku/plebeian-signer/src/branch/main
 - Upload promotional tiles if you have them
 
 **Additional Fields:**
-- **Official URL:** `https://git.mleku.dev/mleku/plebeian-signer`
-- **Support URL:** `https://git.mleku.dev/mleku/plebeian-signer/issues`
+- **Official URL:** `https://github.com/PlebeianApp/plebeian-signer`
+- **Support URL:** `https://github.com/PlebeianApp/plebeian-signer/issues`
 
 ### Step 4: Privacy Tab
 
@@ -181,8 +181,8 @@ Firefox may request source code because the extension uses bundled/minified Java
 - **Categories:** Privacy & Security
 
 **Additional Details:**
-- **Homepage:** `https://git.mleku.dev/mleku/plebeian-signer`
-- **Support URL:** `https://git.mleku.dev/mleku/plebeian-signer/issues`
+- **Homepage:** `https://github.com/PlebeianApp/plebeian-signer`
+- **Support URL:** `https://github.com/PlebeianApp/plebeian-signer/issues`
 - **License:** Select appropriate license
 - **Privacy Policy:** Paste URL to hosted privacy policy
 

@@ -66,8 +66,8 @@ Plebeian Signer is open source and respects your privacy:
 
 ### Links
 
-- Source Code: https://git.mleku.dev/mleku/plebeian-signer
-- Report Issues: https://git.mleku.dev/mleku/plebeian-signer/issues
+- Source Code: https://github.com/PlebeianApp/plebeian-signer
+- Report Issues: https://github.com/PlebeianApp/plebeian-signer/issues
 
 ---
 
