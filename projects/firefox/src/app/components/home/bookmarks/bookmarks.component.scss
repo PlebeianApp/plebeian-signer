@@ -2,21 +2,24 @@
   height: 100%;
   display: flex;
   flex-direction: column;
-  padding: var(--size);
+  padding-top: var(--size);
+  padding-bottom: var(--size);
   overflow: hidden;
-}
 
-.bookmarks-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: var(--size);
-  flex-shrink: 0;
-}
+  > *:not(.sam-text-header) {
+    margin-left: var(--size);
+    margin-right: var(--size);
+  }
 
-.bookmarks-title {
-  font-weight: 600;
-  font-size: 1.1rem;
+  .sam-text-header {
+    margin-bottom: var(--size);
+    flex-shrink: 0;
+
+    .action-btn {
+      position: absolute;
+      right: 0;
+    }
+  }
 }
 
 .bookmarks-container {

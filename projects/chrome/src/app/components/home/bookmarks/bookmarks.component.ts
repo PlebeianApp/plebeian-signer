@@ -1,5 +1,6 @@
 import { Component, inject, OnInit } from '@angular/core';
-import { Bookmark, LoggerService, SignerMetaData } from '@common';
+import { Router } from '@angular/router';
+import { Bookmark, LoggerService, SignerMetaData, StorageService } from '@common';
 import { ChromeMetaHandler } from '../../../common/data/chrome-meta-handler';
 
 @Component({
@@ -11,6 +12,8 @@ import { ChromeMetaHandler } from '../../../common/data/chrome-meta-handler';
 export class BookmarksComponent implements OnInit {
   readonly #logger = inject(LoggerService);
   readonly #metaHandler = new ChromeMetaHandler();
+  readonly #storage = inject(StorageService);
+  readonly #router = inject(Router);
 
   bookmarks: Bookmark[] = [];
   isLoading = true;
@@ -86,5 +89,11 @@ export class BookmarksComponent implements OnInit {
     } catch {
       return url;
     }
+  }
+
+  async onClickLock() {
+    this.#logger.logVaultLock();
+    await this.#storage.lockVault();
+    this.#router.navigateByUrl('/vault-login');
   }
 }

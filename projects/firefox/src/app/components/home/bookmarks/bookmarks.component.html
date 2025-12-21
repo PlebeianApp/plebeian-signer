@@ -1,8 +1,11 @@
 <!-- eslint-disable @angular-eslint/template/interactive-supports-focus -->
 <!-- eslint-disable @angular-eslint/template/click-events-have-key-events -->
-<div class="bookmarks-header">
-  <span class="bookmarks-title">Bookmarks</span>
-  <button class="btn btn-primary btn-sm" (click)="onBookmarkThisPage()">
+<div class="sam-text-header">
+  <button class="lock-btn" title="Lock" (click)="onClickLock()">
+    <span class="emoji">🔒</span>
+  </button>
+  <span>Bookmarks</span>
+  <button class="action-btn btn btn-primary btn-sm" (click)="onBookmarkThisPage()">
     <span class="emoji">🔖</span> Bookmark This Page
   </button>
 </div>

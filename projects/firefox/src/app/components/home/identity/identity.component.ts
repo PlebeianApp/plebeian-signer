@@ -76,6 +76,12 @@ export class IdentityComponent implements OnInit {
     this.#router.navigateByUrl('/profile-edit');
   }
 
+  async onClickLock() {
+    this.#logger.logVaultLock();
+    await this.#storage.lockVault();
+    this.#router.navigateByUrl('/vault-login');
+  }
+
   async #loadData() {
     try {
       const selectedIdentityId =

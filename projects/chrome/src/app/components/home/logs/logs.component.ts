@@ -1,5 +1,6 @@
 import { Component, inject, OnInit } from '@angular/core';
-import { LoggerService, LogEntry } from '@common';
+import { Router } from '@angular/router';
+import { LoggerService, LogEntry, StorageService } from '@common';
 import { DatePipe } from '@angular/common';
 
 @Component({
@@ -10,6 +11,8 @@ import { DatePipe } from '@angular/common';
 })
 export class LogsComponent implements OnInit {
   readonly #logger = inject(LoggerService);
+  readonly #storage = inject(StorageService);
+  readonly #router = inject(Router);
 
   get logs(): LogEntry[] {
     return this.#logger.logs;
@@ -39,5 +42,11 @@ export class LogsComponent implements OnInit {
       default:
         return 'log-info';
     }
+  }
+
+  async onClickLock() {
+    this.#logger.logVaultLock();
+    await this.#storage.lockVault();
+    this.#router.navigateByUrl('/vault-login');
   }
 }

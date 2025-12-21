@@ -3,6 +3,7 @@ import { Router } from '@angular/router';
 import {
   IconButtonComponent,
   Identity_DECRYPTED,
+  LoggerService,
   NostrHelper,
   ProfileMetadata,
   ProfileMetadataService,
@@ -20,6 +21,7 @@ export class IdentitiesComponent implements OnInit {
   readonly storage = inject(StorageService);
   readonly #router = inject(Router);
   readonly #profileMetadata = inject(ProfileMetadataService);
+  readonly #logger = inject(LoggerService);
 
   // Cache of pubkey -> profile for quick lookup
   #profileCache = new Map<string, ProfileMetadata | null>();
@@ -72,5 +74,11 @@ export class IdentitiesComponent implements OnInit {
 
   onClickWhitelistedApps() {
     this.#router.navigateByUrl('/whitelisted-apps');
+  }
+
+  async onClickLock() {
+    this.#logger.logVaultLock();
+    await this.storage.lockVault();
+    this.#router.navigateByUrl('/vault-login');
   }
 }

@@ -1,6 +1,9 @@
 <!-- eslint-disable @angular-eslint/template/interactive-supports-focus -->
 <!-- eslint-disable @angular-eslint/template/click-events-have-key-events -->
 <div class="custom-header" style="position: sticky; top: 0">
+  <button class="lock-btn" title="Lock" (click)="onClickLock()">
+    <span class="emoji">🔒</span>
+  </button>
   <span class="text">Identities</span>
 
   <button class="button btn btn-primary btn-sm" (click)="onClickNewIdentity()">

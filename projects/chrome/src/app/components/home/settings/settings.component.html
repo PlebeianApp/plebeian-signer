@@ -1,4 +1,7 @@
 <div class="sam-text-header">
+  <button class="lock-btn" title="Lock" (click)="onClickLock()">
+    <span class="emoji">🔒</span>
+  </button>
   <span> Settings </span>
 </div>
 
@@ -11,6 +14,9 @@
 <button class="btn btn-primary" (click)="navigate('/vault-import')">
   Import Vault
 </button>
+
+<lib-nav-item text="🪵 Logs" (click)="navigate('/home/logs')"></lib-nav-item>
+<lib-nav-item text="💡 Info" (click)="navigate('/home/info')"></lib-nav-item>
 
 <div class="sam-flex-grow"></div>
 

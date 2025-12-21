@@ -1,4 +1,5 @@
 import { Component, inject, OnInit } from '@angular/core';
+import { Router } from '@angular/router';
 import {
   BrowserSyncData,
   BrowserSyncFlow,
@@ -6,6 +7,7 @@ import {
   DateHelper,
   LoggerService,
   NavComponent,
+  NavItemComponent,
   StartupService,
   StorageService,
 } from '@common';
@@ -13,11 +15,12 @@ import { getNewStorageServiceConfig } from '../../../common/data/get-new-storage
 
 @Component({
   selector: 'app-settings',
-  imports: [ConfirmComponent],
+  imports: [ConfirmComponent, NavItemComponent],
   templateUrl: './settings.component.html',
   styleUrl: './settings.component.scss',
 })
 export class SettingsComponent extends NavComponent implements OnInit {
+  readonly #router = inject(Router);
   syncFlow: string | undefined;
 
   readonly #storage = inject(StorageService);
@@ -100,5 +103,11 @@ export class SettingsComponent extends NavComponent implements OnInit {
     document.body.appendChild(downloadAnchorNode);
     downloadAnchorNode.click();
     downloadAnchorNode.remove();
+  }
+
+  async onClickLock() {
+    this.#logger.logVaultLock();
+    await this.#storage.lockVault();
+    this.#router.navigateByUrl('/vault-login');
   }
 }

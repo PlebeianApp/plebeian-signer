@@ -1,6 +1,9 @@
 <!-- eslint-disable @angular-eslint/template/interactive-supports-focus -->
 <!-- eslint-disable @angular-eslint/template/click-events-have-key-events -->
 <div class="sam-text-header">
+  <button class="lock-btn" title="Lock" (click)="onClickLock()">
+    <span class="emoji">🔒</span>
+  </button>
   <span>You</span>
   <button class="edit-btn" title="Edit profile" (click)="onClickEditProfile()">
     <img src="edit.svg" alt="Edit" class="edit-icon" />

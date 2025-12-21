@@ -4,8 +4,11 @@
   flex-direction: column;
   row-gap: var(--size);
   overflow-y: auto;
-  padding-left: var(--size);
-  padding-right: var(--size);
+
+  > *:not(.sam-text-header) {
+    margin-left: var(--size);
+    margin-right: var(--size);
+  }
 
   .file-input {
     position: absolute;

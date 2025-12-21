@@ -4,14 +4,12 @@
   flex-direction: column;
 
   .sam-text-header {
-    position: relative;
-
     .edit-btn {
       position: absolute;
-      right: var(--size);
+      right: 0;
       background: transparent;
       border: none;
-      padding: 4px;
+      padding: 8px;
       cursor: pointer;
       display: flex;
       align-items: center;
