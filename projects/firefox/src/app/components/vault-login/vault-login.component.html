@@ -43,22 +43,21 @@
         <span>Sign in</span>
       </div>
     </button>
-
-    <button
-      class="sam-mt"
-      (click)="
-        confirm.show(
-          'Do you really want to reset the extension? All data will be lost.',
-          onClickResetExtension.bind(this)
-        )
-      "
-      type="button"
-      class="btn btn-link"
-    >
-      Reset Extension
-    </button>
   </div>
 </div>
+
+<button
+  class="reset-btn"
+  (click)="
+    confirm.show(
+      'Do you really want to reset the extension? All data will be lost.',
+      onClickResetExtension.bind(this)
+    )
+  "
+  type="button"
+>
+  Reset Extension
+</button>
 
 <!----------->
 <!-- ALERT -->

@@ -19,9 +19,9 @@
     background: var(--background);
     position: relative;
 
-    .lock-btn {
+    .lock-btn,
+    .add-btn {
       position: absolute;
-      left: 0;
       background: transparent;
       border: none;
       padding: 8px;
@@ -41,8 +41,11 @@
       }
     }
 
-    .button {
-      position: absolute;
+    .lock-btn {
+      left: 0;
+    }
+
+    .add-btn {
       right: 0;
     }
 

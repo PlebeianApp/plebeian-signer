@@ -18,6 +18,7 @@ body {
   background: var(--background);
 
   margin: 0;
+  overflow: hidden;
 }
 
 // Button styling to match market
@@ -127,4 +128,36 @@ button {
 
 .modal-body {
   color: #fafafa;
+}
+
+// Custom scrollbar styling for Chrome
+* {
+  // Thin scrollbar
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  // Track - black background, transparent by default
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  // Thumb - white, transparent by default
+  &::-webkit-scrollbar-thumb {
+    background: transparent;
+    border-radius: 3px;
+  }
+
+  // Show scrollbar on hover over scrollable area
+  &:hover::-webkit-scrollbar-track {
+    background: #1a1a1a;
+  }
+
+  &:hover::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.5);
+  }
+
+  &::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.7);
+  }
 }

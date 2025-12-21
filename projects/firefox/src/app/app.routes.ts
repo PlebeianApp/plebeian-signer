@@ -8,6 +8,7 @@ import { InfoComponent } from './components/home/info/info.component';
 import { SettingsComponent } from './components/home/settings/settings.component';
 import { LogsComponent } from './components/home/logs/logs.component';
 import { BookmarksComponent } from './components/home/bookmarks/bookmarks.component';
+import { WalletComponent } from './components/home/wallet/wallet.component';
 import { NewIdentityComponent } from './components/new-identity/new-identity.component';
 import { EditIdentityComponent } from './components/edit-identity/edit-identity.component';
 import { HomeComponent as EditIdentityHomeComponent } from './components/edit-identity/home/home.component';
@@ -75,6 +76,10 @@ export const routes: Routes = [
       {
         path: 'bookmarks',
         component: BookmarksComponent,
+      },
+      {
+        path: 'wallet',
+        component: WalletComponent,
       },
     ],
   },
