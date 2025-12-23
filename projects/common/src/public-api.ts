@@ -19,6 +19,7 @@ export * from './lib/helpers/nip05-validator';
 
 // Models
 export * from './lib/models/nostr';
+export * from './lib/models/webln';
 
 // Services (and related)
 export * from './lib/services/storage/storage.service';

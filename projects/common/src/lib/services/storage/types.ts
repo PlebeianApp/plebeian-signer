@@ -1,10 +1,10 @@
-import { Nip07Method, Nip07MethodPolicy } from '@common';
+import { ExtensionMethod, Nip07MethodPolicy } from '@common';
 
 export interface Permission_DECRYPTED {
   id: string;
   identityId: string;
   host: string;
-  method: Nip07Method;
+  method: ExtensionMethod;
   methodPolicy: Nip07MethodPolicy;
   kind?: number;
 }

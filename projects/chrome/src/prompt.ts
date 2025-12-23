@@ -1,5 +1,5 @@
 import browser from 'webextension-polyfill';
-import { Nip07Method } from '@common';
+import { ExtensionMethod } from '@common';
 import { PromptResponse, PromptResponseMessage } from './background-common';
 
 /**
@@ -14,7 +14,7 @@ function base64ToUtf8(base64: string): string {
 
 const params = new URLSearchParams(location.search);
 const id = params.get('id') as string;
-const method = params.get('method') as Nip07Method;
+const method = params.get('method') as ExtensionMethod;
 const host = params.get('host') as string;
 const nick = params.get('nick') as string;
 
@@ -56,6 +56,26 @@ switch (method) {
 
   case 'getRelays':
     title = 'Get Relays';
+    break;
+
+  case 'webln.enable':
+    title = 'Enable WebLN';
+    break;
+
+  case 'webln.getInfo':
+    title = 'Wallet Info';
+    break;
+
+  case 'webln.sendPayment':
+    title = 'Send Payment';
+    break;
+
+  case 'webln.makeInvoice':
+    title = 'Create Invoice';
+    break;
+
+  case 'webln.keysend':
+    title = 'Keysend Payment';
     break;
 
   default:
@@ -182,6 +202,65 @@ if (cardNip44DecryptElement && card2Nip44DecryptElement) {
   } else {
     cardNip44DecryptElement.style.display = 'none';
     card2Nip44DecryptElement.style.display = 'none';
+  }
+}
+
+// WebLN card visibility
+const cardWeblnEnableElement = document.getElementById('cardWeblnEnable');
+if (cardWeblnEnableElement) {
+  if (method !== 'webln.enable') {
+    cardWeblnEnableElement.style.display = 'none';
+  }
+}
+
+const cardWeblnGetInfoElement = document.getElementById('cardWeblnGetInfo');
+if (cardWeblnGetInfoElement) {
+  if (method !== 'webln.getInfo') {
+    cardWeblnGetInfoElement.style.display = 'none';
+  }
+}
+
+const cardWeblnSendPaymentElement = document.getElementById('cardWeblnSendPayment');
+const card2WeblnSendPaymentElement = document.getElementById('card2WeblnSendPayment');
+if (cardWeblnSendPaymentElement && card2WeblnSendPaymentElement) {
+  if (method === 'webln.sendPayment') {
+    // Display amount in sats
+    const paymentAmountSpan = document.getElementById('paymentAmountSpan');
+    if (paymentAmountSpan && eventParsed.amountSats !== undefined) {
+      paymentAmountSpan.innerText = `${eventParsed.amountSats.toLocaleString()} sats`;
+    } else if (paymentAmountSpan) {
+      paymentAmountSpan.innerText = 'unknown amount';
+    }
+    // Show invoice in json card
+    const card2WeblnSendPayment_jsonElement = document.getElementById('card2WeblnSendPayment_json');
+    if (card2WeblnSendPayment_jsonElement && eventParsed.paymentRequest) {
+      card2WeblnSendPayment_jsonElement.innerText = eventParsed.paymentRequest;
+    }
+  } else {
+    cardWeblnSendPaymentElement.style.display = 'none';
+    card2WeblnSendPaymentElement.style.display = 'none';
+  }
+}
+
+const cardWeblnMakeInvoiceElement = document.getElementById('cardWeblnMakeInvoice');
+if (cardWeblnMakeInvoiceElement) {
+  if (method === 'webln.makeInvoice') {
+    const invoiceAmountSpan = document.getElementById('invoiceAmountSpan');
+    if (invoiceAmountSpan) {
+      const amount = eventParsed.amount ?? eventParsed.defaultAmount;
+      if (amount) {
+        invoiceAmountSpan.innerText = ` for ${Number(amount).toLocaleString()} sats`;
+      }
+    }
+  } else {
+    cardWeblnMakeInvoiceElement.style.display = 'none';
+  }
+}
+
+const cardWeblnKeysendElement = document.getElementById('cardWeblnKeysend');
+if (cardWeblnKeysendElement) {
+  if (method !== 'webln.keysend') {
+    cardWeblnKeysendElement.style.display = 'none';
   }
 }
 

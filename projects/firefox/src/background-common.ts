@@ -19,6 +19,8 @@ import {
   CashuMint_DECRYPTED,
   CashuMint_ENCRYPTED,
   deriveKeyArgon2,
+  ExtensionMethod,
+  WeblnMethod,
 } from '@common';
 import { FirefoxMetaHandler } from './app/common/data/firefox-meta-handler';
 import { Event, EventTemplate, finalizeEvent, nip04, nip44 } from 'nostr-tools';
@@ -56,7 +58,7 @@ export interface PromptResponseMessage {
 }
 
 export interface BackgroundRequestMessage {
-  method: Nip07Method;
+  method: ExtensionMethod;
   params: any;
   host: string;
 }
@@ -219,11 +221,51 @@ export const checkPermissions = function (
   return undefined;
 };
 
+/**
+ * Check if a method is a WebLN method
+ */
+export const isWeblnMethod = function (method: ExtensionMethod): method is WeblnMethod {
+  return method.startsWith('webln.');
+};
+
+/**
+ * Check WebLN permissions for a host.
+ * Note: WebLN permissions are NOT tied to identities since the wallet is global.
+ * For sendPayment, always returns undefined (require user prompt for security).
+ */
+export const checkWeblnPermissions = function (
+  browserSessionData: BrowserSessionData,
+  host: string,
+  method: WeblnMethod
+): boolean | undefined {
+  // sendPayment ALWAYS requires user approval (security-critical, irreversible)
+  if (method === 'webln.sendPayment') {
+    return undefined;
+  }
+
+  // keysend also requires approval
+  if (method === 'webln.keysend') {
+    return undefined;
+  }
+
+  // For other WebLN methods, check stored permissions
+  // WebLN permissions use 'webln' as the identityId
+  const permissions = browserSessionData.permissions.filter(
+    (x) => x.identityId === 'webln' && x.host === host && x.method === method
+  );
+
+  if (permissions.length === 0) {
+    return undefined;
+  }
+
+  return permissions.every((x) => x.methodPolicy === 'allow');
+};
+
 export const storePermission = async function (
   browserSessionData: BrowserSessionData,
-  identity: Identity_DECRYPTED,
+  identity: Identity_DECRYPTED | null,
   host: string,
-  method: Nip07Method,
+  method: ExtensionMethod,
   methodPolicy: Nip07MethodPolicy,
   kind?: number
 ) {
@@ -232,11 +274,14 @@ export const storePermission = async function (
     throw new Error(`Could not retrieve sync data`);
   }
 
+  // For WebLN methods, use 'webln' as identityId since wallet is global
+  const identityId = identity?.id ?? 'webln';
+
   const permission: Permission_DECRYPTED = {
     id: crypto.randomUUID(),
-    identityId: identity.id,
+    identityId,
     host,
-    method,
+    method: method as Nip07Method, // Cast for storage compatibility
     methodPolicy,
     kind,
   };

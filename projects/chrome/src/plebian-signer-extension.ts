@@ -1,11 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Event, EventTemplate } from 'nostr-tools';
-import { Nip07Method } from '@common';
+import { Event as NostrEvent, EventTemplate } from 'nostr-tools';
+import { ExtensionMethod } from '@common';
 
-// Extend Window interface for NIP-07
+// Extend Window interface for NIP-07 and WebLN
 declare global {
   interface Window {
     nostr?: any;
+    webln?: any;
   }
 }
 
@@ -38,7 +39,7 @@ class Messenger {
     window.addEventListener('message', this.#handleCallResponse.bind(this));
   }
 
-  async request(method: Nip07Method, params: any): Promise<any> {
+  async request(method: ExtensionMethod, params: any): Promise<any> {
     const id = generateUUID();
 
     return new Promise((resolve, reject) => {
@@ -89,7 +90,7 @@ const nostr = {
     return pubkey;
   },
 
-  async signEvent(event: EventTemplate): Promise<Event> {
+  async signEvent(event: EventTemplate): Promise<NostrEvent> {
     debug('signEvent received');
     const signedEvent = await this.messenger.request('signEvent', event);
     debug('signEvent response:');
@@ -157,6 +158,92 @@ const nostr = {
 };
 
 window.nostr = nostr as any;
+
+// WebLN types (inline to avoid build issues with @common types in injected script)
+interface RequestInvoiceArgs {
+  amount?: string | number;
+  defaultAmount?: string | number;
+  minimumAmount?: string | number;
+  maximumAmount?: string | number;
+  defaultMemo?: string;
+}
+
+interface KeysendArgs {
+  destination: string;
+  amount: string | number;
+  customRecords?: Record<string, string>;
+}
+
+// Create a shared messenger instance for WebLN
+const weblnMessenger = nostr.messenger;
+
+const webln = {
+  enabled: false,
+
+  async enable(): Promise<void> {
+    debug('webln.enable received');
+    await weblnMessenger.request('webln.enable', {});
+    this.enabled = true;
+    debug('webln.enable completed');
+    // Dispatch webln:enabled event as per WebLN spec
+    window.dispatchEvent(new Event('webln:enabled'));
+  },
+
+  async getInfo(): Promise<{ node: { alias?: string; pubkey?: string; color?: string } }> {
+    debug('webln.getInfo received');
+    const info = await weblnMessenger.request('webln.getInfo', {});
+    debug('webln.getInfo response:');
+    debug(info);
+    return info;
+  },
+
+  async sendPayment(paymentRequest: string): Promise<{ preimage: string }> {
+    debug('webln.sendPayment received');
+    const result = await weblnMessenger.request('webln.sendPayment', { paymentRequest });
+    debug('webln.sendPayment response:');
+    debug(result);
+    return result;
+  },
+
+  async keysend(args: KeysendArgs): Promise<{ preimage: string }> {
+    debug('webln.keysend received');
+    const result = await weblnMessenger.request('webln.keysend', args);
+    debug('webln.keysend response:');
+    debug(result);
+    return result;
+  },
+
+  async makeInvoice(
+    args: string | number | RequestInvoiceArgs
+  ): Promise<{ paymentRequest: string }> {
+    debug('webln.makeInvoice received');
+    // Normalize args to RequestInvoiceArgs
+    let normalizedArgs: RequestInvoiceArgs;
+    if (typeof args === 'string' || typeof args === 'number') {
+      normalizedArgs = { amount: args };
+    } else {
+      normalizedArgs = args;
+    }
+    const result = await weblnMessenger.request('webln.makeInvoice', normalizedArgs);
+    debug('webln.makeInvoice response:');
+    debug(result);
+    return result;
+  },
+
+  signMessage(): Promise<{ message: string; signature: string }> {
+    throw new Error('signMessage is not supported - NWC does not provide node signing capabilities');
+  },
+
+  verifyMessage(): Promise<void> {
+    throw new Error('verifyMessage is not supported - NWC does not provide message verification');
+  },
+};
+
+window.webln = webln as any;
+
+// Dispatch webln:ready event to signal that webln is available
+// This is dispatched on document as per the WebLN standard
+document.dispatchEvent(new Event('webln:ready'));
 
 const debug = function (value: any) {
   console.log(JSON.stringify(value));

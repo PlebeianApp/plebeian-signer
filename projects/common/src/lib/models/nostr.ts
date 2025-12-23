@@ -8,3 +8,12 @@ export type Nip07Method =
   | 'nip44.decrypt';
 
 export type Nip07MethodPolicy = 'allow' | 'deny';
+
+export type WeblnMethod =
+  | 'webln.enable'
+  | 'webln.getInfo'
+  | 'webln.sendPayment'
+  | 'webln.makeInvoice'
+  | 'webln.keysend';
+
+export type ExtensionMethod = Nip07Method | WeblnMethod;
