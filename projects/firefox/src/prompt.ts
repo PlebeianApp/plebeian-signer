@@ -303,4 +303,21 @@ document.addEventListener('DOMContentLoaded', function () {
   approveAlwaysButton?.addEventListener('click', () => {
     deliver('approve');
   });
+
+  const rejectAllButton = document.getElementById('rejectAllButton');
+  rejectAllButton?.addEventListener('click', () => {
+    deliver('reject-all');
+  });
+
+  const approveAllButton = document.getElementById('approveAllButton');
+  approveAllButton?.addEventListener('click', () => {
+    deliver('approve-all');
+  });
+
+  // Show/hide "All Queued" row based on queue size
+  const queueSize = parseInt(params.get('queueSize') || '0', 10);
+  const allQueuedRow = document.getElementById('allQueuedRow');
+  if (allQueuedRow && queueSize <= 1) {
+    allQueuedRow.style.display = 'none';
+  }
 });

@@ -105,11 +105,24 @@ function parseInvoiceAmount(invoice: string): number | undefined {
 
 type Relays = Record<string, { read: boolean; write: boolean }>;
 
+// ==========================================
+// Permission Prompt Queue System (P0)
+// ==========================================
+
+// Timeout for permission prompts (30 seconds)
+const PROMPT_TIMEOUT_MS = 30000;
+
+// Maximum number of queued permission requests (prevent DoS)
+const MAX_PERMISSION_QUEUE_SIZE = 100;
+
+// Track open prompts with metadata for cleanup
 const openPrompts = new Map<
   string,
   {
     resolve: (response: PromptResponse) => void;
     reject: (reason?: any) => void;
+    windowId?: number;
+    timeoutId?: ReturnType<typeof setTimeout>;
   }
 >();
 
@@ -122,6 +135,170 @@ const pendingRequests: {
   resolve: (result: any) => void;
   reject: (error: any) => void;
 }[] = [];
+
+// Queue for permission requests (only one prompt shown at a time)
+interface PermissionQueueItem {
+  id: string;
+  url: string;
+  width: number;
+  height: number;
+  resolve: (response: PromptResponse) => void;
+  reject: (reason?: any) => void;
+}
+
+const permissionQueue: PermissionQueueItem[] = [];
+let activePromptId: string | null = null;
+
+/**
+ * Show the next permission prompt from the queue
+ */
+async function showNextPermissionPrompt(): Promise<void> {
+  if (activePromptId || permissionQueue.length === 0) {
+    return;
+  }
+
+  const next = permissionQueue[0];
+  activePromptId = next.id;
+
+  const { top, left } = await getPosition(next.width, next.height);
+
+  try {
+    const window = await browser.windows.create({
+      type: 'popup',
+      url: next.url,
+      height: next.height,
+      width: next.width,
+      top,
+      left,
+    });
+
+    const promptData = openPrompts.get(next.id);
+    if (promptData && window.id) {
+      promptData.windowId = window.id;
+      promptData.timeoutId = setTimeout(() => {
+        debug(`Prompt ${next.id} timed out after ${PROMPT_TIMEOUT_MS}ms`);
+        cleanupPrompt(next.id, 'timeout');
+      }, PROMPT_TIMEOUT_MS);
+    }
+  } catch (error) {
+    debug(`Failed to create prompt window: ${error}`);
+    cleanupPrompt(next.id, 'error');
+  }
+}
+
+/**
+ * Clean up a prompt and process the next one in queue
+ */
+function cleanupPrompt(promptId: string, reason: 'response' | 'timeout' | 'closed' | 'error'): void {
+  const promptData = openPrompts.get(promptId);
+
+  if (promptData) {
+    if (promptData.timeoutId) {
+      clearTimeout(promptData.timeoutId);
+    }
+    if (reason !== 'response') {
+      promptData.reject(new Error(`Permission prompt ${reason}`));
+    }
+    openPrompts.delete(promptId);
+  }
+
+  const queueIndex = permissionQueue.findIndex(item => item.id === promptId);
+  if (queueIndex !== -1) {
+    permissionQueue.splice(queueIndex, 1);
+  }
+
+  if (activePromptId === promptId) {
+    activePromptId = null;
+  }
+
+  showNextPermissionPrompt();
+}
+
+/**
+ * Queue a permission prompt request
+ */
+function queuePermissionPrompt(
+  urlWithoutId: string,
+  width: number,
+  height: number
+): Promise<PromptResponse> {
+  return new Promise((resolve, reject) => {
+    if (permissionQueue.length >= MAX_PERMISSION_QUEUE_SIZE) {
+      reject(new Error('Too many pending permission requests. Please try again later.'));
+      return;
+    }
+
+    const id = crypto.randomUUID();
+    const separator = urlWithoutId.includes('?') ? '&' : '?';
+    const url = `${urlWithoutId}${separator}id=${id}`;
+
+    openPrompts.set(id, { resolve, reject });
+    permissionQueue.push({ id, url, width, height, resolve, reject });
+
+    debug(`Queued permission prompt ${id}. Queue size: ${permissionQueue.length}`);
+    showNextPermissionPrompt();
+  });
+}
+
+// Listen for window close events to clean up orphaned prompts
+browser.windows.onRemoved.addListener((windowId: number) => {
+  for (const [promptId, promptData] of openPrompts.entries()) {
+    if (promptData.windowId === windowId) {
+      debug(`Prompt window ${windowId} closed without response`);
+      cleanupPrompt(promptId, 'closed');
+      break;
+    }
+  }
+});
+
+// ==========================================
+// Request Deduplication (P1)
+// ==========================================
+
+const pendingRequestPromises = new Map<string, Promise<PromptResponse>>();
+
+/**
+ * Generate a hash key for request deduplication
+ */
+function getRequestHash(host: string, method: string, params: any): string {
+  if (method === 'signEvent' && params?.kind !== undefined) {
+    return `${host}:${method}:kind${params.kind}`;
+  }
+  if ((method.includes('encrypt') || method.includes('decrypt')) && params?.peerPubkey) {
+    return `${host}:${method}:${params.peerPubkey}`;
+  }
+  return `${host}:${method}`;
+}
+
+/**
+ * Queue a permission prompt with deduplication
+ */
+function queuePermissionPromptDeduped(
+  host: string,
+  method: string,
+  params: any,
+  urlWithoutId: string,
+  width: number,
+  height: number
+): Promise<PromptResponse> {
+  const hash = getRequestHash(host, method, params);
+
+  const existingPromise = pendingRequestPromises.get(hash);
+  if (existingPromise) {
+    debug(`Deduplicating request: ${hash}`);
+    return existingPromise;
+  }
+
+  const promise = queuePermissionPrompt(urlWithoutId, width, height)
+    .finally(() => {
+      pendingRequestPromises.delete(hash);
+    });
+
+  pendingRequestPromises.set(hash, promise);
+  debug(`New permission request: ${hash}`);
+
+  return promise;
+}
 
 browser.runtime.onMessage.addListener(async (message /*, sender*/) => {
   debug('Message received');
@@ -164,13 +341,12 @@ browser.runtime.onMessage.addListener(async (message /*, sender*/) => {
     const promptResponse = request as PromptResponseMessage;
     const openPrompt = openPrompts.get(promptResponse.id);
     if (!openPrompt) {
-      throw new Error(
-        'Prompt response could not be matched to any previous request.'
-      );
+      debug('Prompt response could not be matched (may have timed out)');
+      return;
     }
 
     openPrompt.resolve(promptResponse.response);
-    openPrompts.delete(promptResponse.id);
+    cleanupPrompt(promptResponse.id, 'response');
     return;
   }
 
@@ -239,29 +415,23 @@ async function processNip07Request(req: BackgroundRequestMessage): Promise<any> 
     }
 
     if (permissionState === undefined) {
-      // Ask user for permission.
+      // Ask user for permission (queued + deduplicated)
       const width = 375;
       const height = 600;
-      const { top, left } = await getPosition(width, height);
 
       const base64Event = Buffer.from(
         JSON.stringify(req.params ?? {}, undefined, 2)
       ).toString('base64');
 
-      const response = await new Promise<PromptResponse>((resolve, reject) => {
-        const id = crypto.randomUUID();
-        openPrompts.set(id, { resolve, reject });
-        browser.windows.create({
-          type: 'popup',
-          url: `prompt.html?method=${req.method}&host=${req.host}&id=${id}&nick=${currentIdentity.nick}&event=${base64Event}`,
-          height,
-          width,
-          top,
-          left,
-        });
-      });
+      // Include queue info for user awareness
+      const queueSize = permissionQueue.length;
+      const promptUrl = `prompt.html?method=${req.method}&host=${req.host}&nick=${encodeURIComponent(currentIdentity.nick)}&event=${base64Event}&queue=${queueSize}`;
+      const response = await queuePermissionPromptDeduped(req.host, req.method, req.params, promptUrl, width, height);
       debug(response);
+
+      // Handle permission storage based on response type
       if (response === 'approve' || response === 'reject') {
+        // Store permission for this specific kind (if signEvent) or method
         const policy = response === 'approve' ? 'allow' : 'deny';
         await storePermission(
           browserSessionData,
@@ -271,15 +441,34 @@ async function processNip07Request(req: BackgroundRequestMessage): Promise<any> 
           policy,
           req.params?.kind
         );
-        await backgroundLogPermissionStored(
+        await backgroundLogPermissionStored(req.host, req.method, policy, req.params?.kind);
+      } else if (response === 'approve-all') {
+        // P2: Store permission for ALL kinds/uses of this method from this host
+        await storePermission(
+          browserSessionData,
+          currentIdentity,
           req.host,
           req.method,
-          policy,
-          req.params?.kind
+          'allow',
+          undefined // undefined kind = allow all kinds for signEvent
         );
+        await backgroundLogPermissionStored(req.host, req.method, 'allow', undefined);
+        debug(`Stored approve-all permission for ${req.method} from ${req.host}`);
+      } else if (response === 'reject-all') {
+        // P2: Store deny permission for ALL uses of this method from this host
+        await storePermission(
+          browserSessionData,
+          currentIdentity,
+          req.host,
+          req.method,
+          'deny',
+          undefined
+        );
+        await backgroundLogPermissionStored(req.host, req.method, 'deny', undefined);
+        debug(`Stored reject-all permission for ${req.method} from ${req.host}`);
       }
 
-      if (['reject', 'reject-once'].includes(response)) {
+      if (['reject', 'reject-once', 'reject-all'].includes(response)) {
         await backgroundLogNip07Action(req.method, req.host, false, false, {
           kind: req.params?.kind,
           peerPubkey: req.params?.peerPubkey,
@@ -404,10 +593,9 @@ async function processWeblnRequest(req: BackgroundRequestMessage): Promise<any> 
   }
 
   if (permissionState === undefined) {
-    // Ask user for permission
+    // Ask user for permission (queued + deduplicated)
     const width = 375;
     const height = 600;
-    const { top, left } = await getPosition(width, height);
 
     // For sendPayment, include the invoice amount in the prompt data
     let promptParams = req.params ?? {};
@@ -420,18 +608,10 @@ async function processWeblnRequest(req: BackgroundRequestMessage): Promise<any> 
       JSON.stringify(promptParams, undefined, 2)
     ).toString('base64');
 
-    const response = await new Promise<PromptResponse>((resolve, reject) => {
-      const id = crypto.randomUUID();
-      openPrompts.set(id, { resolve, reject });
-      browser.windows.create({
-        type: 'popup',
-        url: `prompt.html?method=${method}&host=${req.host}&id=${id}&nick=WebLN&event=${base64Event}`,
-        height,
-        width,
-        top,
-        left,
-      });
-    });
+    // Include queue info for user awareness
+    const queueSize = permissionQueue.length;
+    const promptUrl = `prompt.html?method=${method}&host=${req.host}&nick=WebLN&event=${base64Event}&queue=${queueSize}`;
+    const response = await queuePermissionPromptDeduped(req.host, method, req.params, promptUrl, width, height);
 
     debug(response);
 
@@ -446,9 +626,20 @@ async function processWeblnRequest(req: BackgroundRequestMessage): Promise<any> 
         policy
       );
       await backgroundLogPermissionStored(req.host, method, policy);
+    } else if (response === 'approve-all' && method !== 'webln.sendPayment' && method !== 'webln.keysend') {
+      // P2: Store permission for all uses of this WebLN method
+      await storePermission(
+        browserSessionData,
+        null,
+        req.host,
+        method,
+        'allow'
+      );
+      await backgroundLogPermissionStored(req.host, method, 'allow');
+      debug(`Stored approve-all permission for ${method} from ${req.host}`);
     }
 
-    if (['reject', 'reject-once'].includes(response)) {
+    if (['reject', 'reject-once', 'reject-all'].includes(response)) {
       throw new Error('Permission denied');
     }
   }

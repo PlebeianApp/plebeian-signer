@@ -48,8 +48,10 @@ export const debug = function (message: any) {
 export type PromptResponse =
   | 'reject'
   | 'reject-once'
+  | 'reject-all'      // P2: Reject all requests of this type from this host
   | 'approve'
-  | 'approve-once';
+  | 'approve-once'
+  | 'approve-all';    // P2: Approve all requests of this type from this host
 
 export interface PromptResponseMessage {
   id: string;
