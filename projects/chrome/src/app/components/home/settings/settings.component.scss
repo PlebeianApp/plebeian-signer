@@ -16,6 +16,35 @@
   }
 }
 
+.vault-buttons {
+  display: flex;
+  gap: var(--size);
+
+  button {
+    flex: 1;
+  }
+}
+
+.dev-mode-row {
+  display: flex;
+  align-items: center;
+  gap: var(--size);
+
+  .toggle-label {
+    display: flex;
+    align-items: center;
+    gap: var(--size-h);
+    cursor: pointer;
+    font-size: 0.9rem;
+
+    input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      cursor: pointer;
+    }
+  }
+}
+
 .sync-info {
   .sync-label {
     display: block;

@@ -1,6 +1,6 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
-import { Bookmark, LoggerService, SignerMetaData, StorageService } from '@common';
+import { Bookmark, LoggerService, NavComponent, SignerMetaData } from '@common';
 import { ChromeMetaHandler } from '../../../common/data/chrome-meta-handler';
 
 @Component({
@@ -9,10 +9,9 @@ import { ChromeMetaHandler } from '../../../common/data/chrome-meta-handler';
   styleUrl: './bookmarks.component.scss',
   imports: [],
 })
-export class BookmarksComponent implements OnInit {
+export class BookmarksComponent extends NavComponent implements OnInit {
   readonly #logger = inject(LoggerService);
   readonly #metaHandler = new ChromeMetaHandler();
-  readonly #storage = inject(StorageService);
   readonly #router = inject(Router);
 
   bookmarks: Bookmark[] = [];
@@ -93,7 +92,7 @@ export class BookmarksComponent implements OnInit {
 
   async onClickLock() {
     this.#logger.logVaultLock();
-    await this.#storage.lockVault();
+    await this.storage.lockVault();
     this.#router.navigateByUrl('/vault-login');
   }
 }

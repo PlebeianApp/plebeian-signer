@@ -12,6 +12,7 @@ import {
   StorageService,
 } from '@common';
 import { getNewStorageServiceConfig } from '../../../common/data/get-new-storage-service-config';
+import { Buffer } from 'buffer';
 
 @Component({
   selector: 'app-settings',
@@ -22,6 +23,7 @@ import { getNewStorageServiceConfig } from '../../../common/data/get-new-storage
 export class SettingsComponent extends NavComponent implements OnInit {
   readonly #router = inject(Router);
   syncFlow: string | undefined;
+  override devMode = false;
 
   readonly #storage = inject(StorageService);
   readonly #startup = inject(StartupService);
@@ -45,6 +47,44 @@ export class SettingsComponent extends NavComponent implements OnInit {
       default:
         break;
     }
+
+    // Load dev mode setting
+    this.devMode = this.#storage.getSignerMetaHandler().signerMetaData?.devMode ?? false;
+  }
+
+  async onToggleDevMode(event: Event) {
+    const checked = (event.target as HTMLInputElement).checked;
+    this.devMode = checked;
+    await this.#storage.getSignerMetaHandler().setDevMode(checked);
+  }
+
+  override async onTestPrompt() {
+    // Open a test permission prompt window
+    const testEvent = {
+      kind: 1,
+      content: 'This is a test note for permission prompt preview.',
+      tags: [],
+      created_at: Math.floor(Date.now() / 1000),
+    };
+    const base64Event = Buffer.from(JSON.stringify(testEvent, null, 2)).toString('base64');
+    const currentIdentity = this.#storage.getBrowserSessionHandler().browserSessionData?.identities.find(
+      i => i.id === this.#storage.getBrowserSessionHandler().browserSessionData?.selectedIdentityId
+    );
+    const nick = currentIdentity?.nick ?? 'Test Identity';
+
+    const width = 375;
+    const height = 600;
+    const left = Math.round((screen.width - width) / 2);
+    const top = Math.round((screen.height - height) / 2);
+
+    chrome.windows.create({
+      type: 'popup',
+      url: `prompt.html?method=signEvent&host=example.com&id=test-${Date.now()}&nick=${encodeURIComponent(nick)}&event=${base64Event}`,
+      width,
+      height,
+      left,
+      top,
+    });
   }
 
   async onResetExtension() {

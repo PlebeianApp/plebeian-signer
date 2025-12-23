@@ -27,9 +27,64 @@
       .page {
         height: 100%;
         display: grid;
-        grid-template-rows: 1fr 60px;
+        grid-template-rows: 1fr auto;
         grid-template-columns: 1fr;
         overflow-y: hidden;
+      }
+
+      .actions {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        padding: var(--size);
+        background: var(--background);
+      }
+
+      .action-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .action-label {
+        width: 60px;
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--muted-foreground);
+      }
+
+      .action-buttons {
+        display: flex;
+        gap: 8px;
+        flex: 1;
+      }
+
+      .action-buttons button {
+        flex: 1;
+        padding: 8px 12px;
+        border-radius: 6px;
+        font-size: 13px;
+        font-weight: 500;
+        cursor: pointer;
+        border: none;
+      }
+
+      .btn-reject {
+        background: var(--muted);
+        color: var(--foreground);
+      }
+
+      .btn-reject:hover {
+        background: var(--border);
+      }
+
+      .btn-accept {
+        background: var(--primary);
+        color: var(--primary-foreground);
+      }
+
+      .btn-accept:hover {
+        opacity: 0.9;
       }
 
       .card {
@@ -54,6 +109,12 @@
         font-size: 12px;
         color: gray;
       }
+
+      .description {
+        margin: 0;
+        text-align: center;
+        line-height: 1.5;
+      }
     </style>
   </head>
   <body>
@@ -63,64 +124,31 @@
           <span id="titleSpan" style="font-weight: 400 !important"></span>
         </div>
 
-        <span
-          class="host-INSERT sam-align-self-center sam-text-muted"
-          style="font-weight: 500"
-        ></span>
-
         <!-- Card for getPublicKey -->
         <div id="cardGetPublicKey" class="card sam-mt sam-ml sam-mr">
-          <span style="text-align: center">
-            <b><span class="host-INSERT color-primary"></span></b>
-            is requesting permission to<br />
-            <br />
-            <b class="color-primary">read your public key</b> <br />
-            <br />
-            <span>
-              for the selected identity
-              <span
-                style="font-weight: 500"
-                class="nick-INSERT color-primary"
-              ></span>
-            </span>
-          </span>
+          <p class="description">
+            <b class="host-INSERT color-primary"></b> is requesting permission to
+            <b class="color-primary">read your public key</b> for the selected identity
+            <b class="nick-INSERT color-primary"></b>.
+          </p>
         </div>
 
         <!-- Card for getRelays -->
         <div id="cardGetRelays" class="card sam-mt sam-ml sam-mr">
-          <span style="text-align: center">
-            <b><span class="host-INSERT color-primary"></span></b>
-            is requesting permission to<br />
-            <br />
-            <b class="color-primary">read your relays</b> <br />
-            <br />
-            <span>
-              for the selected identity
-              <span
-                style="font-weight: 500"
-                class="nick-INSERT color-primary"
-              ></span>
-            </span>
-          </span>
+          <p class="description">
+            <b class="host-INSERT color-primary"></b> is requesting permission to
+            <b class="color-primary">read your relays</b> for the selected identity
+            <b class="nick-INSERT color-primary"></b>.
+          </p>
         </div>
 
         <!-- Card for signEvent -->
         <div id="cardSignEvent" class="card sam-mt sam-ml sam-mr">
-          <span style="text-align: center">
-            <b><span class="host-INSERT color-primary"></span></b>
-            is requesting permission to<br />
-            <br />
-            <b class="color-primary">sign an event</b> (kind
-            <span id="kindSpan"></span>) <br />
-            <br />
-            <span>
-              for the selected identity
-              <span
-                style="font-weight: 500"
-                class="nick-INSERT color-primary"
-              ></span>
-            </span>
-          </span>
+          <p class="description">
+            <b class="host-INSERT color-primary"></b> is requesting permission to
+            <b class="color-primary">sign an event</b> (kind <span id="kindSpan"></span>)
+            for the selected identity <b class="nick-INSERT color-primary"></b>.
+          </p>
         </div>
 
         <!-- Card2 for signEvent -->
@@ -130,20 +158,11 @@
 
         <!-- Card for nip04.encrypt -->
         <div id="cardNip04Encrypt" class="card sam-mt sam-ml sam-mr">
-          <span style="text-align: center">
-            <b><span class="host-INSERT color-primary"></span></b>
-            is requesting permission to<br />
-            <br />
-            <b class="color-primary">encrypt a text</b> (NIP04) <br />
-            <br />
-            <span>
-              for the selected identity
-              <span
-                style="font-weight: 500"
-                class="nick-INSERT color-primary"
-              ></span>
-            </span>
-          </span>
+          <p class="description">
+            <b class="host-INSERT color-primary"></b> is requesting permission to
+            <b class="color-primary">encrypt a text</b> (NIP04) for the selected identity
+            <b class="nick-INSERT color-primary"></b>.
+          </p>
         </div>
 
         <!-- Card2 for nip04.encrypt -->
@@ -153,20 +172,11 @@
 
         <!-- Card for nip44.encrypt -->
         <div id="cardNip44Encrypt" class="card sam-mt sam-ml sam-mr">
-          <span style="text-align: center">
-            <b><span class="host-INSERT color-primary"></span></b>
-            is requesting permission to<br />
-            <br />
-            <b class="color-primary">encrypt a text</b> (NIP44) <br />
-            <br />
-            <span>
-              for the selected identity
-              <span
-                style="font-weight: 500"
-                class="nick-INSERT color-primary"
-              ></span>
-            </span>
-          </span>
+          <p class="description">
+            <b class="host-INSERT color-primary"></b> is requesting permission to
+            <b class="color-primary">encrypt a text</b> (NIP44) for the selected identity
+            <b class="nick-INSERT color-primary"></b>.
+          </p>
         </div>
 
         <!-- Card2 for nip44.encrypt -->
@@ -176,20 +186,11 @@
 
         <!-- Card for nip04.decrypt -->
         <div id="cardNip04Decrypt" class="card sam-mt sam-ml sam-mr">
-          <span style="text-align: center">
-            <b><span class="host-INSERT color-primary"></span></b>
-            is requesting permission to<br />
-            <br />
-            <b class="color-primary">decrypt a text</b> (NIP04) <br />
-            <br />
-            <span>
-              for the selected identity
-              <span
-                style="font-weight: 500"
-                class="nick-INSERT color-primary"
-              ></span>
-            </span>
-          </span>
+          <p class="description">
+            <b class="host-INSERT color-primary"></b> is requesting permission to
+            <b class="color-primary">decrypt a text</b> (NIP04) for the selected identity
+            <b class="nick-INSERT color-primary"></b>.
+          </p>
         </div>
 
         <!-- Card2 for nip04.decrypt -->
@@ -199,20 +200,11 @@
 
         <!-- Card for nip44.decrypt -->
         <div id="cardNip44Decrypt" class="card sam-mt sam-ml sam-mr">
-          <span style="text-align: center">
-            <b><span class="host-INSERT color-primary"></span></b>
-            is requesting permission to<br />
-            <br />
-            <b class="color-primary">decrypt a text</b> (NIP44) <br />
-            <br />
-            <span>
-              for the selected identity
-              <span
-                style="font-weight: 500"
-                class="nick-INSERT color-primary"
-              ></span>
-            </span>
-          </span>
+          <p class="description">
+            <b class="host-INSERT color-primary"></b> is requesting permission to
+            <b class="color-primary">decrypt a text</b> (NIP44) for the selected identity
+            <b class="nick-INSERT color-primary"></b>.
+          </p>
         </div>
 
         <!-- Card2 for nip44.decrypt -->
@@ -224,47 +216,20 @@
       <!------------->
       <!-- ACTIONS -->
       <!------------->
-      <div class="sam-footer-grid-2">
-        <div class="btn-group">
-          <button id="rejectOnceButton" type="button" class="btn btn-secondary">
-            Reject
-          </button>
-          <button
-            type="button"
-            class="btn btn-secondary dropdown-toggle dropdown-toggle-split"
-            data-bs-toggle="dropdown"
-            aria-expanded="false"
-          >
-            <span class="visually-hidden">Toggle Dropdown</span>
-          </button>
-          <ul class="dropdown-menu dropdown-menu-end">
-            <li>
-              <button id="rejectAlwaysButton" class="dropdown-item">
-                Reject Always
-              </button>
-            </li>
-          </ul>
+      <div class="actions">
+        <div class="action-row">
+          <span class="action-label">Reject</span>
+          <div class="action-buttons">
+            <button id="rejectOnceButton" type="button" class="btn-reject">Once</button>
+            <button id="rejectAlwaysButton" type="button" class="btn-reject">Always</button>
+          </div>
         </div>
-
-        <div class="btn-group">
-          <button id="approveAlwaysButton" type="button" class="btn btn-primary">
-            Approve Always
-          </button>
-          <button
-            type="button"
-            class="btn btn-primary dropdown-toggle dropdown-toggle-split"
-            data-bs-toggle="dropdown"
-            aria-expanded="false"
-          >
-            <span class="visually-hidden">Toggle Dropdown</span>
-          </button>
-          <ul class="dropdown-menu">
-            <li>
-              <button id="approveOnceButton" class="dropdown-item">
-                Approve Once
-              </button>
-            </li>
-          </ul>
+        <div class="action-row">
+          <span class="action-label">Accept</span>
+          <div class="action-buttons">
+            <button id="approveOnceButton" type="button" class="btn-accept">Once</button>
+            <button id="approveAlwaysButton" type="button" class="btn-accept">Always</button>
+          </div>
         </div>
       </div>
     </div>

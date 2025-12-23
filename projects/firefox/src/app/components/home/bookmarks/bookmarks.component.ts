@@ -1,6 +1,6 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
-import { Bookmark, LoggerService, SignerMetaData, StorageService } from '@common';
+import { Bookmark, LoggerService, NavComponent, SignerMetaData } from '@common';
 import { FirefoxMetaHandler } from '../../../common/data/firefox-meta-handler';
 import browser from 'webextension-polyfill';
 
@@ -10,10 +10,9 @@ import browser from 'webextension-polyfill';
   styleUrl: './bookmarks.component.scss',
   imports: [],
 })
-export class BookmarksComponent implements OnInit {
+export class BookmarksComponent extends NavComponent implements OnInit {
   readonly #logger = inject(LoggerService);
   readonly #metaHandler = new FirefoxMetaHandler();
-  readonly #storage = inject(StorageService);
   readonly #router = inject(Router);
 
   bookmarks: Bookmark[] = [];
@@ -94,7 +93,7 @@ export class BookmarksComponent implements OnInit {
 
   async onClickLock() {
     this.#logger.logVaultLock();
-    await this.#storage.lockVault();
+    await this.storage.lockVault();
     this.#router.navigateByUrl('/vault-login');
   }
 }

@@ -202,6 +202,9 @@ export interface SignerMetaData {
 
   // User bookmarks
   bookmarks?: Bookmark[];
+
+  // Dev mode: show test permission prompt button in settings
+  devMode?: boolean;
 }
 
 /**

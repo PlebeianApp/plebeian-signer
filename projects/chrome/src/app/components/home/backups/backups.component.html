@@ -1,7 +1,14 @@
 <div class="sam-text-header">
-  <button class="lock-btn" title="Lock" (click)="onClickLock()">
-    <span class="emoji">🔒</span>
-  </button>
+  <div class="header-buttons">
+    <button class="header-btn" title="Lock" (click)="onClickLock()">
+      <span class="emoji">🔒</span>
+    </button>
+    @if (devMode) {
+      <button class="header-btn" title="Test Permission Prompt" (click)="onTestPrompt()">
+        <span class="emoji">✨</span>
+      </button>
+    }
+  </div>
   <button class="back-btn" title="Go Back" (click)="goBack()">
     <span class="emoji">←</span>
   </button>

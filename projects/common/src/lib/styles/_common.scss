@@ -16,9 +16,16 @@
     letter-spacing: 0.1rem;
   }
 
-  .lock-btn {
+  .header-buttons {
     position: absolute;
     left: 0;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .lock-btn,
+  .header-btn {
     background: transparent;
     border: none;
     padding: 8px;
@@ -36,6 +43,12 @@
     .emoji {
       font-size: 20px;
     }
+  }
+
+  // For backwards compatibility with single lock-btn
+  > .lock-btn {
+    position: absolute;
+    left: 0;
   }
 }
 

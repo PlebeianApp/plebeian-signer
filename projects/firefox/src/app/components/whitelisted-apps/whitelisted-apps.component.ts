@@ -18,7 +18,7 @@ export class WhitelistedAppsComponent extends NavComponent {
   @ViewChild('toast') toast!: ToastComponent;
   @ViewChild('confirm') confirm!: ConfirmComponent;
 
-  readonly storage = inject(StorageService);
+  override readonly storage = inject(StorageService);
   readonly #router = inject(Router);
 
   get whitelistedHosts(): string[] {

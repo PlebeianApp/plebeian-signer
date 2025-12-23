@@ -19,9 +19,16 @@
     background: var(--background);
     position: relative;
 
-    .lock-btn,
-    .add-btn {
+    .header-buttons {
       position: absolute;
+      left: 0;
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+    }
+
+    .header-btn,
+    .add-btn {
       background: transparent;
       border: none;
       padding: 8px;
@@ -41,11 +48,8 @@
       }
     }
 
-    .lock-btn {
-      left: 0;
-    }
-
     .add-btn {
+      position: absolute;
       right: 0;
     }
 

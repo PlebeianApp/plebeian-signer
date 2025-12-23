@@ -9,7 +9,7 @@ export abstract class SignerMetaHandler {
 
   #signerMetaData?: SignerMetaData;
 
-  readonly metaProperties = ['syncFlow', 'vaultSnapshots', 'maxBackups', 'recklessMode', 'whitelistedHosts', 'bookmarks'];
+  readonly metaProperties = ['syncFlow', 'vaultSnapshots', 'maxBackups', 'recklessMode', 'whitelistedHosts', 'bookmarks', 'devMode'];
   readonly DEFAULT_MAX_BACKUPS = 5;
   /**
    * Load the full data from the storage. If the storage is used for storing
@@ -53,6 +53,21 @@ export abstract class SignerMetaHandler {
       };
     } else {
       this.#signerMetaData.recklessMode = enabled;
+    }
+
+    await this.saveFullData(this.#signerMetaData);
+  }
+
+  /**
+   * Sets dev mode and immediately saves it.
+   */
+  async setDevMode(enabled: boolean): Promise<void> {
+    if (!this.#signerMetaData) {
+      this.#signerMetaData = {
+        devMode: enabled,
+      };
+    } else {
+      this.#signerMetaData.devMode = enabled;
     }
 
     await this.saveFullData(this.#signerMetaData);

@@ -3,11 +3,11 @@ import { Router } from '@angular/router';
 import {
   Identity_DECRYPTED,
   LoggerService,
+  NavComponent,
   NostrHelper,
   ProfileMetadata,
   ProfileMetadataService,
   PubkeyComponent,
-  StorageService,
   ToastComponent,
   VisualNip05Pipe,
   validateNip05,
@@ -19,7 +19,7 @@ import {
   templateUrl: './identity.component.html',
   styleUrl: './identity.component.scss',
 })
-export class IdentityComponent implements OnInit {
+export class IdentityComponent extends NavComponent implements OnInit {
   selectedIdentity: Identity_DECRYPTED | undefined;
   selectedIdentityNpub: string | undefined;
   profile: ProfileMetadata | null = null;
@@ -27,7 +27,6 @@ export class IdentityComponent implements OnInit {
   validating = false;
   loading = true;
 
-  readonly #storage = inject(StorageService);
   readonly #router = inject(Router);
   readonly #profileMetadata = inject(ProfileMetadataService);
   readonly #logger = inject(LoggerService);
@@ -82,17 +81,17 @@ export class IdentityComponent implements OnInit {
 
   async onClickLock() {
     this.#logger.logVaultLock();
-    await this.#storage.lockVault();
+    await this.storage.lockVault();
     this.#router.navigateByUrl('/vault-login');
   }
 
   async #loadData() {
     try {
       const selectedIdentityId =
-        this.#storage.getBrowserSessionHandler().browserSessionData
+        this.storage.getBrowserSessionHandler().browserSessionData
           ?.selectedIdentityId ?? null;
 
-      const identity = this.#storage
+      const identity = this.storage
         .getBrowserSessionHandler()
         .browserSessionData?.identities.find(
           (x) => x.id === selectedIdentityId

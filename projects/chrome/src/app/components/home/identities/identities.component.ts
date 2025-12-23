@@ -4,6 +4,7 @@ import {
   IconButtonComponent,
   Identity_DECRYPTED,
   LoggerService,
+  NavComponent,
   NostrHelper,
   ProfileMetadata,
   ProfileMetadataService,
@@ -17,8 +18,8 @@ import {
   styleUrl: './identities.component.scss',
   imports: [IconButtonComponent, ToastComponent],
 })
-export class IdentitiesComponent implements OnInit {
-  readonly storage = inject(StorageService);
+export class IdentitiesComponent extends NavComponent implements OnInit {
+  override readonly storage = inject(StorageService);
   readonly #router = inject(Router);
   readonly #profileMetadata = inject(ProfileMetadataService);
   readonly #logger = inject(LoggerService);

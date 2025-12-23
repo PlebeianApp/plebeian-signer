@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import {
   LoggerService,
-  StorageService,
+  NavComponent,
   NwcService,
   NwcConnection_DECRYPTED,
   CashuService,
@@ -35,9 +35,8 @@ type WalletSection =
   styleUrl: './wallet.component.scss',
   imports: [CommonModule, FormsModule],
 })
-export class WalletComponent implements OnInit, OnDestroy {
+export class WalletComponent extends NavComponent implements OnInit, OnDestroy {
   readonly #logger = inject(LoggerService);
-  readonly #storage = inject(StorageService);
   readonly #router = inject(Router);
   readonly nwcService = inject(NwcService);
   readonly cashuService = inject(CashuService);
@@ -195,7 +194,7 @@ export class WalletComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     // Load current sync flow setting
-    this.currentSyncFlow = this.#storage.getSyncFlow();
+    this.currentSyncFlow = this.storage.getSyncFlow();
 
     // Refresh balances on init if we have connections
     if (this.connections.length > 0) {
@@ -937,7 +936,7 @@ export class WalletComponent implements OnInit, OnDestroy {
 
   async onClickLock() {
     this.#logger.logVaultLock();
-    await this.#storage.lockVault();
+    await this.storage.lockVault();
     this.#router.navigateByUrl('/vault-login');
   }
 
