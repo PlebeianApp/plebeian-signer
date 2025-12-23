@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <title>Plebeian Signer - Unlock</title>
+    <link rel="stylesheet" type="text/css" href="styles.css" />
+    <script src="scripts.js"></script>
+    <style>
+      /* Prevent white flash on load */
+      html { background-color: #0a0a0a; }
+      @media (prefers-color-scheme: light) {
+        html { background-color: #ffffff; }
+      }
+
+      body {
+        background: var(--background);
+        height: 100vh;
+        width: 100vw;
+        color: var(--foreground);
+        font-size: 16px;
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .color-primary {
+        color: var(--primary);
+      }
+
+      .page {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        padding: var(--size);
+        box-sizing: border-box;
+      }
+
+      .header {
+        text-align: center;
+        font-size: 1.25rem;
+        font-weight: 500;
+        padding: var(--size) 0;
+      }
+
+      .content {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        gap: 16px;
+      }
+
+      .logo-frame {
+        border: 2px solid var(--secondary);
+        border-radius: 100%;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .logo-frame img {
+        display: block;
+      }
+
+      .input-group {
+        width: 100%;
+        max-width: 280px;
+        display: flex;
+      }
+
+      .input-group input {
+        flex: 1;
+        padding: 10px 12px;
+        border: 1px solid var(--border);
+        border-right: none;
+        border-radius: 6px 0 0 6px;
+        background: var(--background);
+        color: var(--foreground);
+        font-size: 14px;
+      }
+
+      .input-group input:focus {
+        outline: none;
+        border-color: var(--primary);
+      }
+
+      .input-group button {
+        padding: 10px 12px;
+        border: 1px solid var(--border);
+        border-radius: 0 6px 6px 0;
+        background: var(--background-light);
+        color: var(--muted-foreground);
+        cursor: pointer;
+      }
+
+      .input-group button:hover {
+        background: var(--muted);
+      }
+
+      .unlock-btn {
+        width: 100%;
+        max-width: 280px;
+        padding: 10px 16px;
+        border: none;
+        border-radius: 6px;
+        background: var(--primary);
+        color: var(--primary-foreground);
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+      }
+
+      .unlock-btn:hover:not(:disabled) {
+        opacity: 0.9;
+      }
+
+      .unlock-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      .alert {
+        position: fixed;
+        bottom: var(--size);
+        left: 50%;
+        transform: translateX(-50%);
+        padding: 10px 16px;
+        border-radius: 6px;
+        font-size: 14px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .alert-danger {
+        background: var(--destructive);
+        color: var(--destructive-foreground);
+      }
+
+      .hidden {
+        display: none !important;
+      }
+
+      .deriving-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.8);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 16px;
+        z-index: 1000;
+      }
+
+      .spinner {
+        width: 40px;
+        height: 40px;
+        border: 3px solid var(--muted);
+        border-top-color: var(--primary);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+
+      .deriving-text {
+        color: var(--foreground);
+        font-size: 14px;
+      }
+
+      .host-info {
+        text-align: center;
+        font-size: 13px;
+        color: var(--muted-foreground);
+        margin-top: 8px;
+      }
+
+      .host-name {
+        color: var(--primary);
+        font-weight: 500;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <div class="header">
+        <span class="brand">Plebeian Signer</span>
+      </div>
+
+      <div class="content">
+        <div class="logo-frame">
+          <img src="logo.svg" height="100" width="100" alt="" />
+        </div>
+
+        <div id="hostInfo" class="host-info hidden">
+          <span class="host-name" id="hostSpan"></span><br>
+          is requesting access
+        </div>
+
+        <div class="input-group sam-mt">
+          <input
+            id="passwordInput"
+            type="password"
+            placeholder="vault password"
+            autocomplete="current-password"
+          />
+          <button id="togglePassword" type="button">
+            <i class="bi bi-eye"></i>
+          </button>
+        </div>
+
+        <button id="unlockBtn" type="button" class="unlock-btn" disabled>
+          <i class="bi bi-box-arrow-in-right"></i>
+          <span>Unlock</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Deriving overlay -->
+    <div id="derivingOverlay" class="deriving-overlay hidden">
+      <div class="spinner"></div>
+      <div class="deriving-text">Unlocking vault...</div>
+    </div>
+
+    <!-- Error alert -->
+    <div id="errorAlert" class="alert alert-danger hidden">
+      <i class="bi bi-exclamation-triangle"></i>
+      <span id="errorMessage">Invalid password</span>
+    </div>
+
+    <script src="unlock.js"></script>
+  </body>
+</html>

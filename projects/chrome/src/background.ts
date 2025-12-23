@@ -10,15 +10,19 @@ import {
   debug,
   getBrowserSessionData,
   getPosition,
+  handleUnlockRequest,
   nip04Decrypt,
   nip04Encrypt,
   nip44Decrypt,
   nip44Encrypt,
+  openUnlockPopup,
   PromptResponse,
   PromptResponseMessage,
   shouldRecklessModeApprove,
   signEvent,
   storePermission,
+  UnlockRequestMessage,
+  UnlockResponseMessage,
 } from './background-common';
 import browser from 'webextension-polyfill';
 import { Buffer } from 'buffer';
@@ -33,8 +37,49 @@ const openPrompts = new Map<
   }
 >();
 
+// Track if unlock popup is already open
+let unlockPopupOpen = false;
+
+// Queue of pending NIP-07 requests waiting for unlock
+const pendingRequests: {
+  request: BackgroundRequestMessage;
+  resolve: (result: any) => void;
+  reject: (error: any) => void;
+}[] = [];
+
 browser.runtime.onMessage.addListener(async (message /*, sender*/) => {
   debug('Message received');
+
+  // Handle unlock request from unlock popup
+  if ((message as UnlockRequestMessage)?.type === 'unlock-request') {
+    const unlockReq = message as UnlockRequestMessage;
+    debug('Processing unlock request');
+    const result = await handleUnlockRequest(unlockReq.password);
+    const response: UnlockResponseMessage = {
+      type: 'unlock-response',
+      id: unlockReq.id,
+      success: result.success,
+      error: result.error,
+    };
+
+    if (result.success) {
+      unlockPopupOpen = false;
+      // Process any pending NIP-07 requests
+      debug(`Processing ${pendingRequests.length} pending requests`);
+      while (pendingRequests.length > 0) {
+        const pending = pendingRequests.shift()!;
+        try {
+          const pendingResult = await processNip07Request(pending.request);
+          pending.resolve(pendingResult);
+        } catch (error) {
+          pending.reject(error);
+        }
+      }
+    }
+
+    return response;
+  }
+
   const request = message as BackgroundRequestMessage | PromptResponseMessage;
   debug(request);
 
@@ -56,6 +101,32 @@ browser.runtime.onMessage.addListener(async (message /*, sender*/) => {
   const browserSessionData = await getBrowserSessionData();
 
   if (!browserSessionData) {
+    // Vault is locked - open unlock popup and queue the request
+    const req = request as BackgroundRequestMessage;
+    debug('Vault locked, opening unlock popup');
+
+    if (!unlockPopupOpen) {
+      unlockPopupOpen = true;
+      await openUnlockPopup(req.host);
+    }
+
+    // Queue this request to be processed after unlock
+    return new Promise((resolve, reject) => {
+      pendingRequests.push({ request: req, resolve, reject });
+    });
+  }
+
+  // Process the NIP-07 request
+  return processNip07Request(request as BackgroundRequestMessage);
+});
+
+/**
+ * Process a NIP-07 request after vault is unlocked
+ */
+async function processNip07Request(req: BackgroundRequestMessage): Promise<any> {
+  const browserSessionData = await getBrowserSessionData();
+
+  if (!browserSessionData) {
     throw new Error('Plebeian Signer vault not unlocked by the user.');
   }
 
@@ -66,8 +137,6 @@ browser.runtime.onMessage.addListener(async (message /*, sender*/) => {
   if (!currentIdentity) {
     throw new Error('No Nostr identity available at endpoint.');
   }
-
-  const req = request as BackgroundRequestMessage;
 
   // Check reckless mode first
   const recklessApprove = await shouldRecklessModeApprove(req.host);
@@ -212,4 +281,4 @@ browser.runtime.onMessage.addListener(async (message /*, sender*/) => {
     default:
       throw new Error(`Not supported request method '${req.method}'.`);
   }
-});
+}

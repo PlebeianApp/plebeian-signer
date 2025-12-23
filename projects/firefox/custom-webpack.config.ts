@@ -22,5 +22,9 @@ module.exports = {
       import: 'src/options.ts',
       runtime: false,
     },
+    unlock: {
+      import: 'src/unlock.ts',
+      runtime: false,
+    },
   },
 } as Configuration;
