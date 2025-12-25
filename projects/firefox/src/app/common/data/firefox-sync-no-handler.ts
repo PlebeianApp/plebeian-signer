@@ -1,12 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import {
-  BrowserSyncData,
-  CashuMint_ENCRYPTED,
-  Identity_ENCRYPTED,
-  NwcConnection_ENCRYPTED,
-  Permission_ENCRYPTED,
+  EncryptedVault,
+  StoredCashuMint,
+  StoredIdentity,
+  StoredNwcConnection,
+  StoredPermission,
   BrowserSyncHandler,
-  Relay_ENCRYPTED,
+  StoredRelay,
 } from '@common';
 import browser from 'webextension-polyfill';
 
@@ -25,20 +25,20 @@ export class FirefoxSyncNoHandler extends BrowserSyncHandler {
     return data;
   }
 
-  async saveAndSetFullData(data: BrowserSyncData): Promise<void> {
+  async saveAndSetFullData(data: EncryptedVault): Promise<void> {
     await browser.storage.local.set(data as Record<string, any>);
     this.setFullData(data);
   }
 
   async saveAndSetPartialData_Permissions(data: {
-    permissions: Permission_ENCRYPTED[];
+    permissions: StoredPermission[];
   }): Promise<void> {
     await browser.storage.local.set(data);
     this.setPartialData_Permissions(data);
   }
 
   async saveAndSetPartialData_Identities(data: {
-    identities: Identity_ENCRYPTED[];
+    identities: StoredIdentity[];
   }): Promise<void> {
     await browser.storage.local.set(data);
     this.setPartialData_Identities(data);
@@ -52,21 +52,21 @@ export class FirefoxSyncNoHandler extends BrowserSyncHandler {
   }
 
   async saveAndSetPartialData_Relays(data: {
-    relays: Relay_ENCRYPTED[];
+    relays: StoredRelay[];
   }): Promise<void> {
     await browser.storage.local.set(data);
     this.setPartialData_Relays(data);
   }
 
   async saveAndSetPartialData_NwcConnections(data: {
-    nwcConnections: NwcConnection_ENCRYPTED[];
+    nwcConnections: StoredNwcConnection[];
   }): Promise<void> {
     await browser.storage.local.set(data);
     this.setPartialData_NwcConnections(data);
   }
 
   async saveAndSetPartialData_CashuMints(data: {
-    cashuMints: CashuMint_ENCRYPTED[];
+    cashuMints: StoredCashuMint[];
   }): Promise<void> {
     await browser.storage.local.set(data);
     this.setPartialData_CashuMints(data);

@@ -1,5 +1,6 @@
-.sam-text-muted {
-  color: var(--muted-foreground);
+.sam-text-muted,
+.text-muted {
+  color: var(--muted-foreground) !important;
 }
 
 .sam-text-lg {

@@ -1,13 +1,22 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Bookmark, BrowserSyncData, BrowserSyncFlow, SignerMetaData, SignerMetaData_VaultSnapshot } from './types';
+import { Bookmark, EncryptedVault, SyncFlow, ExtensionSettings, VaultSnapshot } from './types';
 import { v4 as uuidv4 } from 'uuid';
 
+/**
+ * Handler for extension settings stored outside the encrypted vault.
+ * This includes sync preferences, backups, reckless mode, whitelisted hosts, etc.
+ */
 export abstract class SignerMetaHandler {
-  get signerMetaData(): SignerMetaData | undefined {
-    return this.#signerMetaData;
+  get extensionSettings(): ExtensionSettings | undefined {
+    return this.#extensionSettings;
   }
 
-  #signerMetaData?: SignerMetaData;
+  /** @deprecated Use extensionSettings instead */
+  get signerMetaData(): ExtensionSettings | undefined {
+    return this.#extensionSettings;
+  }
+
+  #extensionSettings?: ExtensionSettings;
 
   readonly metaProperties = ['syncFlow', 'vaultSnapshots', 'maxBackups', 'recklessMode', 'whitelistedHosts', 'bookmarks', 'devMode'];
   readonly DEFAULT_MAX_BACKUPS = 5;
@@ -20,25 +29,30 @@ export abstract class SignerMetaHandler {
    */
   abstract loadFullData(): Promise<Partial<Record<string, any>>>;
 
-  setFullData(data: SignerMetaData) {
-    this.#signerMetaData = data;
+  setFullData(data: ExtensionSettings) {
+    this.#extensionSettings = data;
   }
 
-  abstract saveFullData(data: SignerMetaData): Promise<void>;
+  abstract saveFullData(data: ExtensionSettings): Promise<void>;
 
   /**
-   * Sets the browser sync flow for the user and immediately saves it.
+   * Sets the sync flow preference for the user and immediately saves it.
    */
-  async setBrowserSyncFlow(flow: BrowserSyncFlow): Promise<void> {
-    if (!this.#signerMetaData) {
-      this.#signerMetaData = {
+  async setSyncFlow(flow: SyncFlow): Promise<void> {
+    if (!this.#extensionSettings) {
+      this.#extensionSettings = {
         syncFlow: flow,
       };
     } else {
-      this.#signerMetaData.syncFlow = flow;
+      this.#extensionSettings.syncFlow = flow;
     }
 
-    await this.saveFullData(this.#signerMetaData);
+    await this.saveFullData(this.#extensionSettings);
+  }
+
+  /** @deprecated Use setSyncFlow instead */
+  async setBrowserSyncFlow(flow: SyncFlow): Promise<void> {
+    return this.setSyncFlow(flow);
   }
 
   abstract clearData(keep: string[]): Promise<void>;
@@ -47,93 +61,93 @@ export abstract class SignerMetaHandler {
    * Sets the reckless mode and immediately saves it.
    */
   async setRecklessMode(enabled: boolean): Promise<void> {
-    if (!this.#signerMetaData) {
-      this.#signerMetaData = {
+    if (!this.#extensionSettings) {
+      this.#extensionSettings = {
         recklessMode: enabled,
       };
     } else {
-      this.#signerMetaData.recklessMode = enabled;
+      this.#extensionSettings.recklessMode = enabled;
     }
 
-    await this.saveFullData(this.#signerMetaData);
+    await this.saveFullData(this.#extensionSettings);
   }
 
   /**
    * Sets dev mode and immediately saves it.
    */
   async setDevMode(enabled: boolean): Promise<void> {
-    if (!this.#signerMetaData) {
-      this.#signerMetaData = {
+    if (!this.#extensionSettings) {
+      this.#extensionSettings = {
         devMode: enabled,
       };
     } else {
-      this.#signerMetaData.devMode = enabled;
+      this.#extensionSettings.devMode = enabled;
     }
 
-    await this.saveFullData(this.#signerMetaData);
+    await this.saveFullData(this.#extensionSettings);
   }
 
   /**
    * Adds a host to the whitelist and immediately saves it.
    */
   async addWhitelistedHost(host: string): Promise<void> {
-    if (!this.#signerMetaData) {
-      this.#signerMetaData = {
+    if (!this.#extensionSettings) {
+      this.#extensionSettings = {
         whitelistedHosts: [host],
       };
     } else {
-      const hosts = this.#signerMetaData.whitelistedHosts ?? [];
+      const hosts = this.#extensionSettings.whitelistedHosts ?? [];
       if (!hosts.includes(host)) {
         hosts.push(host);
-        this.#signerMetaData.whitelistedHosts = hosts;
+        this.#extensionSettings.whitelistedHosts = hosts;
       }
     }
 
-    await this.saveFullData(this.#signerMetaData);
+    await this.saveFullData(this.#extensionSettings);
   }
 
   /**
    * Removes a host from the whitelist and immediately saves it.
    */
   async removeWhitelistedHost(host: string): Promise<void> {
-    if (!this.#signerMetaData?.whitelistedHosts) {
+    if (!this.#extensionSettings?.whitelistedHosts) {
       return;
     }
 
-    this.#signerMetaData.whitelistedHosts = this.#signerMetaData.whitelistedHosts.filter(
+    this.#extensionSettings.whitelistedHosts = this.#extensionSettings.whitelistedHosts.filter(
       (h) => h !== host
     );
 
-    await this.saveFullData(this.#signerMetaData);
+    await this.saveFullData(this.#extensionSettings);
   }
 
   /**
    * Sets the bookmarks array and immediately saves it.
    */
   async setBookmarks(bookmarks: Bookmark[]): Promise<void> {
-    if (!this.#signerMetaData) {
-      this.#signerMetaData = {
+    if (!this.#extensionSettings) {
+      this.#extensionSettings = {
         bookmarks,
       };
     } else {
-      this.#signerMetaData.bookmarks = bookmarks;
+      this.#extensionSettings.bookmarks = bookmarks;
     }
 
-    await this.saveFullData(this.#signerMetaData);
+    await this.saveFullData(this.#extensionSettings);
   }
 
   /**
    * Gets the current bookmarks.
    */
   getBookmarks(): Bookmark[] {
-    return this.#signerMetaData?.bookmarks ?? [];
+    return this.#extensionSettings?.bookmarks ?? [];
   }
 
   /**
    * Gets the maximum number of backups to keep.
    */
   getMaxBackups(): number {
-    return this.#signerMetaData?.maxBackups ?? this.DEFAULT_MAX_BACKUPS;
+    return this.#extensionSettings?.maxBackups ?? this.DEFAULT_MAX_BACKUPS;
   }
 
   /**
@@ -141,22 +155,22 @@ export abstract class SignerMetaHandler {
    */
   async setMaxBackups(count: number): Promise<void> {
     const clampedCount = Math.max(1, Math.min(20, count)); // Clamp between 1-20
-    if (!this.#signerMetaData) {
-      this.#signerMetaData = {
+    if (!this.#extensionSettings) {
+      this.#extensionSettings = {
         maxBackups: clampedCount,
       };
     } else {
-      this.#signerMetaData.maxBackups = clampedCount;
+      this.#extensionSettings.maxBackups = clampedCount;
     }
 
-    await this.saveFullData(this.#signerMetaData);
+    await this.saveFullData(this.#extensionSettings);
   }
 
   /**
    * Gets all vault backups, sorted newest first.
    */
-  getBackups(): SignerMetaData_VaultSnapshot[] {
-    const backups = this.#signerMetaData?.vaultSnapshots ?? [];
+  getBackups(): VaultSnapshot[] {
+    const backups = this.#extensionSettings?.vaultSnapshots ?? [];
     return [...backups].sort((a, b) =>
       new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
@@ -165,8 +179,8 @@ export abstract class SignerMetaHandler {
   /**
    * Gets a specific backup by ID.
    */
-  getBackupById(id: string): SignerMetaData_VaultSnapshot | undefined {
-    return this.#signerMetaData?.vaultSnapshots?.find(b => b.id === id);
+  getBackupById(id: string): VaultSnapshot | undefined {
+    return this.#extensionSettings?.vaultSnapshots?.find(b => b.id === id);
   }
 
   /**
@@ -174,28 +188,28 @@ export abstract class SignerMetaHandler {
    * Automatically removes old backups if exceeding maxBackups.
    */
   async createBackup(
-    browserSyncData: BrowserSyncData,
+    encryptedVault: EncryptedVault,
     reason: 'manual' | 'auto' | 'pre-restore' = 'manual'
-  ): Promise<SignerMetaData_VaultSnapshot> {
+  ): Promise<VaultSnapshot> {
     const now = new Date();
     const dateTimeString = now.toISOString().replace(/[:.]/g, '-').slice(0, 19);
-    const identityCount = browserSyncData.identities?.length ?? 0;
+    const identityCount = encryptedVault.identities?.length ?? 0;
 
-    const snapshot: SignerMetaData_VaultSnapshot = {
+    const snapshot: VaultSnapshot = {
       id: uuidv4(),
       fileName: `Vault Backup - ${dateTimeString}`,
       createdAt: now.toISOString(),
-      data: JSON.parse(JSON.stringify(browserSyncData)), // Deep clone
+      data: JSON.parse(JSON.stringify(encryptedVault)), // Deep clone
       identityCount,
       reason,
     };
 
-    if (!this.#signerMetaData) {
-      this.#signerMetaData = {
+    if (!this.#extensionSettings) {
+      this.#extensionSettings = {
         vaultSnapshots: [snapshot],
       };
     } else {
-      const existingBackups = this.#signerMetaData.vaultSnapshots ?? [];
+      const existingBackups = this.#extensionSettings.vaultSnapshots ?? [];
       existingBackups.push(snapshot);
 
       // Enforce max backups limit (only for auto backups, keep manual and pre-restore)
@@ -209,10 +223,10 @@ export abstract class SignerMetaHandler {
       );
       const trimmedAutoBackups = autoBackups.slice(0, maxBackups);
 
-      this.#signerMetaData.vaultSnapshots = [...otherBackups, ...trimmedAutoBackups];
+      this.#extensionSettings.vaultSnapshots = [...otherBackups, ...trimmedAutoBackups];
     }
 
-    await this.saveFullData(this.#signerMetaData);
+    await this.saveFullData(this.#extensionSettings);
     return snapshot;
   }
 
@@ -220,17 +234,17 @@ export abstract class SignerMetaHandler {
    * Deletes a backup by ID.
    */
   async deleteBackup(backupId: string): Promise<boolean> {
-    if (!this.#signerMetaData?.vaultSnapshots) {
+    if (!this.#extensionSettings?.vaultSnapshots) {
       return false;
     }
 
-    const initialLength = this.#signerMetaData.vaultSnapshots.length;
-    this.#signerMetaData.vaultSnapshots = this.#signerMetaData.vaultSnapshots.filter(
+    const initialLength = this.#extensionSettings.vaultSnapshots.length;
+    this.#extensionSettings.vaultSnapshots = this.#extensionSettings.vaultSnapshots.filter(
       b => b.id !== backupId
     );
 
-    if (this.#signerMetaData.vaultSnapshots.length < initialLength) {
-      await this.saveFullData(this.#signerMetaData);
+    if (this.#extensionSettings.vaultSnapshots.length < initialLength) {
+      await this.saveFullData(this.#extensionSettings);
       return true;
     }
     return false;
@@ -240,7 +254,7 @@ export abstract class SignerMetaHandler {
    * Gets the data from a backup for restoration.
    * Note: The caller should create a pre-restore backup before calling this.
    */
-  getBackupData(backupId: string): BrowserSyncData | undefined {
+  getBackupData(backupId: string): EncryptedVault | undefined {
     const backup = this.getBackupById(backupId);
     return backup?.data;
   }

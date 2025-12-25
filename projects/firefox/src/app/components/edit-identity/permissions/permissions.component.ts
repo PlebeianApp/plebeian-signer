@@ -1,6 +1,6 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
-import { IconButtonComponent, Identity_DECRYPTED, NavComponent, Permission_DECRYPTED, StorageService } from '@common';
+import { IconButtonComponent, Identity_DECRYPTED, NavComponent, Permission_DECRYPTED, StorageService, getKindName } from '@common';
 
 interface HostPermissions {
   host: string;
@@ -79,5 +79,9 @@ export class PermissionsComponent extends NavComponent implements OnInit {
         permissions: permissions.sortBy((x) => x.method),
       });
     });
+  }
+
+  getKindTooltip(kind: number): string {
+    return getKindName(kind);
   }
 }

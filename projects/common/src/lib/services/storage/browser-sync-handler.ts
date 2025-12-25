@@ -1,11 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import {
-  BrowserSyncData,
-  CashuMint_ENCRYPTED,
-  Identity_ENCRYPTED,
-  NwcConnection_ENCRYPTED,
-  Permission_ENCRYPTED,
-  Relay_ENCRYPTED,
+  EncryptedVault,
+  StoredCashuMint,
+  StoredIdentity,
+  StoredNwcConnection,
+  StoredPermission,
+  StoredRelay,
 } from './types';
 
 /**
@@ -14,15 +14,20 @@ import {
  * some unencrypted properties (like, version and the vault hash).
  */
 export abstract class BrowserSyncHandler {
-  get browserSyncData(): BrowserSyncData | undefined {
-    return this.#browserSyncData;
+  get encryptedVault(): EncryptedVault | undefined {
+    return this.#encryptedVault;
+  }
+
+  /** @deprecated Use encryptedVault instead */
+  get browserSyncData(): EncryptedVault | undefined {
+    return this.#encryptedVault;
   }
 
   get ignoreProperties(): string[] {
     return this.#ignoreProperties;
   }
 
-  #browserSyncData?: BrowserSyncData;
+  #encryptedVault?: EncryptedVault;
   #ignoreProperties: string[] = [];
 
   setIgnoreProperties(properties: string[]) {
@@ -41,10 +46,10 @@ export abstract class BrowserSyncHandler {
    *
    * ATTENTION: In your implementation, make sure to call "setFullData(..)" at the end to update the in-memory data.
    */
-  abstract saveAndSetFullData(data: BrowserSyncData): Promise<void>;
+  abstract saveAndSetFullData(data: EncryptedVault): Promise<void>;
 
-  setFullData(data: BrowserSyncData) {
-    this.#browserSyncData = JSON.parse(JSON.stringify(data));
+  setFullData(data: EncryptedVault) {
+    this.#encryptedVault = JSON.parse(JSON.stringify(data));
   }
 
   /**
@@ -53,13 +58,13 @@ export abstract class BrowserSyncHandler {
    * ATTENTION: In your implementation, make sure to call "setPartialData_Permissions(..)" at the end to update the in-memory data.
    */
   abstract saveAndSetPartialData_Permissions(data: {
-    permissions: Permission_ENCRYPTED[];
+    permissions: StoredPermission[];
   }): Promise<void>;
-  setPartialData_Permissions(data: { permissions: Permission_ENCRYPTED[] }) {
-    if (!this.#browserSyncData) {
+  setPartialData_Permissions(data: { permissions: StoredPermission[] }) {
+    if (!this.#encryptedVault) {
       return;
     }
-    this.#browserSyncData.permissions = Array.from(data.permissions);
+    this.#encryptedVault.permissions = Array.from(data.permissions);
   }
 
   /**
@@ -68,14 +73,14 @@ export abstract class BrowserSyncHandler {
    * ATTENTION: In your implementation, make sure to call "setPartialData_Identities(..)" at the end to update the in-memory data.
    */
   abstract saveAndSetPartialData_Identities(data: {
-    identities: Identity_ENCRYPTED[];
+    identities: StoredIdentity[];
   }): Promise<void>;
 
-  setPartialData_Identities(data: { identities: Identity_ENCRYPTED[] }) {
-    if (!this.#browserSyncData) {
+  setPartialData_Identities(data: { identities: StoredIdentity[] }) {
+    if (!this.#encryptedVault) {
       return;
     }
-    this.#browserSyncData.identities = Array.from(data.identities);
+    this.#encryptedVault.identities = Array.from(data.identities);
   }
 
   /**
@@ -90,20 +95,20 @@ export abstract class BrowserSyncHandler {
   setPartialData_SelectedIdentityId(data: {
     selectedIdentityId: string | null;
   }) {
-    if (!this.#browserSyncData) {
+    if (!this.#encryptedVault) {
       return;
     }
-    this.#browserSyncData.selectedIdentityId = data.selectedIdentityId;
+    this.#encryptedVault.selectedIdentityId = data.selectedIdentityId;
   }
 
   abstract saveAndSetPartialData_Relays(data: {
-    relays: Relay_ENCRYPTED[];
+    relays: StoredRelay[];
   }): Promise<void>;
-  setPartialData_Relays(data: { relays: Relay_ENCRYPTED[] }) {
-    if (!this.#browserSyncData) {
+  setPartialData_Relays(data: { relays: StoredRelay[] }) {
+    if (!this.#encryptedVault) {
       return;
     }
-    this.#browserSyncData.relays = Array.from(data.relays);
+    this.#encryptedVault.relays = Array.from(data.relays);
   }
 
   /**
@@ -112,15 +117,15 @@ export abstract class BrowserSyncHandler {
    * ATTENTION: In your implementation, make sure to call "setPartialData_NwcConnections(..)" at the end to update the in-memory data.
    */
   abstract saveAndSetPartialData_NwcConnections(data: {
-    nwcConnections: NwcConnection_ENCRYPTED[];
+    nwcConnections: StoredNwcConnection[];
   }): Promise<void>;
   setPartialData_NwcConnections(data: {
-    nwcConnections: NwcConnection_ENCRYPTED[];
+    nwcConnections: StoredNwcConnection[];
   }) {
-    if (!this.#browserSyncData) {
+    if (!this.#encryptedVault) {
       return;
     }
-    this.#browserSyncData.nwcConnections = Array.from(data.nwcConnections);
+    this.#encryptedVault.nwcConnections = Array.from(data.nwcConnections);
   }
 
   /**
@@ -129,13 +134,13 @@ export abstract class BrowserSyncHandler {
    * ATTENTION: In your implementation, make sure to call "setPartialData_CashuMints(..)" at the end to update the in-memory data.
    */
   abstract saveAndSetPartialData_CashuMints(data: {
-    cashuMints: CashuMint_ENCRYPTED[];
+    cashuMints: StoredCashuMint[];
   }): Promise<void>;
-  setPartialData_CashuMints(data: { cashuMints: CashuMint_ENCRYPTED[] }) {
-    if (!this.#browserSyncData) {
+  setPartialData_CashuMints(data: { cashuMints: StoredCashuMint[] }) {
+    if (!this.#encryptedVault) {
       return;
     }
-    this.#browserSyncData.cashuMints = Array.from(data.cashuMints);
+    this.#encryptedVault.cashuMints = Array.from(data.cashuMints);
   }
 
   /**

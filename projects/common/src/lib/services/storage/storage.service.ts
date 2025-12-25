@@ -3,11 +3,13 @@ import { Injectable } from '@angular/core';
 import { BrowserSyncHandler } from './browser-sync-handler';
 import { BrowserSessionHandler } from './browser-session-handler';
 import {
-  BrowserSessionData,
-  BrowserSyncData,
-  BrowserSyncFlow,
-  SignerMetaData,
-  Relay_DECRYPTED,
+  VaultSession,
+  EncryptedVault,
+  SyncFlow,
+  ExtensionSettings,
+  RelayData,
+  CashuMintRecord,
+  CashuProof,
 } from './types';
 import { SignerMetaHandler } from './signer-meta-handler';
 import { CryptoHelper } from '@common';
@@ -30,7 +32,6 @@ import {
   deleteCashuMint,
   updateCashuMintProofs,
 } from './related/cashu';
-import { CashuMint_DECRYPTED, CashuProof } from './types';
 
 export interface StorageServiceConfig {
   browserSessionHandler: BrowserSessionHandler;
@@ -62,13 +63,13 @@ export class StorageService {
     this.isInitialized = true;
   }
 
-  async enableBrowserSyncFlow(flow: BrowserSyncFlow): Promise<void> {
+  async enableBrowserSyncFlow(flow: SyncFlow): Promise<void> {
     this.assureIsInitialized();
 
-    this.#signerMetaHandler.setBrowserSyncFlow(flow);
+    this.#signerMetaHandler.setSyncFlow(flow);
   }
 
-  async loadSignerMetaData(): Promise<SignerMetaData | undefined> {
+  async loadExtensionSettings(): Promise<ExtensionSettings | undefined> {
     this.assureIsInitialized();
 
     const data = await this.#signerMetaHandler.loadFullData();
@@ -77,11 +78,16 @@ export class StorageService {
       return undefined;
     }
 
-    this.#signerMetaHandler.setFullData(data as SignerMetaData);
-    return data as SignerMetaData;
+    this.#signerMetaHandler.setFullData(data as ExtensionSettings);
+    return data as ExtensionSettings;
   }
 
-  async loadBrowserSessionData(): Promise<BrowserSessionData | undefined> {
+  /** @deprecated Use loadExtensionSettings instead */
+  async loadSignerMetaData(): Promise<ExtensionSettings | undefined> {
+    return this.loadExtensionSettings();
+  }
+
+  async loadVaultSession(): Promise<VaultSession | undefined> {
     this.assureIsInitialized();
 
     const data = await this.#browserSessionHandler.loadFullData();
@@ -91,22 +97,27 @@ export class StorageService {
     }
 
     // Set the existing data for in-memory usage.
-    this.#browserSessionHandler.setFullData(data as BrowserSessionData);
-    return data as BrowserSessionData;
+    this.#browserSessionHandler.setFullData(data as VaultSession);
+    return data as VaultSession;
+  }
+
+  /** @deprecated Use loadVaultSession instead */
+  async loadBrowserSessionData(): Promise<VaultSession | undefined> {
+    return this.loadVaultSession();
   }
 
   /**
-   * Load and migrate the browser sync data. If no data is available yet,
+   * Load and migrate the encrypted vault data. If no data is available yet,
    * the returned object is undefined.
    */
-  async loadAndMigrateBrowserSyncData(): Promise<BrowserSyncData | undefined> {
+  async loadAndMigrateEncryptedVault(): Promise<EncryptedVault | undefined> {
     this.assureIsInitialized();
-    const unmigratedBrowserSyncData =
+    const unmigratedEncryptedVault =
       await this.getBrowserSyncHandler().loadUnmigratedData();
-    const { browserSyncData, migrationWasPerformed } =
-      this.#migrateBrowserSyncData(unmigratedBrowserSyncData);
+    const { encryptedVault, migrationWasPerformed } =
+      this.#migrateEncryptedVault(unmigratedEncryptedVault);
 
-    if (!browserSyncData) {
+    if (!encryptedVault) {
       // Nothing to do at this point.
       return undefined;
     }
@@ -114,13 +125,18 @@ export class StorageService {
     // There is data. Check, if it was migrated.
     if (migrationWasPerformed) {
       // Persist the migrated data back to the browser sync storage.
-      this.getBrowserSyncHandler().saveAndSetFullData(browserSyncData);
+      this.getBrowserSyncHandler().saveAndSetFullData(encryptedVault);
     } else {
       // Set the data for in-memory usage.
-      this.getBrowserSyncHandler().setFullData(browserSyncData);
+      this.getBrowserSyncHandler().setFullData(encryptedVault);
     }
 
-    return browserSyncData;
+    return encryptedVault;
+  }
+
+  /** @deprecated Use loadAndMigrateEncryptedVault instead */
+  async loadAndMigrateBrowserSyncData(): Promise<EncryptedVault | undefined> {
+    return this.loadAndMigrateEncryptedVault();
   }
 
   async deleteVault(doNotSetIsInitializedToFalse = false) {
@@ -183,7 +199,7 @@ export class StorageService {
     await deleteRelay.call(this, relayId);
   }
 
-  async updateRelay(relayClone: Relay_DECRYPTED): Promise<void> {
+  async updateRelay(relayClone: RelayData): Promise<void> {
     await updateRelay.call(this, relayClone);
   }
 
@@ -209,7 +225,7 @@ export class StorageService {
     name: string;
     mintUrl: string;
     unit?: string;
-  }): Promise<CashuMint_DECRYPTED> {
+  }): Promise<CashuMintRecord> {
     return await addCashuMint.call(this, data);
   }
 
@@ -227,36 +243,36 @@ export class StorageService {
   exportVault(): string {
     this.assureIsInitialized();
     const vaultJson = JSON.stringify(
-      this.getBrowserSyncHandler().browserSyncData,
+      this.getBrowserSyncHandler().encryptedVault,
       undefined,
       4
     );
     return vaultJson;
   }
 
-  async importVault(allegedBrowserSyncData: BrowserSyncData) {
+  async importVault(allegedEncryptedVault: EncryptedVault) {
     this.assureIsInitialized();
 
-    const isValidData = this.#allegedBrowserSyncDataIsValid(
-      allegedBrowserSyncData
+    const isValidData = this.#allegedEncryptedVaultIsValid(
+      allegedEncryptedVault
     );
     if (!isValidData) {
       throw new Error('The imported data is not valid.');
     }
 
     await this.getBrowserSyncHandler().saveAndSetFullData(
-      allegedBrowserSyncData
+      allegedEncryptedVault
     );
   }
 
   getBrowserSyncHandler(): BrowserSyncHandler {
     this.assureIsInitialized();
 
-    switch (this.#signerMetaHandler.signerMetaData?.syncFlow) {
-      case BrowserSyncFlow.NO_SYNC:
+    switch (this.#signerMetaHandler.extensionSettings?.syncFlow) {
+      case SyncFlow.NO_SYNC:
         return this.#browserSyncNoHandler;
 
-      case BrowserSyncFlow.BROWSER_SYNC:
+      case SyncFlow.BROWSER_SYNC:
       default:
         return this.#browserSyncYesHandler;
     }
@@ -275,14 +291,14 @@ export class StorageService {
   }
 
   /**
-   * Get the current browser sync flow setting.
+   * Get the current sync flow setting.
    * Returns NO_SYNC if not initialized or no setting found.
    */
-  getSyncFlow(): BrowserSyncFlow {
-    if (!this.isInitialized || !this.#signerMetaHandler?.signerMetaData) {
-      return BrowserSyncFlow.NO_SYNC;
+  getSyncFlow(): SyncFlow {
+    if (!this.isInitialized || !this.#signerMetaHandler?.extensionSettings) {
+      return SyncFlow.NO_SYNC;
     }
-    return this.#signerMetaHandler.signerMetaData.syncFlow ?? BrowserSyncFlow.NO_SYNC;
+    return this.#signerMetaHandler.extensionSettings.syncFlow ?? SyncFlow.NO_SYNC;
   }
 
   /**
@@ -297,25 +313,24 @@ export class StorageService {
   }
 
   async encrypt(value: string): Promise<string> {
-    const browserSessionData =
-      this.getBrowserSessionHandler().browserSessionData;
-    if (!browserSessionData) {
-      throw new Error('Browser session data is undefined.');
+    const vaultSession = this.getBrowserSessionHandler().vaultSession;
+    if (!vaultSession) {
+      throw new Error('Vault session is undefined.');
     }
 
     // v2: Use pre-derived key directly with AES-GCM
-    if (browserSessionData.vaultKey) {
-      return this.encryptV2(value, browserSessionData.iv, browserSessionData.vaultKey);
+    if (vaultSession.vaultKey) {
+      return this.encryptV2(value, vaultSession.iv, vaultSession.vaultKey);
     }
 
     // v1: Use PBKDF2 with password
-    if (!browserSessionData.vaultPassword) {
+    if (!vaultSession.vaultPassword) {
       throw new Error('No vault password or key available.');
     }
     return CryptoHelper.encrypt(
       value,
-      browserSessionData.iv,
-      browserSessionData.vaultPassword
+      vaultSession.iv,
+      vaultSession.vaultPassword
     );
   }
 
@@ -347,31 +362,30 @@ export class StorageService {
     value: string,
     returnType: 'string' | 'number' | 'boolean'
   ): Promise<any> {
-    const browserSessionData =
-      this.getBrowserSessionHandler().browserSessionData;
-    if (!browserSessionData) {
-      throw new Error('Browser session data is undefined.');
+    const vaultSession = this.getBrowserSessionHandler().vaultSession;
+    if (!vaultSession) {
+      throw new Error('Vault session is undefined.');
     }
 
     // v2: Use pre-derived key directly with AES-GCM
-    if (browserSessionData.vaultKey) {
+    if (vaultSession.vaultKey) {
       const decryptedValue = await this.decryptV2(
         value,
-        browserSessionData.iv,
-        browserSessionData.vaultKey
+        vaultSession.iv,
+        vaultSession.vaultKey
       );
       return this.parseDecryptedValue(decryptedValue, returnType);
     }
 
     // v1: Use PBKDF2 with password
-    if (!browserSessionData.vaultPassword) {
+    if (!vaultSession.vaultPassword) {
       throw new Error('No vault password or key available.');
     }
     return this.decryptWithLockedVault(
       value,
       returnType,
-      browserSessionData.iv,
-      browserSessionData.vaultPassword
+      vaultSession.iv,
+      vaultSession.vaultPassword
     );
   }
 
@@ -445,28 +459,28 @@ export class StorageService {
   }
 
   /**
-   * Migrate the browser sync data to the latest version.
+   * Migrate the encrypted vault to the latest version.
    */
-  #migrateBrowserSyncData(browserSyncData: Partial<Record<string, any>>): {
-    browserSyncData?: BrowserSyncData;
+  #migrateEncryptedVault(encryptedVault: Partial<Record<string, any>>): {
+    encryptedVault?: EncryptedVault;
     migrationWasPerformed: boolean;
   } {
-    if (Object.keys(browserSyncData).length === 0) {
-      // First run. There is no browser sync data yet.
+    if (Object.keys(encryptedVault).length === 0) {
+      // First run. There is no encrypted vault yet.
       return {
-        browserSyncData: undefined,
+        encryptedVault: undefined,
         migrationWasPerformed: false,
       };
     }
 
     // Will be implemented if migration is required.
     return {
-      browserSyncData: browserSyncData as BrowserSyncData,
+      encryptedVault: encryptedVault as EncryptedVault,
       migrationWasPerformed: false,
     };
   }
 
-  #allegedBrowserSyncDataIsValid(data: BrowserSyncData): boolean {
+  #allegedEncryptedVaultIsValid(data: EncryptedVault): boolean {
     if (typeof data.iv === 'undefined') {
       return false;
     }

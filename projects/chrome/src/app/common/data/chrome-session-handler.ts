@@ -1,12 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { BrowserSessionData, BrowserSessionHandler } from '@common';
+import { VaultSession, BrowserSessionHandler } from '@common';
 
 export class ChromeSessionHandler extends BrowserSessionHandler {
   async loadFullData(): Promise<Partial<Record<string, any>>> {
     return chrome.storage.session.get(null);
   }
 
-  async saveFullData(data: BrowserSessionData): Promise<void> {
+  async saveFullData(data: VaultSession): Promise<void> {
     await chrome.storage.session.set(data);
   }
 

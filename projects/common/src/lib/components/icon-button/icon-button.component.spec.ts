@@ -14,6 +14,7 @@ describe('IconButtonComponent', () => {
 
     fixture = TestBed.createComponent(IconButtonComponent);
     component = fixture.componentInstance;
+    component.icon = 'settings'; // Required input
     fixture.detectChanges();
   });
 

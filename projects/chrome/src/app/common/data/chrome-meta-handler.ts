@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { SignerMetaData, SignerMetaHandler } from '@common';
+import { ExtensionSettings, SignerMetaHandler } from '@common';
 
 export class ChromeMetaHandler extends SignerMetaHandler {
   async loadFullData(): Promise<Partial<Record<string, any>>> {
@@ -19,7 +19,7 @@ export class ChromeMetaHandler extends SignerMetaHandler {
     return data;
   }
 
-  async saveFullData(data: SignerMetaData): Promise<void> {
+  async saveFullData(data: ExtensionSettings): Promise<void> {
     await chrome.storage.local.set(data);
   }
 

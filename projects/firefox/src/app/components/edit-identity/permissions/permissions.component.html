@@ -30,7 +30,7 @@
     >
     <span class="text-muted">{{ permission.method }}</span>
     @if(typeof permission.kind !== 'undefined') {
-    <span>(kind {{ permission.kind }})</span>
+    <span [title]="getKindTooltip(permission.kind!)">(kind {{ permission.kind }})</span>
     }
     <div class="sam-flex-grow"></div>
     <lib-icon-button

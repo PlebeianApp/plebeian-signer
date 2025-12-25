@@ -1,15 +1,14 @@
 import { ExtensionMethod, Nip07MethodPolicy } from '@common';
 
-export interface Permission_DECRYPTED {
-  id: string;
-  identityId: string;
-  host: string;
-  method: ExtensionMethod;
-  methodPolicy: Nip07MethodPolicy;
-  kind?: number;
-}
+// =============================================================================
+// STORAGE DATA TRANSFER OBJECTS (DTOs)
+// These types represent data as stored in browser storage
+// =============================================================================
 
-export interface Permission_ENCRYPTED {
+/**
+ * Permission as stored in encrypted vault (encrypted string fields)
+ */
+export interface StoredPermission {
   id: string;
   identityId: string;
   host: string;
@@ -18,24 +17,37 @@ export interface Permission_ENCRYPTED {
   kind?: string;
 }
 
-export interface Identity_DECRYPTED {
+/**
+ * Permission in session memory (typed fields)
+ */
+export interface PermissionData {
+  id: string;
+  identityId: string;
+  host: string;
+  method: ExtensionMethod;
+  methodPolicy: Nip07MethodPolicy;
+  kind?: number;
+}
+
+/**
+ * Identity as stored in encrypted vault
+ */
+export interface StoredIdentity {
   id: string;
   createdAt: string;
   nick: string;
   privkey: string;
 }
 
-export type Identity_ENCRYPTED = Identity_DECRYPTED;
+/**
+ * Identity in session memory (same structure, just semantic clarity)
+ */
+export type IdentityData = StoredIdentity;
 
-export interface Relay_DECRYPTED {
-  id: string;
-  identityId: string;
-  url: string;
-  read: boolean;
-  write: boolean;
-}
-
-export interface Relay_ENCRYPTED {
+/**
+ * Relay as stored in encrypted vault (encrypted boolean fields)
+ */
+export interface StoredRelay {
   id: string;
   identityId: string;
   url: string;
@@ -44,10 +56,21 @@ export interface Relay_ENCRYPTED {
 }
 
 /**
- * NWC (Nostr Wallet Connect) connection - Decrypted
+ * Relay in session memory (typed boolean fields)
+ */
+export interface RelayData {
+  id: string;
+  identityId: string;
+  url: string;
+  read: boolean;
+  write: boolean;
+}
+
+/**
+ * NWC (Nostr Wallet Connect) connection in session memory
  * Stores NIP-47 wallet connection data
  */
-export interface NwcConnection_DECRYPTED {
+export interface NwcConnectionRecord {
   id: string;
   name: string;                 // User-defined wallet name
   connectionUrl: string;        // Full nostr+walletconnect:// URL
@@ -61,9 +84,9 @@ export interface NwcConnection_DECRYPTED {
 }
 
 /**
- * NWC connection - Encrypted for storage
+ * NWC connection as stored in encrypted vault
  */
-export interface NwcConnection_ENCRYPTED {
+export interface StoredNwcConnection {
   id: string;
   name: string;
   connectionUrl: string;
@@ -89,10 +112,10 @@ export interface CashuProof {
 }
 
 /**
- * Cashu Mint Connection - Decrypted
+ * Cashu Mint Connection in session memory
  * Stores NIP-60 Cashu mint connection data with local proofs
  */
-export interface CashuMint_DECRYPTED {
+export interface CashuMintRecord {
   id: string;
   name: string;                 // User-defined mint name
   mintUrl: string;              // Mint API URL
@@ -104,9 +127,9 @@ export interface CashuMint_DECRYPTED {
 }
 
 /**
- * Cashu Mint Connection - Encrypted for storage
+ * Cashu Mint Connection as stored in encrypted vault
  */
-export interface CashuMint_ENCRYPTED {
+export interface StoredCashuMint {
   id: string;
   name: string;
   mintUrl: string;
@@ -117,7 +140,15 @@ export interface CashuMint_ENCRYPTED {
   cachedBalanceAt?: string;
 }
 
-export interface BrowserSyncData_PART_Unencrypted {
+// =============================================================================
+// ENCRYPTED VAULT
+// The vault is the encrypted container holding all sensitive data
+// =============================================================================
+
+/**
+ * Vault header - unencrypted metadata needed to decrypt the vault
+ */
+export interface EncryptedVaultHeader {
   version: number;
   iv: string;
   vaultHash: string;
@@ -126,26 +157,42 @@ export interface BrowserSyncData_PART_Unencrypted {
   salt?: string;
 }
 
-export interface BrowserSyncData_PART_Encrypted {
+/**
+ * Vault content - encrypted payload containing all sensitive data
+ */
+export interface EncryptedVaultContent {
   selectedIdentityId: string | null;
-  permissions: Permission_ENCRYPTED[];
-  identities: Identity_ENCRYPTED[];
-  relays: Relay_ENCRYPTED[];
-  nwcConnections?: NwcConnection_ENCRYPTED[];
-  cashuMints?: CashuMint_ENCRYPTED[];
+  permissions: StoredPermission[];
+  identities: StoredIdentity[];
+  relays: StoredRelay[];
+  nwcConnections?: StoredNwcConnection[];
+  cashuMints?: StoredCashuMint[];
 }
 
-export type BrowserSyncData = BrowserSyncData_PART_Unencrypted &
-  BrowserSyncData_PART_Encrypted;
+/**
+ * Complete encrypted vault as stored in browser sync storage
+ */
+export type EncryptedVault = EncryptedVaultHeader & EncryptedVaultContent;
 
-export enum BrowserSyncFlow {
+/**
+ * Sync flow preference for vault data
+ */
+export enum SyncFlow {
   NO_SYNC = 0,
   BROWSER_SYNC = 1,
   SIGNER_SYNC = 2,
   CUSTOM_SYNC = 3,
 }
 
-export interface BrowserSessionData {
+// =============================================================================
+// VAULT SESSION
+// Runtime state when vault is unlocked
+// =============================================================================
+
+/**
+ * Vault session - decrypted vault data in session memory
+ */
+export interface VaultSession {
   // The following properties purely come from the browser session storage
   // and will never be going into the browser sync storage.
   vaultPassword?: string; // v1 only: raw password for PBKDF2
@@ -155,24 +202,32 @@ export interface BrowserSessionData {
   iv: string;
   // Version 2+: Random salt for Argon2id (base64)
   salt?: string;
-  permissions: Permission_DECRYPTED[];
-  identities: Identity_DECRYPTED[];
+  permissions: PermissionData[];
+  identities: IdentityData[];
   selectedIdentityId: string | null;
-  relays: Relay_DECRYPTED[];
-  nwcConnections?: NwcConnection_DECRYPTED[];
-  cashuMints?: CashuMint_DECRYPTED[];
+  relays: RelayData[];
+  nwcConnections?: NwcConnectionRecord[];
+  cashuMints?: CashuMintRecord[];
 }
 
-export interface SignerMetaData_VaultSnapshot {
+// =============================================================================
+// EXTENSION SETTINGS
+// Non-vault configuration stored separately
+// =============================================================================
+
+/**
+ * Vault snapshot for backup/restore
+ */
+export interface VaultSnapshot {
   id: string;
   fileName: string;
   createdAt: string; // ISO timestamp
-  data: BrowserSyncData;
+  data: EncryptedVault;
   identityCount: number;
   reason?: 'manual' | 'auto' | 'pre-restore'; // Why was this backup created
 }
 
-export const SIGNER_META_DATA_KEY = {
+export const EXTENSION_SETTINGS_KEYS = {
   vaultSnapshots: 'vaultSnapshots',
 };
 
@@ -186,10 +241,13 @@ export interface Bookmark {
   createdAt: number;
 }
 
-export interface SignerMetaData {
-  syncFlow?: number; // 0 = no sync, 1 = browser sync, (future: 2 = Signer sync, 3 = Custom sync (bring your own sync))
+/**
+ * Extension settings - non-vault configuration
+ */
+export interface ExtensionSettings {
+  syncFlow?: number; // 0 = no sync, 1 = browser sync, (future: 2 = Signer sync, 3 = Custom sync)
 
-  vaultSnapshots?: SignerMetaData_VaultSnapshot[];
+  vaultSnapshots?: VaultSnapshot[];
 
   // Maximum number of automatic backups to keep (default: 5)
   maxBackups?: number;
@@ -229,3 +287,47 @@ export interface ProfileMetadata {
  * Cache for profile metadata, stored in session storage
  */
 export type ProfileMetadataCache = Record<string, ProfileMetadata>;
+
+// =============================================================================
+// BACKWARDS COMPATIBILITY ALIASES
+// These will be removed in a future version
+// =============================================================================
+
+/** @deprecated Use StoredPermission instead */
+export type Permission_ENCRYPTED = StoredPermission;
+/** @deprecated Use PermissionData instead */
+export type Permission_DECRYPTED = PermissionData;
+/** @deprecated Use StoredIdentity instead */
+export type Identity_ENCRYPTED = StoredIdentity;
+/** @deprecated Use IdentityData instead */
+export type Identity_DECRYPTED = IdentityData;
+/** @deprecated Use StoredRelay instead */
+export type Relay_ENCRYPTED = StoredRelay;
+/** @deprecated Use RelayData instead */
+export type Relay_DECRYPTED = RelayData;
+/** @deprecated Use StoredNwcConnection instead */
+export type NwcConnection_ENCRYPTED = StoredNwcConnection;
+/** @deprecated Use NwcConnectionRecord instead */
+export type NwcConnection_DECRYPTED = NwcConnectionRecord;
+/** @deprecated Use StoredCashuMint instead */
+export type CashuMint_ENCRYPTED = StoredCashuMint;
+/** @deprecated Use CashuMintRecord instead */
+export type CashuMint_DECRYPTED = CashuMintRecord;
+/** @deprecated Use EncryptedVaultHeader instead */
+export type BrowserSyncData_PART_Unencrypted = EncryptedVaultHeader;
+/** @deprecated Use EncryptedVaultContent instead */
+export type BrowserSyncData_PART_Encrypted = EncryptedVaultContent;
+/** @deprecated Use EncryptedVault instead */
+export type BrowserSyncData = EncryptedVault;
+/** @deprecated Use SyncFlow instead */
+export const BrowserSyncFlow = SyncFlow;
+/** @deprecated Use SyncFlow instead */
+export type BrowserSyncFlow = SyncFlow;
+/** @deprecated Use VaultSession instead */
+export type BrowserSessionData = VaultSession;
+/** @deprecated Use VaultSnapshot instead */
+export type SignerMetaData_VaultSnapshot = VaultSnapshot;
+/** @deprecated Use EXTENSION_SETTINGS_KEYS instead */
+export const SIGNER_META_DATA_KEY = EXTENSION_SETTINGS_KEYS;
+/** @deprecated Use ExtensionSettings instead */
+export type SignerMetaData = ExtensionSettings;

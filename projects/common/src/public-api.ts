@@ -2,11 +2,18 @@
  * Public API Surface of common
  */
 
+// Domain (DDD Value Objects & Repository Interfaces)
+export * from './lib/domain';
+
+// Infrastructure (Encryption & Repository Implementations)
+export * from './lib/infrastructure';
+
 // Common
 export * from './lib/common/nav-component';
 
 // Constants
 export * from './lib/constants/fallback-relays';
+export * from './lib/constants/event-kinds';
 
 // Helpers
 export * from './lib/helpers/crypto-helper';

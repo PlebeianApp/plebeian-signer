@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { SignerMetaData, SignerMetaHandler } from '@common';
+import { ExtensionSettings, SignerMetaHandler } from '@common';
 import browser from 'webextension-polyfill';
 
 export class FirefoxMetaHandler extends SignerMetaHandler {
@@ -20,7 +20,7 @@ export class FirefoxMetaHandler extends SignerMetaHandler {
     return data;
   }
 
-  async saveFullData(data: SignerMetaData): Promise<void> {
+  async saveFullData(data: ExtensionSettings): Promise<void> {
     await browser.storage.local.set(data as Record<string, any>);
     console.log(data);
   }

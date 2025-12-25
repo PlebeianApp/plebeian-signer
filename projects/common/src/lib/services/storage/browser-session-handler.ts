@@ -1,12 +1,17 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { BrowserSessionData } from './types';
+import { VaultSession } from './types';
 
 export abstract class BrowserSessionHandler {
-  get browserSessionData(): BrowserSessionData | undefined {
-    return this.#browserSessionData;
+  get vaultSession(): VaultSession | undefined {
+    return this.#vaultSession;
   }
 
-  #browserSessionData?: BrowserSessionData;
+  /** @deprecated Use vaultSession instead */
+  get browserSessionData(): VaultSession | undefined {
+    return this.#vaultSession;
+  }
+
+  #vaultSession?: VaultSession;
 
   /**
    * Load the data from the browser session storage. It should be an empty object,
@@ -16,12 +21,12 @@ export abstract class BrowserSessionHandler {
    * ATTENTION: Make sure to call "setFullData(..)" afterwards to update the in-memory data.
    */
   abstract loadFullData(): Promise<Partial<Record<string, any>>>;
-  setFullData(data: BrowserSessionData) {
-    this.#browserSessionData = JSON.parse(JSON.stringify(data));
+  setFullData(data: VaultSession) {
+    this.#vaultSession = JSON.parse(JSON.stringify(data));
   }
 
   clearInMemoryData() {
-    this.#browserSessionData = undefined;
+    this.#vaultSession = undefined;
   }
 
   /**
@@ -29,7 +34,7 @@ export abstract class BrowserSessionHandler {
    *
    * ATTENTION: Make sure to call "setFullData(..)" afterwards of before to update the in-memory data.
    */
-  abstract saveFullData(data: BrowserSessionData): Promise<void>;
+  abstract saveFullData(data: VaultSession): Promise<void>;
 
   abstract clearData(): Promise<void>;
 }

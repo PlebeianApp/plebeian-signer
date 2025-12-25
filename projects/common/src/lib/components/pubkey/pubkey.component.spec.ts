@@ -14,6 +14,8 @@ describe('PubkeyComponent', () => {
 
     fixture = TestBed.createComponent(PubkeyComponent);
     component = fixture.componentInstance;
+    // Valid test pubkey (64 hex chars)
+    component.value = 'a'.repeat(64);
     fixture.detectChanges();
   });
 

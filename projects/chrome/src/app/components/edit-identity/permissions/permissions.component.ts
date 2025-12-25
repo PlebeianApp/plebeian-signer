@@ -5,6 +5,7 @@ import {
   NavComponent,
   Permission_DECRYPTED,
   StorageService,
+  getKindName,
 } from '@common';
 import { ActivatedRoute } from '@angular/router';
 
@@ -85,5 +86,9 @@ export class PermissionsComponent extends NavComponent implements OnInit {
         permissions: permissions.sortBy((x) => x.method),
       });
     });
+  }
+
+  getKindTooltip(kind: number): string {
+    return getKindName(kind);
   }
 }
