@@ -14,6 +14,7 @@ import { NewIdentityComponent } from './components/new-identity/new-identity.com
 import { EditIdentityComponent } from './components/edit-identity/edit-identity.component';
 import { HomeComponent as EditIdentityHomeComponent } from './components/edit-identity/home/home.component';
 import { KeysComponent as EditIdentityKeysComponent } from './components/edit-identity/keys/keys.component';
+import { NcryptsecComponent as EditIdentityNcryptsecComponent } from './components/edit-identity/ncryptsec/ncryptsec.component';
 import { PermissionsComponent as EditIdentityPermissionsComponent } from './components/edit-identity/permissions/permissions.component';
 import { RelaysComponent as EditIdentityRelaysComponent } from './components/edit-identity/relays/relays.component';
 import { WelcomeComponent } from './components/welcome/welcome.component';
@@ -111,6 +112,10 @@ export const routes: Routes = [
       {
         path: 'keys',
         component: EditIdentityKeysComponent,
+      },
+      {
+        path: 'ncryptsec',
+        component: EditIdentityNcryptsecComponent,
       },
       {
         path: 'permissions',

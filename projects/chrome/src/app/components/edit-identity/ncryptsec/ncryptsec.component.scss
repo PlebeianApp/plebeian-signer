@@ -1,0 +1,89 @@
+:host {
+  height: 100%;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  padding-left: var(--size);
+  padding-right: var(--size);
+
+  .header-pane {
+    display: flex;
+    flex-direction: row;
+    column-gap: var(--size-h);
+    align-items: center;
+    padding-bottom: var(--size);
+    background-color: var(--background);
+    position: sticky;
+    top: 0;
+  }
+}
+
+.description {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  margin-bottom: var(--size);
+}
+
+.password-section {
+  margin-bottom: var(--size);
+
+  label {
+    font-weight: 500;
+    margin-bottom: var(--size-q);
+  }
+}
+
+.generate-btn {
+  width: 100%;
+  margin-bottom: var(--size);
+}
+
+.result-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--size);
+  margin-top: var(--size);
+}
+
+.qr-container {
+  background: white;
+  padding: var(--size);
+  border-radius: 8px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.qr-code {
+  width: 250px;
+  height: 250px;
+}
+
+.ncryptsec-container {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-h);
+
+  .ncryptsec-output {
+    font-family: monospace;
+    font-size: 0.75rem;
+    word-break: break-all;
+    cursor: pointer;
+
+    &:hover {
+      background-color: var(--bs-gray-100);
+    }
+  }
+
+  button {
+    width: 100%;
+  }
+}
+
+.hint {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  text-align: center;
+}

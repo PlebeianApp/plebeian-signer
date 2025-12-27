@@ -2,6 +2,7 @@
 import { bech32 } from '@scure/base';
 import * as utils from '@noble/curves/abstract/utils';
 import { getPublicKey } from 'nostr-tools';
+import { encrypt as nip49Encrypt } from 'nostr-tools/nip49';
 
 export interface NostrHexObject {
   represents: string;
@@ -124,5 +125,22 @@ export class NostrHelper {
       represents: prefix,
       hex: utils.bytesToHex(data),
     };
+  }
+
+  /**
+   * Encrypts a private key (hex) with a password using NIP-49.
+   * Returns an ncryptsec bech32 string.
+   * @param privkeyHex - The private key in hex format
+   * @param password - The password to encrypt with
+   * @param logN - Optional log2(N) parameter for scrypt (default: 16)
+   * @returns Promise<string> - The ncryptsec bech32 encoded encrypted key
+   */
+  static async privkeyToNcryptsec(
+    privkeyHex: string,
+    password: string,
+    logN = 16
+  ): Promise<string> {
+    const privkeyBytes = utils.hexToBytes(privkeyHex);
+    return nip49Encrypt(privkeyBytes, password, logN);
   }
 }

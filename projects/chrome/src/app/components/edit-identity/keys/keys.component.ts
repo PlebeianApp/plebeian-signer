@@ -1,5 +1,5 @@
 import { Component, inject, OnInit } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import {
   IconButtonComponent,
   NavComponent,
@@ -29,6 +29,7 @@ export class KeysComponent extends NavComponent implements OnInit {
 
   readonly #activatedRoute = inject(ActivatedRoute);
   readonly #storage = inject(StorageService);
+  readonly #router = inject(Router);
 
   ngOnInit(): void {
     const identityId = this.#activatedRoute.parent?.snapshot.params['id'];
@@ -49,6 +50,11 @@ export class KeysComponent extends NavComponent implements OnInit {
     } else {
       element.type = 'password';
     }
+  }
+
+  navigateToNcryptsec() {
+    if (!this.identity) return;
+    this.#router.navigateByUrl(`/edit-identity/${this.identity.id}/ncryptsec`);
   }
 
   async #initialize(identityId: string) {
