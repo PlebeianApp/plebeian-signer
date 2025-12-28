@@ -6,16 +6,26 @@
   <span>Get ncryptsec</span>
 </div>
 
-<p class="description">
-  Enter a password to encrypt your private key. The resulting ncryptsec can be
-  used to securely backup or transfer your key.
-</p>
+<!-- QR Code (shown after generation) -->
+@if (ncryptsec) {
+<div class="qr-container">
+  <button
+    type="button"
+    class="qr-button"
+    title="Copy to clipboard"
+    (click)="copyToClipboard(ncryptsec); toast.show('Copied to clipboard')"
+  >
+    <img [src]="ncryptsecQr" alt="ncryptsec QR code" class="qr-code" />
+  </button>
+</div>
+}
 
 <!-- PASSWORD INPUT -->
 <div class="password-section">
   <label for="ncryptsecPasswordInput">Password</label>
   <div class="input-group sam-mt-h">
     <input
+      #passwordInput
       id="ncryptsecPasswordInput"
       type="password"
       class="form-control"
@@ -41,35 +51,10 @@
   }
 </button>
 
-<!-- NCRYPTSEC OUTPUT -->
-@if (ncryptsec) {
-<div class="result-section">
-  <!-- QR Code -->
-  <div class="qr-container">
-    <img [src]="ncryptsecQr" alt="ncryptsec QR code" class="qr-code" />
-  </div>
 
-  <!-- ncryptsec text -->
-  <div class="ncryptsec-container">
-    <input
-      type="text"
-      class="form-control ncryptsec-output"
-      [value]="ncryptsec"
-      readonly
-      (click)="copyToClipboard(ncryptsec); toast.show('Copied to clipboard')"
-      title="Click to copy"
-    />
-    <button
-      class="btn btn-outline-secondary"
-      type="button"
-      (click)="copyToClipboard(ncryptsec); toast.show('Copied to clipboard')"
-    >
-      <i class="bi bi-copy"></i> Copy
-    </button>
-  </div>
-
-  <p class="hint">Tap the text or button to copy to clipboard</p>
-</div>
-}
+<p class="description">
+  Enter a password to encrypt your private key. The resulting ncryptsec can be
+  used to securely backup or transfer your key.
+</p>
 
 <lib-toast #toast [bottom]="16"></lib-toast>

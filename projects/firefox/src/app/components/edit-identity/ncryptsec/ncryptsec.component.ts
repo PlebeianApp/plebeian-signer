@@ -1,4 +1,11 @@
-import { Component, inject, OnInit } from '@angular/core';
+import {
+  AfterViewInit,
+  Component,
+  ElementRef,
+  inject,
+  OnInit,
+  ViewChild,
+} from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import {
   IconButtonComponent,
@@ -16,7 +23,12 @@ import * as QRCode from 'qrcode';
   templateUrl: './ncryptsec.component.html',
   styleUrl: './ncryptsec.component.scss',
 })
-export class NcryptsecComponent extends NavComponent implements OnInit {
+export class NcryptsecComponent
+  extends NavComponent
+  implements OnInit, AfterViewInit
+{
+  @ViewChild('passwordInput') passwordInput!: ElementRef<HTMLInputElement>;
+
   privkeyHex = '';
   ncryptsecPassword = '';
   ncryptsec = '';
@@ -33,6 +45,10 @@ export class NcryptsecComponent extends NavComponent implements OnInit {
     }
 
     this.#initialize(identityId);
+  }
+
+  ngAfterViewInit(): void {
+    this.passwordInput.nativeElement.focus();
   }
 
   async generateNcryptsec() {
