@@ -41,10 +41,13 @@ export interface UnlockResponseMessage {
   error?: string;
 }
 
-export const debug = function (message: any) {
-  const dateString = new Date().toISOString();
-  console.log(`[Plebeian Signer - ${dateString}]: ${JSON.stringify(message)}`);
-};
+// Debug logging disabled - uncomment for development
+// export const debug = function (message: any) {
+//   const dateString = new Date().toISOString();
+//   console.log(`[Plebeian Signer - ${dateString}]: ${JSON.stringify(message)}`);
+// };
+// eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-empty-function
+export const debug = function (_message: any) {};
 
 export type PromptResponse =
   | 'reject'
