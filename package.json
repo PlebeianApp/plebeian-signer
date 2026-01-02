@@ -1,12 +1,12 @@
 {
   "name": "plebeian-signer",
-  "version": "v1.1.5",
+  "version": "1.1.6",
   "custom": {
     "chrome": {
-      "version": "v1.1.5"
+      "version": "v1.1.6"
     },
     "firefox": {
-      "version": "v1.1.5"
+      "version": "v1.1.6"
     }
   },
   "scripts": {
@@ -74,5 +74,6 @@
     "rimraf": "^6.0.1",
     "typescript": "~5.6.2",
     "typescript-eslint": "8.18.0"
-  }
+  },
+  "license": "Unlicense"
 }
