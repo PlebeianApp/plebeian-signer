@@ -1,0 +1,73 @@
+CHROME WEB STORE LISTING
+========================
+
+NAME: Plebeian Signer - Nostr Identity Manager & Signer
+
+SHORT DESCRIPTION (132 chars max):
+Manage multiple Nostr identities, sign events securely, and store ecash with the built-in Cashu wallet. Your keys, your control.
+
+DETAILED DESCRIPTION:
+---------------------
+
+Plebeian Signer is a secure browser extension for managing your Nostr identities without exposing your private keys to web applications.
+
+KEY FEATURES
+
+Multiple Identity Management
+• Create and manage multiple Nostr identities in one place
+• Switch between profiles instantly when using Nostr apps
+• Import existing keys or generate new ones
+• Customize profiles with display names and metadata
+
+Secure Key Storage
+• Private keys are encrypted with Argon2id + AES-256-GCM
+• Keys never leave the extension - apps only receive signatures
+• Password-protected vault with automatic locking
+• Optional sync across browser instances
+
+NIP-07 Signing
+• Full NIP-07 implementation (window.nostr interface)
+• Review event details before signing
+• Granular permission controls per site and event kind
+• One-click approve or reject with "always" options
+• Supports NIP-04 and NIP-44 encryption/decryption
+
+Built-in Cashu Wallet
+• Store and manage ecash (Cashu tokens)
+• Send and receive tokens instantly
+• Deposit sats via Lightning invoices
+• Connect to multiple Cashu mints
+• View token history and check for spent proofs
+
+Privacy Focused
+• No data collection or analytics
+• No external connections except to mints you configure
+• Fully open source
+• Works offline for signing operations
+
+PERFECT FOR
+• Nostr users managing multiple personas
+• Privacy-conscious users who want key isolation
+• Anyone tired of copy-pasting private keys
+• Users who want ecash functionality integrated with their identity
+
+SUPPORTED NOSTR APPS
+Works with any NIP-07 compatible application including Snort, Iris, Coracle, Nostrudel, Habla, and many more.
+
+OPEN SOURCE
+Plebeian Signer is free and open source software. Review the code, report issues, or contribute at the project repository.
+
+---
+
+CATEGORY: Social & Communication
+
+LANGUAGE: English
+
+PRIVACY POLICY: Not required (no user data collected)
+
+---
+
+SCREENSHOTS (1280x800):
+1. 01-identity-management.png - Multiple identity management
+2. 02-cashu-wallet.png - Built-in Cashu ecash wallet
+3. 03-signing-permissions.png - Secure event signing permissions

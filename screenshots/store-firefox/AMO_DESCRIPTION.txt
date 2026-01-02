@@ -1,0 +1,77 @@
+MOZILLA ADD-ONS (AMO) LISTING
+=============================
+
+NAME: Plebeian Signer
+
+SUMMARY (250 chars max):
+Manage multiple Nostr identities and sign events securely. Built-in Cashu ecash wallet for sending and receiving sats. Your private keys never leave the extension.
+
+DESCRIPTION:
+------------
+
+Plebeian Signer is a secure browser extension for managing your Nostr identities without exposing your private keys to web applications.
+
+<b>Key Features</b>
+
+<b>Multiple Identity Management</b>
+• Create and manage multiple Nostr identities in one place
+• Switch between profiles instantly when using Nostr apps
+• Import existing keys or generate new ones
+• Customize profiles with display names and metadata
+
+<b>Secure Key Storage</b>
+• Private keys encrypted with Argon2id + AES-256-GCM
+• Keys never leave the extension - apps only receive signatures
+• Password-protected vault with automatic locking
+• Optional sync across browser instances
+
+<b>NIP-07 Signing</b>
+• Full NIP-07 implementation (window.nostr interface)
+• Review event details before signing
+• Granular permission controls per site and event kind
+• One-click approve or reject with "always" options
+• Supports NIP-04 and NIP-44 encryption/decryption
+
+<b>Built-in Cashu Wallet</b>
+• Store and manage ecash (Cashu tokens)
+• Send and receive tokens instantly
+• Deposit sats via Lightning invoices
+• Connect to multiple Cashu mints
+• View token history and check for spent proofs
+
+<b>Privacy Focused</b>
+• No data collection or analytics
+• No external connections except to mints you configure
+• Fully open source
+• Works offline for signing operations
+
+<b>Supported Nostr Apps</b>
+Works with any NIP-07 compatible application including Snort, Iris, Coracle, Nostrudel, Habla, and many more.
+
+---
+
+CATEGORIES:
+- Primary: Social & Communication
+- Secondary: Privacy & Security
+
+TAGS: nostr, signing, identity, wallet, cashu, ecash, lightning, bitcoin, privacy, encryption
+
+LICENSE: MIT
+
+HOMEPAGE: https://git.mleku.dev/mleku/plebeian-signer
+
+SUPPORT EMAIL: (your email)
+
+PRIVACY POLICY: This extension does not collect, store, or transmit any user data to external servers. All data is stored locally in your browser using encrypted storage. The only external connections made are to Cashu mints that you explicitly configure.
+
+---
+
+SCREENSHOTS (1280x800):
+1. 01-identity-management.png - Multiple identity management
+2. 02-cashu-wallet.png - Built-in Cashu ecash wallet
+3. 03-signing-permissions.png - Secure event signing permissions
+
+---
+
+EXTENSION ID: plebian-signer@mleku.dev
+VERSION: 1.1.5
