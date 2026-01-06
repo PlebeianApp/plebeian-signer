@@ -1,6 +1,6 @@
 {
   "name": "plebeian-signer",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "custom": {
     "chrome": {
       "version": "v1.1.6"

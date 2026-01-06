@@ -57,74 +57,11 @@
     <div class="lightning-section">
       @if (mints.length === 0) {
         <div class="cashu-onboarding">
-          @if (showCashuInfo) {
-            <div class="info-panel">
-              <h3>Welcome to Cashu Wallet</h3>
+          <div class="empty-state">
+            <span class="sam-text-muted">No mints connected yet.</span>
 
-              <div class="info-section">
-                <h4>Storage Considerations</h4>
-                @if (currentSyncFlow === BrowserSyncFlow.BROWSER_SYNC) {
-                  <div class="warning-box">
-                    <p><strong>Browser Sync is enabled</strong></p>
-                    <p>
-                      Sync storage is limited to ~100KB shared across all your vault data
-                      (identities, permissions, relays, and Cashu tokens). This limits
-                      your Cashu wallet to approximately 300-400 tokens.
-                    </p>
-                    <p>
-                      For larger Cashu holdings, consider disabling browser sync which
-                      provides ~5MB of local storage (~18,000+ tokens).
-                    </p>
-                    <button class="link-btn" (click)="navigateToSettings()">
-                      Change Sync Settings
-                    </button>
-                  </div>
-                } @else {
-                  <div class="success-box">
-                    <p><strong>Local Storage Mode</strong></p>
-                    <p>
-                      You have ~5MB of local storage available, which can hold
-                      thousands of Cashu tokens. Your data stays on this device only.
-                    </p>
-                  </div>
-                }
-              </div>
-
-              <div class="info-section">
-                <h4>Backup Your Wallet</h4>
-                <p>
-                  <strong>Important:</strong> Cashu tokens are bearer assets.
-                  If you lose your vault backup, you lose your tokens permanently.
-                </p>
-                <p>
-                  Vault exports are saved to your browser's downloads folder.
-                  Configure this to point to either:
-                </p>
-                <ul>
-                  <li>Your backup storage device (external drive, NAS)</li>
-                  <li>A folder synced by your backup tool (Syncthing, rsync, etc.)</li>
-                </ul>
-                <p class="browser-url">
-                  <code>{{ browserDownloadSettingsUrl }}</code>
-                </p>
-                <button class="link-btn" (click)="navigateToSettings()">
-                  Go to Backup Settings
-                </button>
-              </div>
-
-              <button class="dismiss-btn" (click)="dismissCashuInfo()">
-                Got it, let me add a mint
-              </button>
-            </div>
-          } @else {
-            <div class="empty-state">
-              <span class="sam-text-muted">No mints connected yet.</span>
-              <button class="show-info-btn" (click)="showCashuInfo = true">
-                Show storage info
-              </button>
-
-              <!-- Suggested mints for quick-add -->
-              <div class="quick-add-section">
+            <!-- Suggested mints for quick-add -->
+            <div class="quick-add-section">
                 <div class="quick-add-label">Quick Add a Mint</div>
                 <div class="quick-add-menu">
                   @for (mint of suggestedMints; track mint.url) {
@@ -147,8 +84,14 @@
                   <div class="error-message small">{{ mintError }}</div>
                 }
               </div>
+
+              <div class="backup-reminder">
+                <span>Have you set up backups?</span>
+                <button class="link-btn" (click)="navigateToSettings()">
+                  Configure Backups
+                </button>
+              </div>
             </div>
-          }
         </div>
       } @else {
         <div class="wallet-list">
