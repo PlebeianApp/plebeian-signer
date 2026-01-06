@@ -123,6 +123,15 @@ export class WalletComponent extends NavComponent implements OnInit, OnDestroy {
   refreshingMint = false;
   refreshError = '';
 
+  // Suggested mints for quick-add
+  readonly suggestedMints = [
+    { name: 'Minibits', url: 'https://mint.minibits.cash', description: 'Well-established mobile wallet mint' },
+    { name: 'Coinos', url: 'https://mint.coinos.io', description: 'Lightning wallet with Cashu integration' },
+    { name: '21Mint', url: 'https://21mint.me', description: 'Community mint' },
+    { name: 'Macadamia', url: 'https://mint.macadamia.cash', description: 'Reliable community mint' },
+    { name: 'Stablenut (USD)', url: 'https://stablenut.umint.cash', unit: 'usd', description: 'USD-denominated mint' },
+  ];
+
   get title(): string {
     switch (this.activeSection) {
       case 'cashu':
@@ -491,6 +500,35 @@ export class WalletComponent extends NavComponent implements OnInit, OnDestroy {
         this.newMintUrl.trim()
       );
       this.goBack();
+    } catch (error) {
+      this.mintError =
+        error instanceof Error ? error.message : 'Failed to add mint';
+    } finally {
+      this.addingMint = false;
+    }
+  }
+
+  selectSuggestedMint(mint: { name: string; url: string }) {
+    this.newMintName = mint.name;
+    this.newMintUrl = mint.url;
+    this.mintError = '';
+    this.mintTestResult = '';
+  }
+
+  isMintAlreadyAdded(mintUrl: string): boolean {
+    return this.mints.some(m => m.mintUrl === mintUrl);
+  }
+
+  hasUnavailableMints(): boolean {
+    return this.suggestedMints.some(m => !this.isMintAlreadyAdded(m.url));
+  }
+
+  async quickAddMint(mint: { name: string; url: string }) {
+    this.addingMint = true;
+    this.mintError = '';
+
+    try {
+      await this.cashuService.addMint(mint.name, mint.url);
     } catch (error) {
       this.mintError =
         error instanceof Error ? error.message : 'Failed to add mint';

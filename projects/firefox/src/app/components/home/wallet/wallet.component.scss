@@ -1134,3 +1134,173 @@
     padding: var(--size);
   }
 }
+
+// Suggested mints quick-add
+.suggested-mints {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-h);
+
+  .suggested-label {
+    font-size: 0.75rem;
+    color: var(--muted-foreground);
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+
+  .suggested-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--size-h);
+  }
+
+  .suggested-mint-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 12px;
+    background: var(--background-light);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    font-size: 0.8rem;
+    color: var(--foreground);
+    transition: all 0.15s ease;
+
+    &:hover:not(:disabled) {
+      background: var(--background-light-hover);
+      border-color: var(--primary);
+    }
+
+    &:disabled {
+      cursor: not-allowed;
+    }
+
+    &.already-added {
+      opacity: 0.5;
+      background: transparent;
+
+      .added-badge {
+        color: var(--success, #22c55e);
+        font-size: 0.7rem;
+      }
+    }
+
+    .mint-name {
+      font-weight: 500;
+    }
+  }
+}
+
+.form-divider {
+  display: flex;
+  align-items: center;
+  gap: var(--size);
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+
+  &::before,
+  &::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+}
+
+// Quick add section (empty state)
+.quick-add-section {
+  width: 100%;
+  margin-top: var(--size);
+
+  .quick-add-label {
+    font-size: 0.75rem;
+    color: var(--muted-foreground);
+    text-transform: uppercase;
+    font-weight: 500;
+    text-align: center;
+    margin-bottom: var(--size-h);
+  }
+}
+
+// Quick add disclosure (when mints exist)
+.quick-add-disclosure {
+  margin-top: var(--size-h);
+
+  summary {
+    font-size: 0.8rem;
+    color: var(--muted-foreground);
+    cursor: pointer;
+    padding: var(--size-h);
+    text-align: center;
+    user-select: none;
+
+    &:hover {
+      color: var(--foreground);
+    }
+
+    &::marker {
+      color: var(--muted-foreground);
+    }
+  }
+
+  &[open] summary {
+    margin-bottom: var(--size-h);
+  }
+}
+
+// Quick add menu (shared by both)
+.quick-add-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: var(--background-light);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.quick-add-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: var(--size-h) var(--size);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: background-color 0.15s ease;
+
+  &:hover:not(:disabled) {
+    background: var(--background-light-hover);
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+
+  .mint-row {
+    display: flex;
+    align-items: center;
+    gap: var(--size-h);
+  }
+
+  .add-icon {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--success, #22c55e);
+  }
+
+  .mint-name {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--foreground);
+  }
+
+  .mint-desc {
+    font-size: 0.75rem;
+    color: var(--muted-foreground);
+    padding-left: calc(1rem + var(--size-h));
+  }
+}
