@@ -2,18 +2,26 @@
   height: 100%;
   display: flex;
   flex-direction: column;
+  overflow-y: auto;
 
-  .vertically-centered {
-    height: 100%;
+  .container {
     display: flex;
-    justify-content: center;
+    flex-direction: column;
+    padding: var(--size);
+    gap: var(--size);
+  }
+
+  .logo-section {
+    display: flex;
+    flex-direction: column;
     align-items: center;
+    gap: var(--size-half);
+    padding-bottom: var(--size-half);
   }
 
   .title {
     font-size: 20px;
     font-weight: 500;
-    margin-bottom: var(--size);
   }
 
   .logo-frame {
@@ -21,8 +29,73 @@
     border-radius: 100%;
   }
 
+  .section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--size);
+    margin-top: var(--size);
+  }
+
+  .section-heading {
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0;
+  }
+
+  .section-note {
+    font-size: 14px;
+    color: var(--muted-foreground);
+  }
+
+  .button-row {
+    display: flex;
+    gap: var(--size);
+    justify-content: flex-end;
+  }
+
+  .generate-btn {
+    display: flex;
+    align-items: center;
+    gap: var(--size-half);
+  }
+
+  .continue-btn {
+    display: flex;
+    align-items: center;
+    gap: var(--size-half);
+  }
+
   .file-input {
     position: absolute;
     visibility: hidden;
+  }
+
+  .file-btn {
+    display: flex;
+    align-items: center;
+    gap: var(--size-half);
+  }
+
+  .import-controls {
+    display: flex;
+    flex-direction: column;
+    gap: var(--size);
+  }
+
+  .import-row {
+    display: flex;
+    gap: var(--size-half);
+
+    select {
+      flex: 1;
+    }
+  }
+
+  .icon-btn {
+    width: 42px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 }

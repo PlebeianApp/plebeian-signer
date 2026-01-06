@@ -17,7 +17,6 @@ import { KeysComponent as EditIdentityKeysComponent } from './components/edit-id
 import { NcryptsecComponent as EditIdentityNcryptsecComponent } from './components/edit-identity/ncryptsec/ncryptsec.component';
 import { PermissionsComponent as EditIdentityPermissionsComponent } from './components/edit-identity/permissions/permissions.component';
 import { RelaysComponent as EditIdentityRelaysComponent } from './components/edit-identity/relays/relays.component';
-import { WelcomeComponent } from './components/welcome/welcome.component';
 import { VaultLoginComponent } from './components/vault-login/vault-login.component';
 import { VaultCreateComponent } from './components/vault-create/vault-create.component';
 import { VaultImportComponent } from './components/vault-import/vault-import.component';
@@ -25,10 +24,6 @@ import { WhitelistedAppsComponent } from './components/whitelisted-apps/whitelis
 import { ProfileEditComponent } from './components/profile-edit/profile-edit.component';
 
 export const routes: Routes = [
-  {
-    path: 'welcome',
-    component: WelcomeComponent,
-  },
   {
     path: 'vault-login',
     component: VaultLoginComponent,

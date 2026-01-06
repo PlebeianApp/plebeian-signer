@@ -1,32 +1,120 @@
-<div class="vertically-centered">
-  <div class="sam-flex-column center">
-    <div class="sam-flex-column gap" style="align-items: center">
-      <span class="title">Plebeian Signer</span>
+<div class="container">
+  <div class="logo-section">
+    <div class="logo-frame">
+      <img src="logo.svg" height="80" width="80" alt="" />
+    </div>
+    <span class="title">Plebeian Signer</span>
+  </div>
 
-      <div class="logo-frame">
-        <img src="logo.svg" height="120" width="120" alt="" />
-      </div>
+  <!-- New Identity Section -->
+  <div class="section">
+    <h2 class="section-heading">Restore or Create New Identity</h2>
+
+    <span class="section-note">Create a new nostr identity or paste in your current nsec.</span>
+
+    <input
+      type="text"
+      class="form-control"
+      placeholder="nickname"
+      [(ngModel)]="nickname"
+    />
+
+    <div class="input-group">
+      <input
+        #nsecInputElement
+        type="password"
+        class="form-control"
+        placeholder="nsec or hex private key"
+        [(ngModel)]="nsecInput"
+        (ngModelChange)="validateNsec()"
+      />
+      <button
+        class="btn btn-outline-secondary"
+        type="button"
+        (click)="toggleVisibility(nsecInputElement)"
+        title="toggle visibility"
+      >
+        <i
+          class="bi"
+          [class.bi-eye]="nsecInputElement.type === 'password'"
+          [class.bi-eye-slash]="nsecInputElement.type === 'text'"
+        ></i>
+      </button>
+      <button
+        class="btn btn-outline-secondary"
+        type="button"
+        (click)="copyToClipboard()"
+        title="copy to clipboard"
+      >
+        <i class="bi bi-clipboard"></i>
+      </button>
+    </div>
+
+    <div class="button-row">
+      <button
+        type="button"
+        class="btn btn-outline-secondary generate-btn"
+        (click)="generateKey()"
+        title="generate new key"
+      >
+        <span>generate</span>
+        <span>✨</span>
+      </button>
 
       <button
         type="button"
-        class="sam-mt-2 btn btn-primary"
-        (click)="router.navigateByUrl('/vault-create/new')"
+        class="btn btn-primary continue-btn"
+        [disabled]="!isNsecValid || !nickname"
+        (click)="onContinueWithNsec()"
       >
-        <div class="sam-flex-row gap-h">
-          <i class="bi bi-plus-circle" style="height: 22px"></i>
-          <span>Create a new vault</span>
+        <span>Continue</span>
+        <i class="bi bi-arrow-right"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- Import Section -->
+  <div class="section">
+    <h2 class="section-heading">Import a Vault</h2>
+
+    <input
+      #fileInput
+      type="file"
+      class="file-input"
+      accept=".json"
+      (change)="onFileSelected($event)"
+    />
+
+    <div class="import-controls">
+      <button
+        type="button"
+        class="btn btn-outline-secondary file-btn"
+        (click)="fileInput.click()"
+      >
+        <i class="bi bi-folder2-open"></i>
+        <span>Add vault file</span>
+      </button>
+
+      @if (snapshots.length > 0) {
+        <div class="import-row">
+          <select class="form-select" [(ngModel)]="selectedSnapshot">
+            @for (snapshot of snapshots; track snapshot.id) {
+              <option [ngValue]="snapshot">
+                {{ snapshot.fileName }} ({{ snapshot.identityCount }} identities)
+              </option>
+            }
+          </select>
+          <button
+            type="button"
+            class="btn btn-primary icon-btn"
+            [disabled]="!selectedSnapshot"
+            (click)="onImport()"
+            title="import vault"
+          >
+            <i class="bi bi-arrow-right"></i>
+          </button>
         </div>
-      </button>
-
-      <span class="sam-text-muted">or</span>
-
-      <button
-        type="button"
-        class="btn btn-secondary"
-        (click)="router.navigateByUrl('/vault-import')"
-      >
-        <span>Import a vault</span>
-      </button>
+      }
     </div>
   </div>
 </div>

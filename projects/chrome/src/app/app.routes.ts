@@ -4,7 +4,6 @@ import { VaultLoginComponent } from './components/vault-login/vault-login.compon
 import { VaultCreateComponent } from './components/vault-create/vault-create.component';
 import { HomeComponent as VaultCreateHomeComponent } from './components/vault-create/home/home.component';
 import { NewComponent as VaultCreateNewComponent } from './components/vault-create/new/new.component';
-import { WelcomeComponent } from './components/welcome/welcome.component';
 import { IdentitiesComponent } from './components/home/identities/identities.component';
 import { IdentityComponent } from './components/home/identity/identity.component';
 import { InfoComponent } from './components/home/info/info.component';
@@ -25,10 +24,6 @@ import { WhitelistedAppsComponent } from './components/whitelisted-apps/whitelis
 import { ProfileEditComponent } from './components/profile-edit/profile-edit.component';
 
 export const routes: Routes = [
-  {
-    path: 'welcome',
-    component: WelcomeComponent,
-  },
   {
     path: 'vault-login',
     component: VaultLoginComponent,
