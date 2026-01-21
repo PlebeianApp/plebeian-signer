@@ -114,6 +114,15 @@ export const shouldRecklessModeApprove = async function (
   return whitelistedHosts.includes(host);
 };
 
+/**
+ * Check if the signer is currently paused.
+ * When paused, all NIP-07 and WebLN requests should be rejected.
+ */
+export const isSignerPaused = async function (): Promise<boolean> {
+  const signerMetaData = await getSignerMetaData();
+  return signerMetaData.paused ?? false;
+};
+
 export const getBrowserSyncData = async function (): Promise<
   BrowserSyncData | undefined
 > {

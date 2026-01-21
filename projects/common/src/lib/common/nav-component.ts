@@ -14,15 +14,27 @@ declare const chrome: {
       top: number;
     }) => void;
   };
+  runtime: {
+    sendMessage: (message: unknown) => Promise<unknown>;
+  };
 };
 
 export class NavComponent {
   readonly #router = inject(Router);
   protected readonly storage = inject(StorageService);
   devMode = false;
+  paused = false;
 
   constructor() {
     this.devMode = this.storage.getSignerMetaHandler().signerMetaData?.devMode ?? false;
+    this.paused = this.storage.getSignerMetaHandler().signerMetaData?.paused ?? false;
+  }
+
+  async onTogglePause() {
+    this.paused = !this.paused;
+    await this.storage.getSignerMetaHandler().setPaused(this.paused);
+    // Notify background script to update the icon
+    await chrome.runtime.sendMessage({ type: 'set-paused', paused: this.paused });
   }
 
   navigateBack() {

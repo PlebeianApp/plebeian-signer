@@ -18,7 +18,7 @@ export abstract class SignerMetaHandler {
 
   #extensionSettings?: ExtensionSettings;
 
-  readonly metaProperties = ['syncFlow', 'vaultSnapshots', 'maxBackups', 'recklessMode', 'whitelistedHosts', 'bookmarks', 'devMode'];
+  readonly metaProperties = ['syncFlow', 'vaultSnapshots', 'maxBackups', 'recklessMode', 'whitelistedHosts', 'bookmarks', 'devMode', 'paused'];
   readonly DEFAULT_MAX_BACKUPS = 5;
   /**
    * Load the full data from the storage. If the storage is used for storing
@@ -85,6 +85,29 @@ export abstract class SignerMetaHandler {
     }
 
     await this.saveFullData(this.#extensionSettings);
+  }
+
+  /**
+   * Sets paused state and immediately saves it.
+   * When paused, the signer will reject all NIP-07 and WebLN requests.
+   */
+  async setPaused(paused: boolean): Promise<void> {
+    if (!this.#extensionSettings) {
+      this.#extensionSettings = {
+        paused,
+      };
+    } else {
+      this.#extensionSettings.paused = paused;
+    }
+
+    await this.saveFullData(this.#extensionSettings);
+  }
+
+  /**
+   * Returns whether the signer is currently paused.
+   */
+  isPaused(): boolean {
+    return this.#extensionSettings?.paused ?? false;
   }
 
   /**

@@ -263,6 +263,9 @@ export interface ExtensionSettings {
 
   // Dev mode: show test permission prompt button in settings
   devMode?: boolean;
+
+  // Paused: temporarily disable signer without locking vault
+  paused?: boolean;
 }
 
 /**

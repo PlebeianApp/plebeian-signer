@@ -17,6 +17,7 @@ import {
   getBrowserSessionData,
   getPosition,
   handleUnlockRequest,
+  isSignerPaused,
   isWeblnMethod,
   nip04Decrypt,
   nip04Encrypt,
@@ -36,6 +37,26 @@ import { Buffer } from 'buffer';
 
 // Cache for NWC clients to avoid reconnecting for each request
 const nwcClientCache = new Map<string, NwcClient>();
+
+// ==========================================
+// Icon Management for Paused State
+// ==========================================
+
+/**
+ * Update the extension icon based on paused state
+ */
+async function updateIcon(paused: boolean): Promise<void> {
+  const suffix = paused ? '-paused' : '';
+  await browser.action.setIcon({
+    path: {
+      48: `icon-48${suffix}.png`,
+      128: `icon-128${suffix}.png`,
+    },
+  });
+}
+
+// Initialize icon state on startup
+isSignerPaused().then(updateIcon);
 
 /**
  * Get or create an NWC client for a connection
@@ -301,6 +322,13 @@ function queuePermissionPromptDeduped(
 browser.runtime.onMessage.addListener(async (message /*, sender*/) => {
   debug('Message received');
 
+  // Handle pause state change from UI
+  if ((message as { type: string; paused: boolean })?.type === 'set-paused') {
+    const pausedMsg = message as { type: string; paused: boolean };
+    await updateIcon(pausedMsg.paused);
+    return { success: true };
+  }
+
   // Handle unlock request from unlock popup
   if ((message as UnlockRequestMessage)?.type === 'unlock-request') {
     const unlockReq = message as UnlockRequestMessage;
@@ -378,6 +406,11 @@ browser.runtime.onMessage.addListener(async (message /*, sender*/) => {
  * Process a NIP-07 request after vault is unlocked
  */
 async function processNip07Request(req: BackgroundRequestMessage): Promise<any> {
+  // Check if signer is paused - silently reject
+  if (await isSignerPaused()) {
+    return undefined;
+  }
+
   const browserSessionData = await getBrowserSessionData();
 
   if (!browserSessionData) {
@@ -521,6 +554,11 @@ async function processNip07Request(req: BackgroundRequestMessage): Promise<any> 
  * Process a WebLN request after vault is unlocked
  */
 async function processWeblnRequest(req: BackgroundRequestMessage): Promise<any> {
+  // Check if signer is paused - silently reject
+  if (await isSignerPaused()) {
+    return undefined;
+  }
+
   const browserSessionData = await getBrowserSessionData();
 
   if (!browserSessionData) {
