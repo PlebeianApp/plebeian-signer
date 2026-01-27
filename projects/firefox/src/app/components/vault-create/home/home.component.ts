@@ -33,9 +33,28 @@ export class HomeComponent extends NavComponent implements OnInit {
   isNsecValid = false;
   snapshots: SignerMetaData_VaultSnapshot[] = [];
   selectedSnapshot: SignerMetaData_VaultSnapshot | undefined;
+  isPopup = false;
 
   ngOnInit(): void {
+    // Detect if running in popup (popups are typically narrow)
+    // Extension tabs are full width, popups are constrained
+    this.isPopup = window.innerWidth < 500;
     this.#loadSnapshots();
+  }
+
+  /**
+   * Handle file button click - opens options page if in popup
+   * due to browser bugs where file inputs can crash the browser in extension popups
+   */
+  onFileButtonClick(fileInput: HTMLInputElement): void {
+    if (this.isPopup) {
+      // Open options page directly where file picker works
+      browser.runtime.openOptionsPage();
+      window.close(); // Close the popup
+    } else {
+      // In a tab, file picker works normally
+      fileInput.click();
+    }
   }
 
   generateKey() {
@@ -126,7 +145,11 @@ export class HomeComponent extends NavComponent implements OnInit {
     }
 
     try {
-      await this.#storage.deleteVault(true);
+      // Only delete existing vault if one exists (check if there's encrypted vault data)
+      const existingVault = this.#storage.getBrowserSyncHandler().encryptedVault;
+      if (existingVault && Object.keys(existingVault).length > 0) {
+        await this.#storage.deleteVault(true);
+      }
       await this.#storage.importVault(this.selectedSnapshot.data);
 
       // Restart the app to properly reinitialize and route to vault-login

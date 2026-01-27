@@ -53,9 +53,8 @@ export class StorageService {
   #signerMetaHandler!: SignerMetaHandler;
 
   initialize(config: StorageServiceConfig): void {
-    if (this.isInitialized) {
-      return;
-    }
+    // Always set fresh handlers to ensure no stale in-memory state
+    // This is important because extension pages may share some context
     this.#browserSessionHandler = config.browserSessionHandler;
     this.#browserSyncYesHandler = config.browserSyncYesHandler;
     this.#browserSyncNoHandler = config.browserSyncNoHandler;
@@ -91,8 +90,14 @@ export class StorageService {
     this.assureIsInitialized();
 
     const data = await this.#browserSessionHandler.loadFullData();
-    if (Object.keys(data).length === 0) {
-      // No data available yet (e.g. because the vault was not unlocked).
+    // Check for a VaultSession-specific property rather than just non-empty storage.
+    // Session storage may contain other data (e.g., extensionLogs, profileMetadataCache)
+    // that is not part of the vault session. The 'iv' property is always present
+    // in a valid VaultSession.
+    if (!data['iv']) {
+      // No vault session data available (vault not unlocked).
+      // Clear any stale in-memory cache to ensure consistent state.
+      this.#browserSessionHandler.clearInMemoryData();
       return undefined;
     }
 
