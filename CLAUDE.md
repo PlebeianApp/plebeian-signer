@@ -6,21 +6,25 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Plebeian Signer is a browser extension for managing multiple Nostr identities and signing events without exposing private keys to web applications. It implements NIP-07 (window.nostr interface) with support for NIP-04 and NIP-44 encryption.
 
+## Package Manager
+
+This project uses **bun** (not npm). All commands below use `bun`.
+
 ## Build Commands
 
 ```bash
-npm ci                    # Install dependencies
-npm run build:chrome      # Build Chrome extension (outputs to dist/chrome)
-npm run build:firefox     # Build Firefox extension (outputs to dist/firefox)
-npm run watch:chrome      # Development build with watch mode for Chrome
-npm run watch:firefox     # Development build with watch mode for Firefox
-npm test                  # Run unit tests with Karma
-npm run lint              # Run ESLint
+bun install                # Install dependencies
+bun run build:chrome       # Build Chrome extension (outputs to dist/chrome)
+bun run build:firefox      # Build Firefox extension (outputs to dist/firefox)
+bun run watch:chrome       # Development build with watch mode for Chrome
+bun run watch:firefox      # Development build with watch mode for Firefox
+bun test                   # Run unit tests with Karma
+bun run lint               # Run ESLint
 ```
 
 **Important:** After making any code changes, rebuild both extensions before testing:
 ```bash
-npm run build:chrome && npm run build:firefox
+bun run build:chrome && bun run build:firefox
 ```
 
 ## Architecture
@@ -109,3 +113,61 @@ Permissions are stored per identity+host+method combination. The background scri
 - `getRelays()` - Get configured relays
 - `nip04.encrypt/decrypt` - NIP-04 encryption
 - `nip44.encrypt/decrypt` - NIP-44 encryption
+
+## Store Submission (Automated Release)
+
+The `/release` command can optionally submit builds to Chrome Web Store and Firefox Add-ons after pushing the git tag. This requires environment variables to be set.
+
+### Chrome Web Store Setup
+
+1. Go to the [Google Cloud Console](https://console.cloud.google.com/)
+2. Create a project (or use an existing one)
+3. Enable the **Chrome Web Store API**
+4. Go to **Credentials** > **Create Credentials** > **OAuth client ID**
+   - Application type: **Desktop app**
+   - Note the **Client ID** and **Client Secret**
+5. Generate a refresh token:
+   - Visit: `https://accounts.google.com/o/oauth2/auth?response_type=code&scope=https://www.googleapis.com/auth/chromewebstore&client_id=YOUR_CLIENT_ID&redirect_uri=urn:ietf:wg:oauth:2.0:oob`
+   - Authorize and copy the code
+   - Exchange the code:
+     ```bash
+     curl "https://oauth2.googleapis.com/token" \
+       -d "client_id=YOUR_CLIENT_ID&client_secret=YOUR_CLIENT_SECRET&code=YOUR_CODE&grant_type=authorization_code&redirect_uri=urn:ietf:wg:oauth:2.0:oob"
+     ```
+   - Note the `refresh_token` from the response
+6. Find your extension ID from the Chrome Web Store developer dashboard URL
+
+**Environment variables:**
+```bash
+export CWS_CLIENT_ID="your-client-id"
+export CWS_CLIENT_SECRET="your-client-secret"
+export CWS_REFRESH_TOKEN="your-refresh-token"
+export CWS_EXTENSION_ID="your-extension-id"
+```
+
+### Firefox AMO Setup
+
+1. Go to [AMO Developer Hub](https://addons.mozilla.org/en-US/developers/)
+2. Navigate to **Manage API Keys** (under your account)
+3. Generate a new set of credentials
+   - Note the **JWT issuer** (API key) and **JWT secret**
+4. The extension ID is already defined in the Firefox manifest as `plebian-signer@mleku.dev`
+
+**Environment variables:**
+```bash
+export AMO_JWT_ISSUER="your-jwt-issuer"
+export AMO_JWT_SECRET="your-jwt-secret"
+export AMO_EXTENSION_ID="plebian-signer@mleku.dev"
+```
+
+### Release Workflow
+
+The `/release` command performs:
+1. Bump version in `package.json` (all three version fields)
+2. Run lint + build both extensions
+3. Create release zip files in `releases/`
+4. Commit, tag, and push to origin
+5. (Optional) Submit to Chrome Web Store if `CWS_*` env vars are set
+6. (Optional) Submit to Firefox AMO if `AMO_*` env vars are set
+
+Store submission is optional -- if credentials are not configured, the release proceeds normally without submitting to stores.

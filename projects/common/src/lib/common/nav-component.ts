@@ -17,6 +17,14 @@ declare const chrome: {
   runtime: {
     sendMessage: (message: unknown) => Promise<unknown>;
   };
+  downloads: {
+    download: (options: { url: string; filename: string; saveAs: boolean }, callback?: (downloadId: number) => void) => void;
+    open: (downloadId: number) => void;
+    onChanged: {
+      addListener: (callback: (delta: { id: number; state?: { current: string } }) => void) => void;
+      removeListener: (callback: (delta: { id: number; state?: { current: string } }) => void) => void;
+    };
+  };
 };
 
 export class NavComponent {

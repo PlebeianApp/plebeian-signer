@@ -6,7 +6,10 @@
   "homepage_url": "https://github.com/PlebeianApp/plebeian-signer",
   "options_page": "options.html",
   "permissions": [
-    "storage"
+    "alarms",
+    "storage",
+    "downloads",
+    "downloads.open"
   ],
   "content_security_policy": {
     "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"

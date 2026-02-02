@@ -24,6 +24,7 @@ export class SettingsComponent extends NavComponent implements OnInit {
   readonly #router = inject(Router);
   syncFlow: string | undefined;
   override devMode = false;
+  stayUnlocked = false;
 
   readonly #storage = inject(StorageService);
   readonly #startup = inject(StartupService);
@@ -50,12 +51,41 @@ export class SettingsComponent extends NavComponent implements OnInit {
 
     // Load dev mode setting
     this.devMode = this.#storage.getSignerMetaHandler().signerMetaData?.devMode ?? false;
+    // Load stay unlocked setting
+    this.stayUnlocked = this.#storage.getSignerMetaHandler().signerMetaData?.stayUnlocked ?? false;
   }
 
   async onToggleDevMode(event: Event) {
     const checked = (event.target as HTMLInputElement).checked;
     this.devMode = checked;
     await this.#storage.getSignerMetaHandler().setDevMode(checked);
+  }
+
+  async onToggleStayUnlocked(event: Event) {
+    const checked = (event.target as HTMLInputElement).checked;
+    this.stayUnlocked = checked;
+    await this.#storage.getSignerMetaHandler().setStayUnlocked(checked);
+
+    if (checked) {
+      // Persist the derived key from current session for auto-unlock
+      try {
+        const session = await chrome.storage.session.get(null);
+        if (session && Object.keys(session).length > 0) {
+          const isV2 = !!session['salt'];
+          const key = isV2 ? session['vaultKey'] : session['vaultPassword'];
+          if (key) {
+            await chrome.storage.local.set({
+              persistedVaultKey: { key, isV2 },
+            });
+          }
+        }
+      } catch (e) {
+        console.error('Failed to persist vault key:', e);
+      }
+    } else {
+      // Remove persisted vault key when disabling
+      await chrome.storage.local.remove('persistedVaultKey');
+    }
   }
 
   override async onTestPrompt() {

@@ -11,8 +11,15 @@
   </div>
   <span>Logs</span>
   <div class="logs-actions">
-    <button class="btn btn-sm btn-secondary" title="Refresh logs" (click)="onRefresh()">Refresh</button>
-    <button class="btn btn-sm btn-secondary" title="Clear logs" (click)="onClear()">Clear</button>
+    <button class="header-btn" title="Download logs" (click)="onDownload()">
+      <span class="emoji">⬇️</span>
+    </button>
+    <button class="header-btn" title="Refresh logs" (click)="onRefresh()">
+      <span class="emoji">🔄</span>
+    </button>
+    <button class="header-btn" title="Clear logs" (click)="onClear()">
+      <span class="emoji">🧹</span>
+    </button>
   </div>
 </div>
 

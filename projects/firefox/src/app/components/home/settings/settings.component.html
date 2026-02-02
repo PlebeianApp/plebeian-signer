@@ -27,6 +27,14 @@
 
 <div class="dev-mode-row">
   <label class="toggle-label">
+    <input type="checkbox" [checked]="stayUnlocked" (change)="onToggleStayUnlocked($event)" />
+    <span>Stay Unlocked</span>
+  </label>
+  <p class="toggle-note">Auto-unlock vault on browser restart. Stores password in plaintext.</p>
+</div>
+
+<div class="dev-mode-row">
+  <label class="toggle-label">
     <input type="checkbox" [checked]="devMode" (change)="onToggleDevMode($event)" />
     <span>Dev Mode</span>
   </label>

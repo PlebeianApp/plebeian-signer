@@ -266,6 +266,10 @@ export interface ExtensionSettings {
 
   // Paused: temporarily disable signer without locking vault
   paused?: boolean;
+
+  // Stay Unlocked: persist vault key so vault auto-unlocks on browser restart.
+  // WARNING: Stores the vault password in plaintext in local storage.
+  stayUnlocked?: boolean;
 }
 
 /**

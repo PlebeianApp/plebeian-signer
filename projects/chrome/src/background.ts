@@ -16,7 +16,9 @@ import {
   debug,
   getBrowserSessionData,
   getPosition,
+  getSignerMetaData,
   handleUnlockRequest,
+  handleUnlockWithKey,
   isSignerPaused,
   isWeblnMethod,
   nip04Decrypt,
@@ -57,6 +59,92 @@ async function updateIcon(paused: boolean): Promise<void> {
 
 // Initialize icon state on startup
 isSignerPaused().then(updateIcon);
+
+// ==========================================
+// Update Available Badge
+// ==========================================
+
+chrome.runtime.onUpdateAvailable.addListener((details) => {
+  debug(`Update available: v${details.version}`);
+  chrome.action.setBadgeText({ text: '!' });
+  chrome.action.setBadgeBackgroundColor({ color: '#dc3545' });
+});
+
+// ==========================================
+// Service Worker Keep-Alive & Auto-Unlock
+// ==========================================
+
+// Keep the service worker alive with a periodic alarm.
+// MV3 service workers are terminated after ~30s of inactivity,
+// which causes "Extension context invalidated" errors.
+const KEEP_ALIVE_ALARM = 'keep-alive';
+chrome.alarms.create(KEEP_ALIVE_ALARM, { periodInMinutes: 0.4 }); // ~24 seconds
+
+chrome.alarms.onAlarm.addListener((alarm) => {
+  if (alarm.name === KEEP_ALIVE_ALARM) {
+    // No-op - the alarm firing keeps the service worker alive
+    return;
+  }
+});
+
+// Storage key for persisted vault key (used by "Stay Unlocked" feature)
+const PERSISTED_VAULT_KEY_STORAGE = 'persistedVaultKey';
+
+/**
+ * Try to auto-unlock the vault using a persisted key (from "Stay Unlocked" setting).
+ * Returns true if auto-unlock succeeded.
+ */
+async function tryAutoUnlock(): Promise<boolean> {
+  try {
+    // Check if already unlocked
+    const existing = await getBrowserSessionData();
+    if (existing) return true;
+
+    // Check for persisted vault key
+    const stored = await chrome.storage.local.get(PERSISTED_VAULT_KEY_STORAGE);
+    const persistedData = stored[PERSISTED_VAULT_KEY_STORAGE];
+    if (!persistedData?.key) return false;
+
+    debug('Auto-unlock: Found persisted vault key, attempting unlock...');
+    const result = await handleUnlockWithKey(persistedData.key, persistedData.isV2 ?? false);
+    if (result.success) {
+      debug('Auto-unlock: Vault unlocked successfully');
+      return true;
+    } else {
+      debug(`Auto-unlock: Failed - ${result.error}`);
+      // Clear invalid persisted key
+      await chrome.storage.local.remove(PERSISTED_VAULT_KEY_STORAGE);
+      return false;
+    }
+  } catch (error) {
+    debug(`Auto-unlock: Error - ${error}`);
+    return false;
+  }
+}
+
+// On browser startup, try auto-unlock or open unlock popup
+chrome.runtime.onStartup.addListener(async () => {
+  debug('Browser startup detected');
+  const unlocked = await tryAutoUnlock();
+  if (!unlocked) {
+    // Vault is locked and no persisted key - open unlock popup after a short delay
+    // to let the browser fully initialize its window management
+    setTimeout(async () => {
+      try {
+        const stillLocked = !(await getBrowserSessionData());
+        if (stillLocked) {
+          debug('Opening unlock popup on browser startup');
+          await openUnlockPopup();
+        }
+      } catch (error) {
+        debug(`Failed to open unlock popup on startup: ${error}`);
+      }
+    }, 1500);
+  }
+});
+
+// Also try auto-unlock when the service worker first loads (handles extension install/update)
+tryAutoUnlock();
 
 /**
  * Get or create an NWC client for a connection
@@ -134,6 +222,10 @@ const PROMPT_TIMEOUT_MS = 30000;
 // Maximum number of queued permission requests (prevent DoS)
 const MAX_PERMISSION_QUEUE_SIZE = 100;
 
+// Retry settings for window creation (handles browser startup timing)
+const WINDOW_CREATE_MAX_RETRIES = 5;
+const WINDOW_CREATE_BASE_DELAY_MS = 300;
+
 // Track open prompts with metadata for cleanup
 const openPrompts = new Map<
   string,
@@ -141,6 +233,7 @@ const openPrompts = new Map<
     resolve: (response: PromptResponse) => void;
     reject: (reason?: any) => void;
     windowId?: number;
+    tabId?: number;
     timeoutId?: ReturnType<typeof setTimeout>;
   }
 >();
@@ -169,7 +262,9 @@ const permissionQueue: PermissionQueueItem[] = [];
 let activePromptId: string | null = null;
 
 /**
- * Show the next permission prompt from the queue
+ * Show the next permission prompt from the queue.
+ * Retries with exponential backoff if window creation fails
+ * (e.g. during browser startup when APIs aren't ready yet).
  */
 async function showNextPermissionPrompt(): Promise<void> {
   if (activePromptId || permissionQueue.length === 0) {
@@ -179,28 +274,73 @@ async function showNextPermissionPrompt(): Promise<void> {
   const next = permissionQueue[0];
   activePromptId = next.id;
 
-  const { top, left } = await getPosition(next.width, next.height);
+  // Try creating a positioned popup window with retries
+  for (let attempt = 0; attempt < WINDOW_CREATE_MAX_RETRIES; attempt++) {
+    try {
+      const { top, left } = await getPosition(next.width, next.height);
 
+      const window = await browser.windows.create({
+        type: 'popup',
+        url: next.url,
+        height: next.height,
+        width: next.width,
+        top,
+        left,
+      });
+
+      const promptData = openPrompts.get(next.id);
+      if (promptData && window.id) {
+        promptData.windowId = window.id;
+        promptData.timeoutId = setTimeout(() => {
+          debug(`Prompt ${next.id} timed out after ${PROMPT_TIMEOUT_MS}ms`);
+          cleanupPrompt(next.id, 'timeout');
+        }, PROMPT_TIMEOUT_MS);
+      }
+      return; // Success
+    } catch (error) {
+      debug(`Failed to create prompt window (attempt ${attempt + 1}/${WINDOW_CREATE_MAX_RETRIES}): ${error}`);
+      if (attempt < WINDOW_CREATE_MAX_RETRIES - 1) {
+        const delay = WINDOW_CREATE_BASE_DELAY_MS * Math.pow(2, attempt);
+        await new Promise(r => setTimeout(r, delay));
+      }
+    }
+  }
+
+  // Fallback 1: try popup without position (invalid top/left can cause failures)
   try {
+    debug('Trying popup without position...');
     const window = await browser.windows.create({
       type: 'popup',
       url: next.url,
       height: next.height,
       width: next.width,
-      top,
-      left,
     });
-
     const promptData = openPrompts.get(next.id);
     if (promptData && window.id) {
       promptData.windowId = window.id;
       promptData.timeoutId = setTimeout(() => {
-        debug(`Prompt ${next.id} timed out after ${PROMPT_TIMEOUT_MS}ms`);
         cleanupPrompt(next.id, 'timeout');
       }, PROMPT_TIMEOUT_MS);
     }
+    return; // Success
   } catch (error) {
-    debug(`Failed to create prompt window: ${error}`);
+    debug(`Popup without position also failed: ${error}`);
+  }
+
+  // Fallback 2: open as a tab (most reliable)
+  try {
+    debug('Falling back to tab...');
+    const tab = await browser.tabs.create({ url: next.url });
+    const promptData = openPrompts.get(next.id);
+    if (promptData && tab.id) {
+      promptData.tabId = tab.id;
+      promptData.timeoutId = setTimeout(() => {
+        cleanupPrompt(next.id, 'timeout');
+      }, PROMPT_TIMEOUT_MS);
+    }
+    return; // Success
+  } catch (tabError) {
+    debug(`Tab fallback also failed: ${tabError}`);
     cleanupPrompt(next.id, 'error');
   }
 }
@@ -264,6 +404,17 @@ browser.windows.onRemoved.addListener((windowId: number) => {
   for (const [promptId, promptData] of openPrompts.entries()) {
     if (promptData.windowId === windowId) {
       debug(`Prompt window ${windowId} closed without response`);
+      cleanupPrompt(promptId, 'closed');
+      break;
+    }
+  }
+});
+
+// Listen for tab close events to clean up prompts opened as tab fallback
+browser.tabs.onRemoved.addListener((tabId: number) => {
+  for (const [promptId, promptData] of openPrompts.entries()) {
+    if (promptData.tabId === tabId) {
+      debug(`Prompt tab ${tabId} closed without response`);
       cleanupPrompt(promptId, 'closed');
       break;
     }
@@ -343,6 +494,27 @@ browser.runtime.onMessage.addListener(async (message /*, sender*/) => {
 
     if (result.success) {
       unlockPopupOpen = false;
+
+      // If "Stay Unlocked" is enabled, persist the derived key for auto-unlock
+      try {
+        const metaData = await getSignerMetaData();
+        if (metaData.stayUnlocked) {
+          const session = await getBrowserSessionData();
+          if (session) {
+            const isV2 = !!session.salt;
+            const key = isV2 ? session.vaultKey : session.vaultPassword;
+            if (key) {
+              await chrome.storage.local.set({
+                [PERSISTED_VAULT_KEY_STORAGE]: { key, isV2 },
+              });
+              debug('Persisted vault key for auto-unlock');
+            }
+          }
+        }
+      } catch (e) {
+        debug(`Failed to persist vault key: ${e}`);
+      }
+
       // Process any pending NIP-07 requests
       debug(`Processing ${pendingRequests.length} pending requests`);
       while (pendingRequests.length > 0) {
@@ -385,7 +557,12 @@ browser.runtime.onMessage.addListener(async (message /*, sender*/) => {
 
     if (!unlockPopupOpen) {
       unlockPopupOpen = true;
-      await openUnlockPopup(req.host);
+      try {
+        await openUnlockPopup(req.host);
+      } catch (error) {
+        unlockPopupOpen = false;
+        debug(`Failed to open unlock popup: ${error}`);
+      }
     }
 
     // Queue this request to be processed after unlock
@@ -456,7 +633,7 @@ async function processNip07Request(req: BackgroundRequestMessage): Promise<any> 
 
       // Include queue info for user awareness
       const queueSize = permissionQueue.length;
-      const promptUrl = `prompt.html?method=${req.method}&host=${req.host}&nick=${encodeURIComponent(currentIdentity.nick)}&event=${base64Event}&queue=${queueSize}`;
+      const promptUrl = `prompt.html?method=${req.method}&host=${req.host}&nick=${encodeURIComponent(currentIdentity.nick)}&event=${base64Event}&queueSize=${queueSize}`;
       const response = await queuePermissionPromptDeduped(req.host, req.method, req.params, promptUrl, width, height);
       debug(response);
 

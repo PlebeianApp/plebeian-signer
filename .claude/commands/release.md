@@ -36,9 +36,9 @@ This project uses **standard semver with `v` prefix** (e.g., `v0.0.8`, `v1.2.3`)
 
 5. **Verify the build** before committing:
    ```
-   npm run lint
-   npm run build:chrome
-   npm run build:firefox
+   bun run lint
+   bun run build:chrome
+   bun run build:firefox
    ```
    If any step fails, fix issues before proceeding.
 
@@ -69,7 +69,39 @@ This project uses **standard semver with `v` prefix** (e.g., `v0.0.8`, `v1.2.3`)
     git push origin main --tags
     ```
 
-12. **Report completion** with the new version and commit hash
+12. **Submit to Chrome Web Store** (optional, skip if credentials missing):
+    - Check that all of these environment variables are set: `CWS_CLIENT_ID`, `CWS_CLIENT_SECRET`, `CWS_REFRESH_TOKEN`, `CWS_EXTENSION_ID`
+    - If any are missing, report which ones and skip this step
+    - Run:
+      ```
+      bunx chrome-webstore-upload-cli upload \
+        --source releases/plebeian-signer-chrome-vX.Y.Z.zip \
+        --extension-id $CWS_EXTENSION_ID \
+        --client-id $CWS_CLIENT_ID \
+        --client-secret $CWS_CLIENT_SECRET \
+        --refresh-token $CWS_REFRESH_TOKEN \
+        --auto-publish
+      ```
+    - If upload fails, report the error but do NOT fail the release (git push already succeeded)
+
+13. **Submit to Firefox AMO** (optional, skip if credentials missing):
+    - Check that all of these environment variables are set: `AMO_JWT_ISSUER`, `AMO_JWT_SECRET`, `AMO_EXTENSION_ID`
+    - If any are missing, report which ones and skip this step
+    - Run:
+      ```
+      bunx web-ext sign \
+        --source-dir dist/firefox \
+        --api-key $AMO_JWT_ISSUER \
+        --api-secret $AMO_JWT_SECRET \
+        --channel listed \
+        --id $AMO_EXTENSION_ID
+      ```
+    - If submission fails, report the error but do NOT fail the release (git push already succeeded)
+
+14. **Report completion** with:
+    - The new version and commit hash
+    - Chrome Web Store submission status (submitted / skipped / failed)
+    - Firefox AMO submission status (submitted / skipped / failed)
 
 ## Important:
 - This is a browser extension with separate Chrome and Firefox builds
@@ -77,3 +109,4 @@ This project uses **standard semver with `v` prefix** (e.g., `v0.0.8`, `v1.2.3`)
 - Always verify both Chrome and Firefox builds compile before committing
 - Version format is standard semver with `v` prefix: `vMAJOR.MINOR.PATCH`
 - Legacy versions without `v` prefix (e.g., `0.0.7`) are automatically upgraded to the new format
+- Store submission is optional and non-blocking — a missing credential or upload failure never prevents the release

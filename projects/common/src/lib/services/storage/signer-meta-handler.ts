@@ -18,7 +18,7 @@ export abstract class SignerMetaHandler {
 
   #extensionSettings?: ExtensionSettings;
 
-  readonly metaProperties = ['syncFlow', 'vaultSnapshots', 'maxBackups', 'recklessMode', 'whitelistedHosts', 'bookmarks', 'devMode', 'paused'];
+  readonly metaProperties = ['syncFlow', 'vaultSnapshots', 'maxBackups', 'recklessMode', 'whitelistedHosts', 'bookmarks', 'devMode', 'paused', 'stayUnlocked'];
   readonly DEFAULT_MAX_BACKUPS = 5;
   /**
    * Load the full data from the storage. If the storage is used for storing
@@ -108,6 +108,23 @@ export abstract class SignerMetaHandler {
    */
   isPaused(): boolean {
     return this.#extensionSettings?.paused ?? false;
+  }
+
+  /**
+   * Sets the "Stay Unlocked" preference and immediately saves it.
+   * When enabled, the vault password is stored in plaintext in local storage
+   * so the vault can auto-unlock on browser restart.
+   */
+  async setStayUnlocked(enabled: boolean): Promise<void> {
+    if (!this.#extensionSettings) {
+      this.#extensionSettings = {
+        stayUnlocked: enabled,
+      };
+    } else {
+      this.#extensionSettings.stayUnlocked = enabled;
+    }
+
+    await this.saveFullData(this.#extensionSettings);
   }
 
   /**

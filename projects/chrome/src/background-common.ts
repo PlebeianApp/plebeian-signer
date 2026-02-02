@@ -40,13 +40,38 @@ export interface UnlockResponseMessage {
   error?: string;
 }
 
-// Debug logging disabled - uncomment for development
-// export const debug = function (message: any) {
-//   const dateString = new Date().toISOString();
-//   console.log(`[Plebeian Signer - ${dateString}]: ${JSON.stringify(message)}`);
-// };
-// eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-empty-function
-export const debug = function (_message: any) {};
+// Debug logging - writes to persistent log store (viewable on Logs page)
+const debugLogBuffer: { timestamp: string; message: string }[] = [];
+let debugFlushTimer: ReturnType<typeof setTimeout> | null = null;
+
+async function flushDebugLogs(): Promise<void> {
+  if (debugLogBuffer.length === 0) return;
+  const entries = debugLogBuffer.splice(0);
+  try {
+    const result = await chrome.storage.session.get('extensionLogs');
+    const existingLogs: any[] = result['extensionLogs'] || [];
+    const newEntries = entries.map(e => ({
+      timestamp: e.timestamp,
+      level: 'debug',
+      category: 'system',
+      icon: '🔍',
+      message: e.message,
+    }));
+    const updatedLogs = [...newEntries, ...existingLogs].slice(0, 500);
+    await chrome.storage.session.set({ extensionLogs: updatedLogs });
+  } catch (error) {
+    console.error('Failed to flush debug logs:', error);
+  }
+}
+
+export const debug = function (message: any) {
+  const msg = typeof message === 'string' ? message : JSON.stringify(message);
+  const dateString = new Date().toISOString();
+  console.log(`[Plebeian Signer - ${dateString}]: ${msg}`);
+  debugLogBuffer.push({ timestamp: dateString, message: msg });
+  if (debugFlushTimer) clearTimeout(debugFlushTimer);
+  debugFlushTimer = setTimeout(flushDebugLogs, 500);
+};
 
 export type PromptResponse =
   | 'reject'
@@ -780,12 +805,128 @@ export async function handleUnlockRequest(
 }
 
 /**
- * Open the unlock popup window
+ * Unlock the vault using a pre-derived key (skips password verification and key derivation).
+ * Used by the "Stay Unlocked" auto-unlock feature on browser startup.
+ */
+export async function handleUnlockWithKey(
+  key: string,
+  isV2: boolean
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    debug('handleUnlockWithKey: Starting unlock with persisted key...');
+
+    const existingSession = await getBrowserSessionData();
+    if (existingSession) {
+      debug('handleUnlockWithKey: Already unlocked');
+      return { success: true };
+    }
+
+    const browserSyncData = await getBrowserSyncData();
+    if (!browserSyncData) {
+      return { success: false, error: 'No vault data found' };
+    }
+
+    const keyOrPassword = key;
+
+    // Decrypt identities
+    debug('handleUnlockWithKey: Decrypting identities...');
+    const decryptedIdentities: Identity_DECRYPTED[] = [];
+    for (const identity of browserSyncData.identities) {
+      const decrypted = await decryptIdentity(identity, browserSyncData.iv, keyOrPassword, isV2);
+      decryptedIdentities.push(decrypted);
+    }
+    debug(`handleUnlockWithKey: Decrypted ${decryptedIdentities.length} identities`);
+
+    // Decrypt permissions
+    debug('handleUnlockWithKey: Decrypting permissions...');
+    const decryptedPermissions: Permission_DECRYPTED[] = [];
+    for (const permission of browserSyncData.permissions) {
+      try {
+        const decrypted = await decryptPermission(permission, browserSyncData.iv, keyOrPassword, isV2);
+        decryptedPermissions.push(decrypted);
+      } catch (e) {
+        debug(`handleUnlockWithKey: Skipping corrupted permission: ${e}`);
+      }
+    }
+    debug(`handleUnlockWithKey: Decrypted ${decryptedPermissions.length} permissions`);
+
+    // Decrypt relays
+    debug('handleUnlockWithKey: Decrypting relays...');
+    const decryptedRelays: Relay_DECRYPTED[] = [];
+    for (const relay of browserSyncData.relays) {
+      const decrypted = await decryptRelay(relay, browserSyncData.iv, keyOrPassword, isV2);
+      decryptedRelays.push(decrypted);
+    }
+    debug(`handleUnlockWithKey: Decrypted ${decryptedRelays.length} relays`);
+
+    // Decrypt NWC connections
+    debug('handleUnlockWithKey: Decrypting NWC connections...');
+    const decryptedNwcConnections: NwcConnection_DECRYPTED[] = [];
+    for (const nwc of browserSyncData.nwcConnections ?? []) {
+      const decrypted = await decryptNwcConnection(nwc, browserSyncData.iv, keyOrPassword, isV2);
+      decryptedNwcConnections.push(decrypted);
+    }
+    debug(`handleUnlockWithKey: Decrypted ${decryptedNwcConnections.length} NWC connections`);
+
+    // Decrypt Cashu mints
+    debug('handleUnlockWithKey: Decrypting Cashu mints...');
+    const decryptedCashuMints: CashuMint_DECRYPTED[] = [];
+    for (const mint of browserSyncData.cashuMints ?? []) {
+      const decrypted = await decryptCashuMint(mint, browserSyncData.iv, keyOrPassword, isV2);
+      decryptedCashuMints.push(decrypted);
+    }
+    debug(`handleUnlockWithKey: Decrypted ${decryptedCashuMints.length} Cashu mints`);
+
+    // Decrypt selectedIdentityId
+    let decryptedSelectedIdentityId: string | null = null;
+    if (browserSyncData.selectedIdentityId !== null) {
+      decryptedSelectedIdentityId = await decryptValue(
+        browserSyncData.selectedIdentityId,
+        browserSyncData.iv,
+        keyOrPassword,
+        isV2
+      );
+    }
+    debug(`handleUnlockWithKey: selectedIdentityId: ${decryptedSelectedIdentityId}`);
+
+    // Build session data
+    const browserSessionData: BrowserSessionData = {
+      vaultPassword: isV2 ? undefined : key,
+      vaultKey: isV2 ? key : undefined,
+      iv: browserSyncData.iv,
+      salt: browserSyncData.salt,
+      permissions: decryptedPermissions,
+      identities: decryptedIdentities,
+      selectedIdentityId: decryptedSelectedIdentityId,
+      relays: decryptedRelays,
+      nwcConnections: decryptedNwcConnections,
+      cashuMints: decryptedCashuMints,
+    };
+
+    // Save session data
+    debug('handleUnlockWithKey: Saving session data...');
+    await chrome.storage.session.set(browserSessionData);
+    debug('handleUnlockWithKey: Unlock complete!');
+
+    return { success: true };
+  } catch (error: any) {
+    debug(`handleUnlockWithKey: Error: ${error.message}`);
+    return { success: false, error: error.message || 'Unlock with key failed' };
+  }
+}
+
+// Retry settings for window creation (handles browser startup timing)
+const UNLOCK_WINDOW_MAX_RETRIES = 5;
+const UNLOCK_WINDOW_BASE_DELAY_MS = 300;
+
+/**
+ * Open the unlock popup window.
+ * Retries with exponential backoff if window creation fails
+ * (e.g. during browser startup when APIs aren't ready yet).
  */
 export async function openUnlockPopup(host?: string): Promise<void> {
   const width = 375;
   const height = 500;
-  const { top, left } = await getPosition(width, height);
 
   const id = crypto.randomUUID();
   let url = `unlock.html?id=${id}`;
@@ -793,12 +934,28 @@ export async function openUnlockPopup(host?: string): Promise<void> {
     url += `&host=${encodeURIComponent(host)}`;
   }
 
-  await chrome.windows.create({
-    type: 'popup',
-    url,
-    height,
-    width,
-    top,
-    left,
-  });
+  for (let attempt = 0; attempt < UNLOCK_WINDOW_MAX_RETRIES; attempt++) {
+    try {
+      const { top, left } = await getPosition(width, height);
+
+      await chrome.windows.create({
+        type: 'popup',
+        url,
+        height,
+        width,
+        top,
+        left,
+      });
+      return; // Success - exit retry loop
+    } catch (error) {
+      debug(`Failed to create unlock popup (attempt ${attempt + 1}/${UNLOCK_WINDOW_MAX_RETRIES}): ${error}`);
+      if (attempt < UNLOCK_WINDOW_MAX_RETRIES - 1) {
+        const delay = UNLOCK_WINDOW_BASE_DELAY_MS * Math.pow(2, attempt);
+        debug(`Retrying in ${delay}ms...`);
+        await new Promise(r => setTimeout(r, delay));
+      } else {
+        throw error; // Re-throw after all retries exhausted
+      }
+    }
+  }
 }

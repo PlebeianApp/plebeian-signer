@@ -3,6 +3,9 @@ import { Router } from '@angular/router';
 import { LoggerService, LogEntry, NavComponent } from '@common';
 import { DatePipe } from '@angular/common';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+declare const chrome: any;
+
 @Component({
   selector: 'app-logs',
   templateUrl: './logs.component.html',
@@ -28,6 +31,29 @@ export class LogsComponent extends NavComponent implements OnInit {
 
   async onClear() {
     await this.#logger.clear();
+  }
+
+  onDownload() {
+    const lines = this.logs.map(log => {
+      const ts = log.timestamp instanceof Date ? log.timestamp.toISOString() : log.timestamp;
+      const data = log.data ? ` | ${JSON.stringify(log.data)}` : '';
+      return `[${ts}] [${log.level.toUpperCase()}] [${log.category}] ${log.message}${data}`;
+    });
+    const text = lines.join('\n');
+    const blob = new Blob([text], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const filename = `plebeian-signer-logs-${new Date().toISOString().replace(/[:.]/g, '-')}.txt`;
+    chrome.downloads.download({ url, filename, saveAs: false }, (downloadId: number) => {
+      if (downloadId !== undefined) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        chrome.downloads.onChanged.addListener(function onChanged(delta: any) {
+          if (delta.id === downloadId && delta.state?.current === 'complete') {
+            chrome.downloads.onChanged.removeListener(onChanged);
+            chrome.downloads.open(downloadId);
+          }
+        });
+      }
+    });
   }
 
   getLevelClass(level: LogEntry['level']): string {
