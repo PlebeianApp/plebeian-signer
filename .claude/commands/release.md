@@ -74,27 +74,25 @@ This project uses **standard semver with `v` prefix** (e.g., `v0.0.8`, `v1.2.3`)
     - If any are missing, report which ones and skip this step
     - Run:
       ```
-      bunx chrome-webstore-upload-cli upload \
-        --source releases/plebeian-signer-chrome-vX.Y.Z.zip \
-        --extension-id $CWS_EXTENSION_ID \
-        --client-id $CWS_CLIENT_ID \
-        --client-secret $CWS_CLIENT_SECRET \
-        --refresh-token $CWS_REFRESH_TOKEN \
-        --auto-publish
+      EXTENSION_ID=$CWS_EXTENSION_ID \
+      CLIENT_ID=$CWS_CLIENT_ID \
+      CLIENT_SECRET=$CWS_CLIENT_SECRET \
+      REFRESH_TOKEN=$CWS_REFRESH_TOKEN \
+      bunx chrome-webstore-upload-cli --source releases/plebeian-signer-chrome-vX.Y.Z.zip
       ```
     - If upload fails, report the error but do NOT fail the release (git push already succeeded)
 
 13. **Submit to Firefox AMO** (optional, skip if credentials missing):
-    - Check that all of these environment variables are set: `AMO_JWT_ISSUER`, `AMO_JWT_SECRET`, `AMO_EXTENSION_ID`
+    - Check that all of these environment variables are set: `AMO_JWT_ISSUER`, `AMO_JWT_SECRET`
     - If any are missing, report which ones and skip this step
+    - The extension ID comes from `browser_specific_settings.gecko.id` in the Firefox manifest
     - Run:
       ```
       bunx web-ext sign \
         --source-dir dist/firefox \
         --api-key $AMO_JWT_ISSUER \
         --api-secret $AMO_JWT_SECRET \
-        --channel listed \
-        --id $AMO_EXTENSION_ID
+        --channel listed
       ```
     - If submission fails, report the error but do NOT fail the release (git push already succeeded)
 
