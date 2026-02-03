@@ -98,4 +98,11 @@
     align-items: center;
     justify-content: center;
   }
+
+  .error-note {
+    margin: 0;
+    font-size: 0.8rem;
+    color: var(--bs-danger, #dc3545);
+    line-height: 1.3;
+  }
 }

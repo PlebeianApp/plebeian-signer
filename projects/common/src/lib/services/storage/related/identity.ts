@@ -152,6 +152,44 @@ export const switchIdentity = async function (
   });
 };
 
+export const updateIdentityWalletPrivkey = async function (
+  this: StorageService,
+  identityId: string,
+  walletPrivkeyHex: string
+): Promise<void> {
+  this.assureIsInitialized();
+
+  const browserSessionData = this.getBrowserSessionHandler().browserSessionData;
+  if (!browserSessionData) {
+    throw new Error('Browser session data is undefined.');
+  }
+
+  // Update session data
+  const identity = browserSessionData.identities.find((x) => x.id === identityId);
+  if (!identity) {
+    throw new Error('Identity not found.');
+  }
+  identity.walletPrivkey = walletPrivkeyHex;
+  await this.getBrowserSessionHandler().saveFullData(browserSessionData);
+
+  // Update sync data (re-encrypt the identity)
+  const encryptedIdentity = await encryptIdentity.call(this, identity);
+  const browserSyncData = this.getBrowserSyncHandler().browserSyncData;
+  if (!browserSyncData) {
+    throw new Error('Browser sync data is undefined.');
+  }
+
+  // Find and replace the encrypted identity by encrypted ID
+  const encryptedIdentityId = await this.encrypt(identityId);
+  const encryptedIdentities = browserSyncData.identities.map((x) =>
+    x.id === encryptedIdentityId ? encryptedIdentity : x
+  );
+
+  await this.getBrowserSyncHandler().saveAndSetPartialData_Identities({
+    identities: encryptedIdentities,
+  });
+};
+
 export const encryptIdentity = async function (
   this: StorageService,
   identity: Identity_DECRYPTED
@@ -162,6 +200,10 @@ export const encryptIdentity = async function (
     createdAt: await this.encrypt(identity.createdAt),
     privkey: await this.encrypt(identity.privkey),
   };
+
+  if (identity.walletPrivkey) {
+    encryptedIdentity.walletPrivkey = await this.encrypt(identity.walletPrivkey);
+  }
 
   return encryptedIdentity;
 };
@@ -206,6 +248,9 @@ export const decryptIdentity = async function (
       createdAt: await this.decrypt(identity.createdAt, 'string'),
       privkey: await this.decrypt(identity.privkey, 'string'),
     };
+    if (identity.walletPrivkey) {
+      decryptedIdentity.walletPrivkey = await this.decrypt(identity.walletPrivkey, 'string');
+    }
 
     return decryptedIdentity;
   }
@@ -238,6 +283,14 @@ export const decryptIdentity = async function (
         withLockedVault.keyBase64
       ),
     };
+    if (identity.walletPrivkey) {
+      decryptedIdentity.walletPrivkey = await this.decryptWithLockedVaultV2(
+        identity.walletPrivkey,
+        'string',
+        withLockedVault.iv,
+        withLockedVault.keyBase64
+      );
+    }
     return decryptedIdentity;
   }
 
@@ -268,6 +321,14 @@ export const decryptIdentity = async function (
       withLockedVault.password!
     ),
   };
+  if (identity.walletPrivkey) {
+    decryptedIdentity.walletPrivkey = await this.decryptWithLockedVault(
+      identity.walletPrivkey,
+      'string',
+      withLockedVault.iv,
+      withLockedVault.password!
+    );
+  }
 
   return decryptedIdentity;
 };

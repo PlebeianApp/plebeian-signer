@@ -1,34 +1,52 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnInit, ViewChild } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import {
   BrowserSyncData,
-  BrowserSyncFlow,
   ConfirmComponent,
   DateHelper,
+  IdentityData,
   LoggerService,
   NavComponent,
   NavItemComponent,
+  Nip60Service,
   StartupService,
   StorageService,
+  SyncFlow,
+  SyncQuotaExceededError,
+  VaultRelayService,
 } from '@common';
 import { getNewStorageServiceConfig } from '../../../common/data/get-new-storage-service-config';
 import { Buffer } from 'buffer';
 
 @Component({
   selector: 'app-settings',
-  imports: [ConfirmComponent, NavItemComponent],
+  imports: [ConfirmComponent, NavItemComponent, FormsModule],
   templateUrl: './settings.component.html',
   styleUrl: './settings.component.scss',
 })
 export class SettingsComponent extends NavComponent implements OnInit {
+  @ViewChild('confirm') confirmModal!: ConfirmComponent;
+
   readonly #router = inject(Router);
-  syncFlow: string | undefined;
+  syncFlowValue = 0;
+  switchingSyncFlow = false;
+  syncMigrationStep = '';
+  syncFlowError = '';
   override devMode = false;
   stayUnlocked = false;
+  nip60Enabled = false;
+
+  // Relay sync settings
+  relaySyncIdentityId = '';
+  relaySyncAuthOnly = false;
+  identities: IdentityData[] = [];
 
   readonly #storage = inject(StorageService);
   readonly #startup = inject(StartupService);
   readonly #logger = inject(LoggerService);
+  readonly #nip60Service = inject(Nip60Service);
+  readonly #vaultRelay = inject(VaultRelayService);
 
   ngOnInit(): void {
     const vault = JSON.stringify(
@@ -36,23 +54,179 @@ export class SettingsComponent extends NavComponent implements OnInit {
     );
     console.log(vault.length / 1024 + ' KB');
 
-    switch (this.#storage.getSignerMetaHandler().signerMetaData?.syncFlow) {
-      case BrowserSyncFlow.NO_SYNC:
-        this.syncFlow = 'Off';
-        break;
+    // Load current sync flow
+    this.syncFlowValue = this.#storage.getSignerMetaHandler().extensionSettings?.syncFlow ?? 0;
 
-      case BrowserSyncFlow.BROWSER_SYNC:
-        this.syncFlow = 'Google Chrome';
-        break;
+    // Load identities for vault owner picker
+    this.identities = this.#storage.getBrowserSessionHandler().browserSessionData?.identities ?? [];
 
-      default:
-        break;
-    }
+    // Load relay sync settings
+    this.relaySyncIdentityId = this.#storage.getSignerMetaHandler().getRelaySyncIdentityId() ?? '';
+    this.relaySyncAuthOnly = this.#storage.getSignerMetaHandler().isRelaySyncAuthOnly();
 
     // Load dev mode setting
-    this.devMode = this.#storage.getSignerMetaHandler().signerMetaData?.devMode ?? false;
+    this.devMode = this.#storage.getSignerMetaHandler().extensionSettings?.devMode ?? false;
     // Load stay unlocked setting
-    this.stayUnlocked = this.#storage.getSignerMetaHandler().signerMetaData?.stayUnlocked ?? false;
+    this.stayUnlocked = this.#storage.getSignerMetaHandler().extensionSettings?.stayUnlocked ?? false;
+    // Load NIP-60 setting
+    this.nip60Enabled = this.#storage.getSignerMetaHandler().isNip60Enabled();
+  }
+
+  async onSyncFlowChange(value: string) {
+    const newFlow = Number(value) as SyncFlow;
+    const oldFlow = this.syncFlowValue;
+    this.switchingSyncFlow = true;
+    this.syncFlowError = '';
+    this.syncMigrationStep = '';
+
+    try {
+      if (newFlow === SyncFlow.BROWSER_SYNC) {
+        // Try switching to browser sync — may throw SyncQuotaExceededError
+        await this.#storage.switchSyncFlow(newFlow);
+        this.syncFlowValue = newFlow;
+      } else if (newFlow === SyncFlow.RELAY_SYNC) {
+        // Switch to local handler (relay sync uses local storage + relay push)
+        await this.#storage.switchSyncFlow(newFlow);
+        this.syncFlowValue = newFlow;
+
+        // Auto-select first identity as vault owner if not set
+        if (!this.relaySyncIdentityId && this.identities.length > 0) {
+          this.relaySyncIdentityId = this.identities[0].id;
+          await this.#storage.getSignerMetaHandler().setRelaySyncIdentityId(this.relaySyncIdentityId);
+        }
+
+        // Do initial push to relays
+        await this.#doInitialRelayPush();
+      } else {
+        // NO_SYNC
+        await this.#storage.switchSyncFlow(newFlow);
+        this.syncFlowValue = newFlow;
+      }
+      this.switchingSyncFlow = false;
+    } catch (err) {
+      this.switchingSyncFlow = false;
+      this.syncFlowValue = oldFlow;
+
+      if (err instanceof SyncQuotaExceededError) {
+        this.confirmModal.show(
+          'Your vault is too large for browser sync storage. ' +
+          'To enable sync, Cashu tokens will be migrated to Nostr relay storage (NIP-60), ' +
+          'removed from the vault, and a backup will be created. ' +
+          'The extension will then reinitialize. Proceed?',
+          this.#handleSyncMigration.bind(this)
+        );
+      } else {
+        this.syncFlowError = err instanceof Error ? err.message : 'Failed to switch sync mode';
+        console.error('Failed to switch sync flow:', err);
+      }
+    }
+  }
+
+  async #doInitialRelayPush(): Promise<void> {
+    const identity = this.identities.find(i => i.id === this.relaySyncIdentityId);
+    if (!identity) return;
+
+    this.syncMigrationStep = 'Pushing vault to relays...';
+    try {
+      const results = await this.#vaultRelay.pushVault(identity);
+      const successCount = results.filter(r => r.success).length;
+      if (results.length > 0 && successCount === 0) {
+        this.syncFlowError = 'Vault saved locally but failed to push to relays. Will retry on next change.';
+      }
+    } catch (err) {
+      this.syncFlowError = 'Vault saved locally but relay push failed: ' +
+        (err instanceof Error ? err.message : 'Unknown error');
+      console.error('Initial relay push failed:', err);
+    }
+    this.syncMigrationStep = '';
+  }
+
+  async onRelaySyncIdentityChange(identityId: string) {
+    this.relaySyncIdentityId = identityId;
+    await this.#storage.getSignerMetaHandler().setRelaySyncIdentityId(identityId);
+  }
+
+  async onToggleRelaySyncAuthOnly(event: Event) {
+    const checked = (event.target as HTMLInputElement).checked;
+    this.relaySyncAuthOnly = checked;
+    await this.#storage.getSignerMetaHandler().setRelaySyncAuthOnly(checked);
+  }
+
+  async #handleSyncMigration(): Promise<void> {
+    this.switchingSyncFlow = true;
+    this.syncFlowError = '';
+
+    try {
+      // 1. Get the active identity
+      this.syncMigrationStep = 'Finding active identity...';
+      const session = this.#storage.getBrowserSessionHandler().browserSessionData;
+      const identity = session?.identities.find(
+        i => i.id === session?.selectedIdentityId
+      );
+      if (!identity) {
+        throw new Error('No active identity found. Unlock vault and select an identity first.');
+      }
+
+      // 2. Enable NIP-60 relay wallet sync
+      this.syncMigrationStep = 'Enabling NIP-60 relay wallet sync...';
+      await this.#storage.getSignerMetaHandler().setNip60Enabled(true);
+
+      // 3. Ensure wallet privkey exists
+      this.syncMigrationStep = 'Preparing wallet key...';
+      await this.#nip60Service.getWalletPrivkey(identity);
+
+      // 4. Push proofs to relays
+      this.syncMigrationStep = 'Pushing tokens to Nostr relays...';
+      const results = await this.#nip60Service.pushWalletToRelays(identity);
+      const successCount = results.filter(r => r.success).length;
+      if (results.length > 0 && successCount === 0) {
+        throw new Error('Failed to push tokens to any relay. Check your relay list and try again.');
+      }
+
+      // 5. Strip proofs from vault
+      this.syncMigrationStep = 'Removing tokens from vault...';
+      await this.#storage.stripProofsFromVault();
+
+      // 6. Create a backup
+      this.syncMigrationStep = 'Creating vault backup...';
+      const vault = this.#storage.getBrowserSyncHandler().encryptedVault;
+      if (vault) {
+        await this.#storage.getSignerMetaHandler().createBackup(vault, 'auto');
+      }
+
+      // 7. Retry sync switch
+      this.syncMigrationStep = 'Enabling browser sync...';
+      try {
+        await this.#storage.switchSyncFlow(SyncFlow.BROWSER_SYNC);
+      } catch (retryErr) {
+        if (retryErr instanceof SyncQuotaExceededError) {
+          this.syncFlowError =
+            'Tokens migrated to relays and backup created, but your vault metadata ' +
+            '(identities, permissions, relays) still exceeds browser sync limits. ' +
+            'Remove unused identities or keep sync disabled.';
+          this.syncMigrationStep = '';
+          this.switchingSyncFlow = false;
+          return;
+        }
+        throw retryErr;
+      }
+
+      // 8. Reinitialize extension
+      this.syncMigrationStep = 'Reinitializing...';
+      this.#storage.isInitialized = false;
+      this.#startup.startOver(getNewStorageServiceConfig());
+    } catch (err) {
+      this.syncFlowError = err instanceof Error ? err.message : 'Migration failed';
+      this.syncMigrationStep = '';
+      this.switchingSyncFlow = false;
+      console.error('Sync migration failed:', err);
+    }
+  }
+
+  async onToggleNip60(event: Event) {
+    const checked = (event.target as HTMLInputElement).checked;
+    this.nip60Enabled = checked;
+    await this.#storage.getSignerMetaHandler().setNip60Enabled(checked);
   }
 
   async onToggleDevMode(event: Event) {

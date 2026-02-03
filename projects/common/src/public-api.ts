@@ -23,6 +23,7 @@ export * from './lib/helpers/text-helper';
 export * from './lib/helpers/date-helper';
 export * from './lib/helpers/websocket-auth';
 export * from './lib/helpers/nip05-validator';
+export * from './lib/helpers/compression';
 
 // Models
 export * from './lib/models/nostr';
@@ -34,6 +35,7 @@ export * from './lib/services/storage/types';
 export * from './lib/services/storage/browser-sync-handler';
 export * from './lib/services/storage/browser-session-handler';
 export * from './lib/services/storage/signer-meta-handler';
+export * from './lib/services/storage/vault-relay.service';
 export * from './lib/services/storage/related/nwc';
 export * from './lib/services/storage/related/cashu';
 export * from './lib/services/nwc/nwc.service';
@@ -41,6 +43,10 @@ export * from './lib/services/nwc/nwc-client';
 export * from './lib/services/nwc/types';
 export * from './lib/services/cashu/cashu.service';
 export * from './lib/services/cashu/types';
+export * from './lib/services/cashu/nip60-types';
+export * from './lib/services/cashu/nip60-core';
+export * from './lib/services/cashu/nip60.service';
+export * from './lib/services/cashu/nip61.service';
 export * from './lib/services/logger/logger.service';
 export * from './lib/services/startup/startup.service';
 export * from './lib/services/profile-metadata/profile-metadata.service';

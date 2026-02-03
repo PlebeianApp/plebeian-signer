@@ -8,6 +8,7 @@ import {
   StartupService,
   SignerMetaData_VaultSnapshot,
   BrowserSyncData,
+  VaultRelayService,
 } from '@common';
 import { generateSecretKey } from 'nostr-tools';
 import { bytesToHex } from '@noble/hashes/utils';
@@ -27,6 +28,7 @@ export class HomeComponent extends NavComponent implements OnInit {
   readonly router = inject(Router);
   readonly #storage = inject(StorageService);
   readonly #startup = inject(StartupService);
+  readonly #vaultRelay = inject(VaultRelayService);
 
   nickname = '';
   nsecInput = '';
@@ -34,6 +36,13 @@ export class HomeComponent extends NavComponent implements OnInit {
   snapshots: SignerMetaData_VaultSnapshot[] = [];
   selectedSnapshot: SignerMetaData_VaultSnapshot | undefined;
   isPopup = false;
+
+  // Restore from relays
+  relayRestoreNsec = '';
+  isRelayNsecValid = false;
+  relayRestoring = false;
+  relayRestoreStep = '';
+  relayRestoreError = '';
 
   ngOnInit(): void {
     // Detect if running in popup (popups are typically narrow)
@@ -157,6 +166,61 @@ export class HomeComponent extends NavComponent implements OnInit {
       this.#startup.startOver(getNewStorageServiceConfig());
     } catch (error) {
       console.error('Failed to import vault:', error);
+    }
+  }
+
+  validateRelayNsec() {
+    if (!this.relayRestoreNsec) {
+      this.isRelayNsecValid = false;
+      return;
+    }
+    try {
+      NostrHelper.getNostrPrivkeyObject(this.relayRestoreNsec.toLowerCase());
+      this.isRelayNsecValid = true;
+    } catch {
+      this.isRelayNsecValid = false;
+    }
+  }
+
+  async onRestoreFromRelays() {
+    if (!this.isRelayNsecValid) return;
+
+    this.relayRestoring = true;
+    this.relayRestoreError = '';
+    this.relayRestoreStep = 'Deriving keys...';
+
+    try {
+      const privkeyObj = NostrHelper.getNostrPrivkeyObject(this.relayRestoreNsec.toLowerCase());
+      const privkey = privkeyObj.hex;
+      const pubkey = NostrHelper.pubkeyFromPrivkey(privkey);
+
+      this.relayRestoreStep = 'Querying relays...';
+      const result = await this.#vaultRelay.pullVault(pubkey, privkey);
+
+      if (!result) {
+        this.relayRestoreError = 'No vault found on relays for this identity.';
+        this.relayRestoring = false;
+        this.relayRestoreStep = '';
+        return;
+      }
+
+      this.relayRestoreStep = 'Importing vault...';
+
+      // Import the vault
+      const existingVault = this.#storage.getBrowserSyncHandler().encryptedVault;
+      if (existingVault && Object.keys(existingVault).length > 0) {
+        await this.#storage.deleteVault(true);
+      }
+      await this.#storage.importVault(result.vault);
+
+      // Restart to route to vault-login
+      this.#storage.isInitialized = false;
+      this.#startup.startOver(getNewStorageServiceConfig());
+    } catch (err) {
+      this.relayRestoreError = err instanceof Error ? err.message : 'Failed to restore from relays';
+      this.relayRestoring = false;
+      this.relayRestoreStep = '';
+      console.error('Relay restore failed:', err);
     }
   }
 

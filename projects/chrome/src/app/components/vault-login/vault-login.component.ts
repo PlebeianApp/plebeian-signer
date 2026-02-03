@@ -9,6 +9,8 @@ import {
   ProfileMetadataService,
   StartupService,
   StorageService,
+  SyncFlow,
+  VaultRelayService,
 } from '@common';
 import { getNewStorageServiceConfig } from '../../common/data/get-new-storage-service-config';
 
@@ -30,6 +32,7 @@ export class VaultLoginComponent implements AfterViewInit {
   readonly #startup = inject(StartupService);
   readonly #profileMetadata = inject(ProfileMetadataService);
   readonly #logger = inject(LoggerService);
+  readonly #vaultRelay = inject(VaultRelayService);
 
   ngAfterViewInit() {
     this.passwordInput.nativeElement.focus();
@@ -76,7 +79,57 @@ export class VaultLoginComponent implements AfterViewInit {
     // Fetch profile metadata for all identities in the background
     this.#fetchAllProfiles();
 
+    // Wire relay sync push callback and sync on unlock (background)
+    this.#initRelaySync();
+
     this.#router.navigateByUrl('/home/identity');
+  }
+
+  /**
+   * Wire the debounced relay sync push callback and perform initial sync on unlock.
+   * Runs in background — does not block navigation.
+   */
+  async #initRelaySync() {
+    if (this.#storage.getSyncFlow() !== SyncFlow.RELAY_SYNC) return;
+
+    const session = this.#storage.getBrowserSessionHandler().browserSessionData;
+    if (!session?.identities?.length) return;
+
+    const identityId = this.#storage.getSignerMetaHandler().getRelaySyncIdentityId();
+    let identity = session.identities.find(i => i.id === identityId);
+
+    // If configured identity not found (e.g. after vault re-import), fall back
+    if (!identity) {
+      identity = session.identities.find(i => i.id === session.selectedIdentityId)
+        ?? session.identities[0];
+      // Persist the new identity selection
+      await this.#storage.getSignerMetaHandler().setRelaySyncIdentityId(identity.id);
+      console.log(`[relay-sync] Configured identity not found, using ${identity.nick}`);
+    }
+
+    // Wire the debounced push callback
+    this.#storage.setRelaySyncCallback(async () => {
+      try {
+        await this.#vaultRelay.pushVault(identity);
+      } catch (err) {
+        console.error('Relay sync push failed:', err);
+      }
+    });
+
+    // Sync on unlock: compare local vs relay, use newer
+    try {
+      const result = await this.#vaultRelay.syncOnUnlock(identity);
+      if (result === 'relay') {
+        // Relay had newer vault — reinitialize to load it
+        console.log('[relay-sync] Relay had newer vault, reinitializing');
+        this.#storage.isInitialized = false;
+        this.#startup.startOver(getNewStorageServiceConfig());
+      } else {
+        console.log(`[relay-sync] Sync result: ${result}`);
+      }
+    } catch (err) {
+      console.error('Relay sync on unlock failed:', err);
+    }
   }
 
   /**

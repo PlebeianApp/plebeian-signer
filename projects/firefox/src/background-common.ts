@@ -21,6 +21,7 @@ import {
   deriveKeyArgon2,
   ExtensionMethod,
   WeblnMethod,
+  NutzapMethod,
 } from '@common';
 import { FirefoxMetaHandler } from './app/common/data/firefox-meta-handler';
 import { Event, EventTemplate, finalizeEvent, nip04, nip44 } from 'nostr-tools';
@@ -300,6 +301,41 @@ export const checkWeblnPermissions = function (
   return permissions.every((x) => x.methodPolicy === 'allow');
 };
 
+/**
+ * Check if a method is a Nutzap method
+ */
+export const isNutzapMethod = function (method: ExtensionMethod): method is NutzapMethod {
+  return method.startsWith('nutzap.');
+};
+
+/**
+ * Check Nutzap permissions for a host.
+ * nutzap.send ALWAYS requires user approval (money-moving, irreversible).
+ * Other nutzap methods use standard identity-based permission checks.
+ */
+export const checkNutzapPermissions = function (
+  browserSessionData: BrowserSessionData,
+  identity: Identity_DECRYPTED,
+  host: string,
+  method: NutzapMethod
+): boolean | undefined {
+  // nutzap.send ALWAYS requires user approval (security-critical, irreversible)
+  if (method === 'nutzap.send') {
+    return undefined;
+  }
+
+  // For other nutzap methods, check stored permissions tied to current identity
+  const permissions = browserSessionData.permissions.filter(
+    (x) => x.identityId === identity.id && x.host === host && x.method === method
+  );
+
+  if (permissions.length === 0) {
+    return undefined;
+  }
+
+  return permissions.every((x) => x.methodPolicy === 'allow');
+};
+
 export const storePermission = async function (
   browserSessionData: BrowserSessionData,
   identity: Identity_DECRYPTED | null,
@@ -562,12 +598,16 @@ async function decryptIdentity(
   keyOrPassword: string,
   isV2: boolean
 ): Promise<Identity_DECRYPTED> {
-  return {
+  const decrypted: Identity_DECRYPTED = {
     id: await decryptValue(identity.id, iv, keyOrPassword, isV2),
     nick: await decryptValue(identity.nick, iv, keyOrPassword, isV2),
     createdAt: await decryptValue(identity.createdAt, iv, keyOrPassword, isV2),
     privkey: await decryptValue(identity.privkey, iv, keyOrPassword, isV2),
   };
+  if (identity.walletPrivkey) {
+    decrypted.walletPrivkey = await decryptValue(identity.walletPrivkey, iv, keyOrPassword, isV2);
+  }
+  return decrypted;
 }
 
 /**
@@ -665,6 +705,49 @@ async function decryptCashuMint(
     decrypted.cachedBalanceAt = await decryptValue(mint.cachedBalanceAt, iv, keyOrPassword, isV2);
   }
   return decrypted;
+}
+
+/**
+ * Encrypt a decrypted Cashu mint back to encrypted form for vault storage.
+ */
+export async function encryptCashuMintForVault(
+  mint: CashuMint_DECRYPTED,
+  sessionData: BrowserSessionData
+): Promise<CashuMint_ENCRYPTED> {
+  const encrypted: CashuMint_ENCRYPTED = {
+    id: await encrypt(mint.id, sessionData),
+    name: await encrypt(mint.name, sessionData),
+    mintUrl: await encrypt(mint.mintUrl, sessionData),
+    unit: await encrypt(mint.unit, sessionData),
+    createdAt: await encrypt(mint.createdAt, sessionData),
+    proofs: await encrypt(JSON.stringify(mint.proofs), sessionData),
+  };
+
+  if (mint.cachedBalance !== undefined) {
+    encrypted.cachedBalance = await encrypt(mint.cachedBalance.toString(), sessionData);
+  }
+  if (mint.cachedBalanceAt) {
+    encrypted.cachedBalanceAt = await encrypt(mint.cachedBalanceAt, sessionData);
+  }
+
+  return encrypted;
+}
+
+/**
+ * Save encrypted cashu mints to browser sync/local storage (vault).
+ */
+export async function saveCashuMintsToBrowserSyncStorage(
+  cashuMints: CashuMint_ENCRYPTED[]
+): Promise<void> {
+  const signerMetaHandler = new FirefoxMetaHandler();
+  const signerMetaData =
+    (await signerMetaHandler.loadFullData()) as SignerMetaData;
+
+  if (signerMetaData.syncFlow === BrowserSyncFlow.NO_SYNC) {
+    await browser.storage.local.set({ cashuMints });
+  } else if (signerMetaData.syncFlow === BrowserSyncFlow.BROWSER_SYNC) {
+    await browser.storage.sync.set({ cashuMints });
+  }
 }
 
 /**

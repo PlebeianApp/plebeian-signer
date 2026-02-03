@@ -16,4 +16,9 @@ export type WeblnMethod =
   | 'webln.makeInvoice'
   | 'webln.keysend';
 
-export type ExtensionMethod = Nip07Method | WeblnMethod;
+export type NutzapMethod =
+  | 'nutzap.getInfo'
+  | 'nutzap.send'
+  | 'nutzap.redeem';
+
+export type ExtensionMethod = Nip07Method | WeblnMethod | NutzapMethod;

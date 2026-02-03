@@ -124,25 +124,21 @@ export const deleteCashuMint = async function (
 export const updateCashuMintProofs = async function (
   this: StorageService,
   mintId: string,
-  proofs: CashuProof[]
+  proofs: CashuProof[],
+  skipVaultProofs = false
 ): Promise<void> {
   this.assureIsInitialized();
 
   const browserSessionData = this.getBrowserSessionHandler().browserSessionData;
-  const browserSyncData = this.getBrowserSyncHandler().browserSyncData;
-  if (!browserSessionData || !browserSyncData) {
-    throw new Error('Browser session or sync data is undefined.');
+  if (!browserSessionData) {
+    throw new Error('Browser session data is undefined.');
   }
 
   const sessionMint = (browserSessionData.cashuMints ?? []).find(
     (x) => x.id === mintId
   );
-  const encryptedMintId = await this.encrypt(mintId);
-  const syncMint = (browserSyncData.cashuMints ?? []).find(
-    (x) => x.id === encryptedMintId
-  );
 
-  if (!sessionMint || !syncMint) {
+  if (!sessionMint) {
     throw new Error('Cashu mint not found for proofs update.');
   }
 
@@ -156,7 +152,23 @@ export const updateCashuMintProofs = async function (
   sessionMint.cachedBalanceAt = now;
   await this.getBrowserSessionHandler().saveFullData(browserSessionData);
 
-  // Update sync data
+  if (skipVaultProofs) return;
+
+  // Update vault/sync data
+  const browserSyncData = this.getBrowserSyncHandler().browserSyncData;
+  if (!browserSyncData) {
+    throw new Error('Browser sync data is undefined.');
+  }
+
+  const encryptedMintId = await this.encrypt(mintId);
+  const syncMint = (browserSyncData.cashuMints ?? []).find(
+    (x) => x.id === encryptedMintId
+  );
+
+  if (!syncMint) {
+    throw new Error('Cashu mint not found in vault for proofs update.');
+  }
+
   syncMint.proofs = await this.encrypt(JSON.stringify(proofs));
   syncMint.cachedBalance = await this.encrypt(balance.toString());
   syncMint.cachedBalanceAt = await this.encrypt(now);

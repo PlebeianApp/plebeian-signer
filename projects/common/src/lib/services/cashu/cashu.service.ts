@@ -37,6 +37,14 @@ export class CashuService {
   constructor(private storageService: StorageService) {}
 
   /**
+   * Check if NIP-60 relay wallet sync is enabled.
+   * When enabled, proofs are not written to the vault (only session storage).
+   */
+  isNip60Enabled(): boolean {
+    return this.storageService.getSignerMetaHandler().isNip60Enabled();
+  }
+
+  /**
    * Get all Cashu mints from storage
    */
   getMints(): CashuMint_DECRYPTED[] {
@@ -200,7 +208,7 @@ export class CashuService {
     const allProofs = [...existingProofs, ...newProofs];
 
     // Update storage
-    await this.storageService.updateCashuMintProofs(mintData!.id, allProofs);
+    await this.storageService.updateCashuMintProofs(mintData!.id, allProofs, this.isNip60Enabled());
 
     // Calculate received amount
     const amount = newProofs.reduce((sum, p) => sum + p.amount, 0);
@@ -260,7 +268,7 @@ export class CashuService {
       receivedAt: now,
     }));
 
-    await this.storageService.updateCashuMintProofs(mintId, keepProofs);
+    await this.storageService.updateCashuMintProofs(mintId, keepProofs, this.isNip60Enabled());
 
     return {
       token: encodedToken,
@@ -304,7 +312,7 @@ export class CashuService {
 
     // Update storage if any were spent
     if (removedAmount > 0) {
-      await this.storageService.updateCashuMintProofs(mintId, unspentProofs);
+      await this.storageService.updateCashuMintProofs(mintId, unspentProofs, this.isNip60Enabled());
     }
 
     return removedAmount;

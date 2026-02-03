@@ -11,6 +11,18 @@
     margin-right: var(--size);
   }
 
+  .back-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+
+    &:hover {
+      background: var(--muted);
+    }
+  }
+
   .sam-text-header {
     margin-bottom: var(--size);
     flex-shrink: 0;

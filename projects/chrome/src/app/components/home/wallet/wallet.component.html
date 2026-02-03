@@ -8,12 +8,12 @@
         <span class="emoji">✨</span>
       </button>
     }
+    @if (showBackButton) {
+      <button class="header-btn" title="Go Back" (click)="goBack()">
+        <span class="emoji">⬅️</span>
+      </button>
+    }
   </div>
-  @if (showBackButton) {
-    <button class="back-btn" title="Go Back" (click)="goBack()">
-      <span class="emoji">←</span>
-    </button>
-  }
   <span>{{ title }}</span>
   <div class="section-btns">
     <button
@@ -55,6 +55,34 @@
   <!-- Cashu mint list -->
   @else if (activeSection === 'cashu') {
     <div class="lightning-section">
+      @if (nip60Loading) {
+        <div class="nip60-loading">Syncing wallet from relays...</div>
+      }
+      @if (nip60LoadError) {
+        <div class="error-message small">{{ nip60LoadError }}</div>
+      }
+      @if (migrationNeeded) {
+        <div class="migration-banner">
+          <div class="migration-title">Migrate Tokens to Relays</div>
+          <p>Your Cashu tokens are stored locally. Push them to Nostr relays for your active identity.</p>
+          @if (identities.length > 1) {
+            <div class="form-group">
+              <label for="migration-identity-select">Identity to own this wallet:</label>
+              <select id="migration-identity-select" [(ngModel)]="migrationIdentityId">
+                @for (id of identities; track id.id) {
+                  <option [value]="id.id">{{ id.nick }}</option>
+                }
+              </select>
+            </div>
+          }
+          <button class="add-btn" (click)="startMigration()" [disabled]="migrating">
+            {{ migrating ? 'Migrating...' : 'Migrate to Relays' }}
+          </button>
+          @if (migrationError) {
+            <div class="error-message">{{ migrationError }}</div>
+          }
+        </div>
+      }
       @if (mints.length === 0) {
         <div class="cashu-onboarding">
           <div class="empty-state">
@@ -168,6 +196,11 @@
           Send
         </button>
       </div>
+      <div class="action-buttons">
+        <button class="action-btn nutzap-btn" (click)="showNutzap()" [disabled]="selectedMintBalance === 0">
+          Nutzap
+        </button>
+      </div>
 
       <!-- Token viewer section -->
       <div class="token-section">
@@ -196,9 +229,69 @@
           <span class="info-value">{{ selectedMint.unit }}</span>
         </div>
       </div>
-      <button class="delete-btn" (click)="deleteMint()">
-        Delete Mint
-      </button>
+      <!-- NIP-60 Sync & Nutzap Redeem -->
+      <details class="sync-disclosure">
+        <summary>Wallet Sync (NIP-60)</summary>
+        <div class="sync-actions">
+          <button
+            class="sync-btn"
+            (click)="pushToRelays()"
+            [disabled]="isSyncing"
+          >
+            {{ pushingToRelays ? 'Pushing...' : 'Push to Relays' }}
+          </button>
+          <button
+            class="sync-btn"
+            (click)="pullFromRelays()"
+            [disabled]="isSyncing"
+          >
+            {{ pullingFromRelays ? 'Pulling...' : 'Pull from Relays' }}
+          </button>
+          <button
+            class="sync-btn"
+            (click)="publishNutzapInfo()"
+            [disabled]="isSyncing"
+          >
+            {{ publishingNutzapInfo ? 'Publishing...' : 'Publish Nutzap Info' }}
+          </button>
+          <button
+            class="sync-btn"
+            (click)="redeemNutzaps()"
+            [disabled]="redeemingNutzaps || isSyncing"
+          >
+            {{ redeemingNutzaps ? 'Redeeming...' : 'Redeem Nutzaps' }}
+          </button>
+        </div>
+        @if (syncError) {
+          <div class="error-message small">{{ syncError }}</div>
+        }
+        @if (syncResult) {
+          <div class="success-message small">{{ syncResult }}</div>
+        }
+        @if (redeemError) {
+          <div class="error-message small">{{ redeemError }}</div>
+        }
+        @if (redeemResult.length > 0) {
+          <div class="success-message small">
+            Redeemed {{ redeemResult.length }} nutzap{{ redeemResult.length > 1 ? 's' : '' }}
+            ({{ redeemTotalAmount }} sats)
+          </div>
+        }
+      </details>
+
+      @if (confirmingDeleteMint) {
+        <div class="delete-confirm">
+          <span>Tokens stored will be lost. Are you sure?</span>
+          <div class="delete-confirm-actions">
+            <button class="delete-btn" (click)="deleteMint()">Yes, Delete</button>
+            <button class="cancel-btn" (click)="confirmingDeleteMint = false">Cancel</button>
+          </div>
+        </div>
+      } @else {
+        <button class="delete-btn" (click)="deleteMint()">
+          Delete Mint
+        </button>
+      }
     </div>
   }
 
@@ -402,11 +495,97 @@
             <div class="success-message">{{ depositSuccess }}</div>
           }
           @if (depositQuoteState === 'UNPAID') {
+            @if (nwcWalletsForDeposit.length > 0) {
+              <div class="nwc-pay-options">
+                <span class="nwc-pay-label">Pay with Lightning wallet</span>
+                @for (wallet of nwcWalletsForDeposit; track wallet.id) {
+                  <button
+                    class="nwc-pay-btn"
+                    (click)="payDepositWithNwc(wallet.id)"
+                    [disabled]="payingDepositWithNwc"
+                  >
+                    {{ payingDepositWithNwc ? 'Paying...' : wallet.name }}
+                  </button>
+                }
+                @if (nwcPayError) {
+                  <div class="error-message small">{{ nwcPayError }}</div>
+                }
+              </div>
+              <div class="form-divider">or copy invoice</div>
+            }
             <div class="invoice-text">{{ depositInvoice }}</div>
             <button class="copy-btn" (click)="copyDepositInvoice()">
               Copy Invoice
             </button>
           }
+        </div>
+      }
+    </div>
+  }
+
+  <!-- Cashu nutzap send -->
+  @else if (activeSection === 'cashu-nutzap' && selectedMint) {
+    <div class="add-wallet-form">
+      <div class="balance-info">
+        Available: {{ formatCashuBalance(selectedMintBalance) }} sats
+      </div>
+      <div class="form-group">
+        <label for="nutzapRecipient">Recipient Pubkey (hex)</label>
+        <input
+          id="nutzapRecipient"
+          type="text"
+          [(ngModel)]="nutzapRecipient"
+          placeholder="npub or hex pubkey"
+          [disabled]="sendingNutzap"
+        />
+      </div>
+      <div class="form-group">
+        <label for="nutzapAmount">Amount (sats)</label>
+        <input
+          id="nutzapAmount"
+          type="number"
+          [(ngModel)]="nutzapAmount"
+          placeholder="21"
+          min="1"
+          [max]="selectedMintBalance"
+          [disabled]="sendingNutzap"
+        />
+      </div>
+      <div class="form-group">
+        <label for="nutzapComment">Comment (optional)</label>
+        <input
+          id="nutzapComment"
+          type="text"
+          [(ngModel)]="nutzapComment"
+          placeholder="Nice post!"
+          [disabled]="sendingNutzap"
+        />
+      </div>
+      <div class="form-group">
+        <label for="nutzapEventId">Event ID (optional)</label>
+        <input
+          id="nutzapEventId"
+          type="text"
+          [(ngModel)]="nutzapEventId"
+          placeholder="Event to zap"
+          [disabled]="sendingNutzap"
+        />
+      </div>
+      @if (nutzapError) {
+        <div class="error-message">{{ nutzapError }}</div>
+      }
+      @if (nutzapResult) {
+        <div class="success-message">{{ nutzapResult }}</div>
+      }
+      @if (!nutzapResult) {
+        <div class="form-actions">
+          <button
+            class="add-btn full-width"
+            (click)="sendNutzap()"
+            [disabled]="sendingNutzap || nutzapAmount <= 0 || !nutzapRecipient.trim()"
+          >
+            {{ sendingNutzap ? 'Sending...' : 'Send Nutzap' }}
+          </button>
         </div>
       }
     </div>
@@ -501,9 +680,19 @@
         }
       </div>
 
-      <button class="delete-btn-small" (click)="deleteConnection()">
-        Delete Wallet
-      </button>
+      @if (confirmingDeleteWallet) {
+        <div class="delete-confirm">
+          <span>Are you sure?</span>
+          <div class="delete-confirm-actions">
+            <button class="delete-btn-small" (click)="deleteConnection()">Yes, Delete</button>
+            <button class="cancel-btn" (click)="confirmingDeleteWallet = false">Cancel</button>
+          </div>
+        </div>
+      } @else {
+        <button class="delete-btn-small" (click)="deleteConnection()">
+          Delete Wallet
+        </button>
+      }
     </div>
   }
 

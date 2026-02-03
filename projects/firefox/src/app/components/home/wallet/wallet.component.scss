@@ -2,7 +2,6 @@
   height: 100%;
   display: flex;
   flex-direction: column;
-  padding-top: var(--size);
   padding-bottom: var(--size);
   overflow: hidden;
 
@@ -14,28 +13,6 @@
   .sam-text-header {
     margin-bottom: var(--size);
     flex-shrink: 0;
-
-    .back-btn {
-      background: transparent;
-      border: none;
-      padding: 8px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 4px;
-      transition: background-color 0.2s;
-      margin-right: 4px;
-      color: var(--foreground);
-
-      &:hover {
-        background-color: var(--background-light);
-      }
-
-      .emoji {
-        font-size: 20px;
-      }
-    }
 
     .section-btns {
       position: absolute;
@@ -126,6 +103,53 @@
   color: var(--muted-foreground);
   padding: var(--size-2x);
   gap: var(--size-h);
+}
+
+// NIP-60 loading
+.nip60-loading {
+  text-align: center;
+  padding: var(--size);
+  color: var(--muted-foreground);
+  font-size: 0.85rem;
+}
+
+// NIP-60 Migration banner
+.migration-banner {
+  padding: var(--size);
+  background: var(--background-light);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--size);
+  border-left: 3px solid var(--accent);
+
+  .migration-title {
+    font-weight: 600;
+    margin-bottom: var(--size-h);
+  }
+
+  p {
+    font-size: 0.85rem;
+    color: var(--muted-foreground);
+    margin: 0 0 var(--size) 0;
+  }
+
+  .form-group {
+    margin-bottom: var(--size);
+
+    label {
+      font-size: 0.85rem;
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    select {
+      width: 100%;
+      padding: 6px 8px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--background);
+      color: var(--foreground);
+    }
+  }
 }
 
 // Cashu onboarding
@@ -470,6 +494,18 @@
       background: var(--background-light-hover);
     }
   }
+
+  &.nutzap-btn {
+    background: var(--background-light);
+    border: 1px solid var(--primary);
+    color: var(--primary);
+    max-width: none;
+
+    &:hover:not(:disabled) {
+      background: var(--primary);
+      color: var(--primary-foreground, white);
+    }
+  }
 }
 
 .refresh-btn {
@@ -746,6 +782,43 @@
   &:hover {
     background: var(--destructive);
     color: white;
+  }
+}
+
+.delete-confirm {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--size-h);
+  margin-top: var(--size);
+  padding: var(--size);
+  border: 1px solid var(--destructive);
+  border-radius: var(--radius-md);
+  background: rgba(var(--destructive-rgb, 220, 38, 38), 0.05);
+
+  span {
+    color: var(--destructive);
+    font-size: 0.85rem;
+  }
+}
+
+.delete-confirm-actions {
+  display: flex;
+  gap: var(--size);
+}
+
+.cancel-btn {
+  padding: var(--size-h) var(--size);
+  background: transparent;
+  border: 1px solid var(--muted-foreground);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  color: var(--muted-foreground);
+  transition: all 0.15s ease;
+
+  &:hover {
+    background: var(--muted);
+    color: var(--foreground);
   }
 }
 
@@ -1027,6 +1100,43 @@
 
     &:hover {
       opacity: 0.9;
+    }
+  }
+
+  // NWC pay options for deposit
+  .nwc-pay-options {
+    display: flex;
+    flex-direction: column;
+    gap: var(--size-h);
+    width: 100%;
+
+    .nwc-pay-label {
+      font-size: 0.75rem;
+      color: var(--muted-foreground);
+      text-transform: uppercase;
+      font-weight: 500;
+      text-align: center;
+    }
+
+    .nwc-pay-btn {
+      width: 100%;
+      padding: var(--size-h) var(--size);
+      background: var(--primary);
+      border: none;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      color: var(--primary-foreground, white);
+      font-size: 0.875rem;
+      transition: all 0.15s ease;
+
+      &:hover:not(:disabled) {
+        opacity: 0.9;
+      }
+
+      &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
     }
   }
 
@@ -1318,5 +1428,66 @@
     font-size: 0.75rem;
     color: var(--muted-foreground);
     padding-left: calc(1rem + var(--size-h));
+  }
+}
+
+// NIP-60 Sync disclosure
+.sync-disclosure {
+  margin-top: var(--size-h);
+
+  summary {
+    font-size: 0.8rem;
+    color: var(--muted-foreground);
+    cursor: pointer;
+    padding: var(--size-h);
+    text-align: center;
+    user-select: none;
+
+    &:hover {
+      color: var(--foreground);
+    }
+
+    &::marker {
+      color: var(--muted-foreground);
+    }
+  }
+
+  &[open] summary {
+    margin-bottom: var(--size-h);
+  }
+
+  .success-message.small {
+    padding: 4px var(--size-h);
+    font-size: 0.75rem;
+    text-align: center;
+    margin-top: var(--size-h);
+  }
+}
+
+.sync-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-h);
+}
+
+.sync-btn {
+  width: 100%;
+  padding: var(--size-h) var(--size);
+  background: var(--background-light);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  color: var(--foreground);
+  font-size: 0.8rem;
+  transition: all 0.15s ease;
+
+  &:hover:not(:disabled) {
+    background: var(--background-light-hover);
+    border-color: var(--primary);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
   }
 }

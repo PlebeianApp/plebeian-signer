@@ -322,3 +322,55 @@ export async function publishToRelaysWithAuth(
   );
   return results;
 }
+
+/**
+ * Check if a relay requires AUTH by fetching its NIP-11 information document.
+ * Converts wss:// URL to https:// and fetches with Accept: application/nostr+json.
+ * Returns true if limitation.auth_required === true.
+ */
+export async function checkNip11Auth(relayUrl: string): Promise<boolean> {
+  const httpUrl = relayUrl
+    .replace(/^wss:\/\//, 'https://')
+    .replace(/^ws:\/\//, 'http://');
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 5000);
+
+  try {
+    const response = await fetch(httpUrl, {
+      headers: { 'Accept': 'application/nostr+json' },
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
+
+    if (!response.ok) return false;
+
+    const info = await response.json();
+    return info?.limitation?.auth_required === true;
+  } catch {
+    clearTimeout(timeout);
+    return false;
+  }
+}
+
+/**
+ * Filter a list of relay URLs to only those that require NIP-42 AUTH,
+ * as determined by their NIP-11 information document.
+ */
+export async function filterAuthRelays(relays: string[]): Promise<string[]> {
+  const authRelays: string[] = [];
+
+  const probes = relays.map(async (url) => {
+    try {
+      const isAuth = await checkNip11Auth(url);
+      if (isAuth) {
+        authRelays.push(url);
+      }
+    } catch {
+      // Skip relay on error
+    }
+  });
+
+  await Promise.allSettled(probes);
+  return authRelays;
+}

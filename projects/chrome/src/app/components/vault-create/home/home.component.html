@@ -117,4 +117,45 @@
       }
     </div>
   </div>
+
+  <!-- Restore from Relays Section -->
+  <div class="section">
+    <h2 class="section-heading">Restore from Relays</h2>
+    <span class="section-note">Restore a previously synced vault from Nostr relays.</span>
+
+    <div class="input-group">
+      <input
+        #relayNsecInput
+        type="password"
+        class="form-control"
+        placeholder="nsec of vault owner"
+        [(ngModel)]="relayRestoreNsec"
+        (ngModelChange)="validateRelayNsec()"
+      />
+      <button
+        class="btn btn-outline-secondary"
+        type="button"
+        (click)="toggleVisibility(relayNsecInput)"
+        title="toggle visibility"
+      >
+        <i
+          class="bi"
+          [class.bi-eye]="relayNsecInput.type === 'password'"
+          [class.bi-eye-slash]="relayNsecInput.type === 'text'"
+        ></i>
+      </button>
+    </div>
+
+    <button
+      type="button"
+      class="btn btn-primary"
+      [disabled]="!isRelayNsecValid || relayRestoring"
+      (click)="onRestoreFromRelays()"
+    >
+      {{ relayRestoring ? relayRestoreStep : 'Restore from Relays' }}
+    </button>
+    @if (relayRestoreError) {
+      <p class="error-note">{{ relayRestoreError }}</p>
+    }
+  </div>
 </div>

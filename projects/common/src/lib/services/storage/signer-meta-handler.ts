@@ -18,7 +18,7 @@ export abstract class SignerMetaHandler {
 
   #extensionSettings?: ExtensionSettings;
 
-  readonly metaProperties = ['syncFlow', 'vaultSnapshots', 'maxBackups', 'recklessMode', 'whitelistedHosts', 'bookmarks', 'devMode', 'paused', 'stayUnlocked'];
+  readonly metaProperties = ['syncFlow', 'vaultSnapshots', 'maxBackups', 'recklessMode', 'whitelistedHosts', 'bookmarks', 'devMode', 'paused', 'stayUnlocked', 'nip60Enabled', 'relaySyncIdentityId', 'relaySyncAuthOnly', 'relaySyncLastPushed'];
   readonly DEFAULT_MAX_BACKUPS = 5;
   /**
    * Load the full data from the storage. If the storage is used for storing
@@ -108,6 +108,98 @@ export abstract class SignerMetaHandler {
    */
   isPaused(): boolean {
     return this.#extensionSettings?.paused ?? false;
+  }
+
+  /**
+   * Sets NIP-60 relay wallet sync and immediately saves it.
+   */
+  async setNip60Enabled(enabled: boolean): Promise<void> {
+    if (!this.#extensionSettings) {
+      this.#extensionSettings = {
+        nip60Enabled: enabled,
+      };
+    } else {
+      this.#extensionSettings.nip60Enabled = enabled;
+    }
+
+    await this.saveFullData(this.#extensionSettings);
+  }
+
+  /**
+   * Returns whether NIP-60 relay wallet sync is enabled.
+   */
+  isNip60Enabled(): boolean {
+    return this.#extensionSettings?.nip60Enabled ?? true;
+  }
+
+  // =========================================================================
+  // Relay Sync settings
+  // =========================================================================
+
+  /**
+   * Sets the identity whose keypair signs vault events on relays.
+   */
+  async setRelaySyncIdentityId(id: string | undefined): Promise<void> {
+    if (!this.#extensionSettings) {
+      this.#extensionSettings = {
+        relaySyncIdentityId: id,
+      };
+    } else {
+      this.#extensionSettings.relaySyncIdentityId = id;
+    }
+
+    await this.saveFullData(this.#extensionSettings);
+  }
+
+  /**
+   * Gets the identity ID designated for relay sync.
+   */
+  getRelaySyncIdentityId(): string | undefined {
+    return this.#extensionSettings?.relaySyncIdentityId;
+  }
+
+  /**
+   * Sets whether to only publish vault to AUTH-required relays.
+   */
+  async setRelaySyncAuthOnly(authOnly: boolean): Promise<void> {
+    if (!this.#extensionSettings) {
+      this.#extensionSettings = {
+        relaySyncAuthOnly: authOnly,
+      };
+    } else {
+      this.#extensionSettings.relaySyncAuthOnly = authOnly;
+    }
+
+    await this.saveFullData(this.#extensionSettings);
+  }
+
+  /**
+   * Returns whether relay sync is restricted to AUTH-required relays.
+   */
+  isRelaySyncAuthOnly(): boolean {
+    return this.#extensionSettings?.relaySyncAuthOnly ?? false;
+  }
+
+  /**
+   * Sets the last successful relay push timestamp.
+   */
+  async setRelaySyncLastPushed(timestamp: number): Promise<void> {
+    if (!this.#extensionSettings) {
+      this.#extensionSettings = {
+        relaySyncLastPushed: timestamp,
+      };
+    } else {
+      this.#extensionSettings.relaySyncLastPushed = timestamp;
+    }
+
+    await this.saveFullData(this.#extensionSettings);
+  }
+
+  /**
+   * Gets the last successful relay push timestamp (0 if never pushed).
+   */
+  getRelaySyncLastPushed(): number {
+    return this.#extensionSettings?.relaySyncLastPushed ?? 0;
   }
 
   /**

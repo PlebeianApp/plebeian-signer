@@ -155,6 +155,43 @@ const nostr = {
       return plaintext;
     },
   },
+
+  nutzap: {
+    async getInfo(): Promise<{ pubkey: string; mints: string[]; relays: string[] }> {
+      debug('nutzap.getInfo received');
+      const info = await nostr.messenger.request('nutzap.getInfo', {});
+      debug('nutzap.getInfo response:');
+      debug(info);
+      return info;
+    },
+
+    async send(params: {
+      recipientPubkey: string;
+      amount: number;
+      mintUrl?: string;
+      eventId?: string;
+      comment?: string;
+    }): Promise<{ eventId: string; amount: number }> {
+      debug('nutzap.send received');
+      const result = await nostr.messenger.request('nutzap.send', params);
+      debug('nutzap.send response:');
+      debug(result);
+      return result;
+    },
+
+    async redeem(): Promise<{
+      eventId: string;
+      senderPubkey: string;
+      amount: number;
+      mint: string;
+    }[]> {
+      debug('nutzap.redeem received');
+      const result = await nostr.messenger.request('nutzap.redeem', {});
+      debug('nutzap.redeem response:');
+      debug(result);
+      return result;
+    },
+  },
 };
 
 window.nostr = nostr as any;

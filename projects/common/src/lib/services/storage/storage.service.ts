@@ -18,6 +18,7 @@ import {
   addIdentity,
   deleteIdentity,
   switchIdentity,
+  updateIdentityWalletPrivkey,
 } from './related/identity';
 import { deletePermission } from './related/permission';
 import { createNewVault, deleteVault, unlockVault } from './related/vault';
@@ -30,8 +31,16 @@ import {
 import {
   addCashuMint,
   deleteCashuMint,
+  encryptCashuMint,
   updateCashuMintProofs,
 } from './related/cashu';
+
+export class SyncQuotaExceededError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'SyncQuotaExceededError';
+  }
+}
 
 export interface StorageServiceConfig {
   browserSessionHandler: BrowserSessionHandler;
@@ -66,6 +75,47 @@ export class StorageService {
     this.assureIsInitialized();
 
     this.#signerMetaHandler.setSyncFlow(flow);
+  }
+
+  /**
+   * Switch the sync flow at runtime, migrating vault data between handlers.
+   * Copies encrypted vault from the current handler to the new one,
+   * clears the old handler, and updates the sync flow setting.
+   *
+   * Throws SyncQuotaExceededError if the vault is too large for sync storage.
+   */
+  async switchSyncFlow(newFlow: SyncFlow): Promise<void> {
+    this.assureIsInitialized();
+
+    const currentFlow = this.getSyncFlow();
+    if (currentFlow === newFlow) return;
+
+    const currentHandler = this.getBrowserSyncHandler();
+    const newHandler = newFlow === SyncFlow.BROWSER_SYNC
+      ? this.#browserSyncYesHandler
+      : this.#browserSyncNoHandler;
+
+    // Copy vault data to the new handler
+    const vault = currentHandler.encryptedVault;
+    if (vault) {
+      try {
+        await newHandler.saveAndSetFullData(vault);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        if (msg.includes('QUOTA') || msg.includes('quota')) {
+          throw new SyncQuotaExceededError(
+            'Vault is too large for browser sync storage. Cashu tokens need to be migrated to relay storage (NIP-60) first.'
+          );
+        }
+        throw err;
+      }
+    }
+
+    // Clear the old handler
+    await currentHandler.clearData();
+
+    // Update the sync flow setting
+    await this.#signerMetaHandler.setSyncFlow(newFlow);
   }
 
   async loadExtensionSettings(): Promise<ExtensionSettings | undefined> {
@@ -158,6 +208,7 @@ export class StorageService {
 
   async lockVault(): Promise<void> {
     this.assureIsInitialized();
+    this.flushRelaySync();
     await this.getBrowserSessionHandler().clearData();
     this.getBrowserSessionHandler().clearInMemoryData();
     // Note: We don't set isInitialized = false here because the sync data
@@ -170,6 +221,7 @@ export class StorageService {
 
   async createNewVault(password: string): Promise<void> {
     await createNewVault.call(this, password);
+    this.scheduleRelaySync();
   }
 
   async addIdentity(data: {
@@ -177,18 +229,30 @@ export class StorageService {
     privkeyString: string;
   }): Promise<void> {
     await addIdentity.call(this, data);
+    this.scheduleRelaySync();
   }
 
   async deleteIdentity(identityId: string | undefined): Promise<void> {
     await deleteIdentity.call(this, identityId);
+    this.scheduleRelaySync();
   }
 
   async switchIdentity(identityId: string | null): Promise<void> {
     await switchIdentity.call(this, identityId);
+    this.scheduleRelaySync();
+  }
+
+  async updateIdentityWalletPrivkey(
+    identityId: string,
+    walletPrivkeyHex: string
+  ): Promise<void> {
+    await updateIdentityWalletPrivkey.call(this, identityId, walletPrivkeyHex);
+    this.scheduleRelaySync();
   }
 
   async deletePermission(permissionId: string) {
     await deletePermission.call(this, permissionId);
+    this.scheduleRelaySync();
   }
 
   async addRelay(data: {
@@ -198,14 +262,17 @@ export class StorageService {
     read: boolean;
   }): Promise<void> {
     await addRelay.call(this, data);
+    this.scheduleRelaySync();
   }
 
   async deleteRelay(relayId: string): Promise<void> {
     await deleteRelay.call(this, relayId);
+    this.scheduleRelaySync();
   }
 
   async updateRelay(relayClone: RelayData): Promise<void> {
     await updateRelay.call(this, relayClone);
+    this.scheduleRelaySync();
   }
 
   async addNwcConnection(data: {
@@ -213,10 +280,12 @@ export class StorageService {
     connectionUrl: string;
   }): Promise<void> {
     await addNwcConnection.call(this, data);
+    this.scheduleRelaySync();
   }
 
   async deleteNwcConnection(connectionId: string): Promise<void> {
     await deleteNwcConnection.call(this, connectionId);
+    this.scheduleRelaySync();
   }
 
   async updateNwcConnectionBalance(
@@ -224,6 +293,7 @@ export class StorageService {
     balanceMillisats: number
   ): Promise<void> {
     await updateNwcConnectionBalance.call(this, connectionId, balanceMillisats);
+    this.scheduleRelaySync();
   }
 
   async addCashuMint(data: {
@@ -231,18 +301,42 @@ export class StorageService {
     mintUrl: string;
     unit?: string;
   }): Promise<CashuMintRecord> {
-    return await addCashuMint.call(this, data);
+    const result = await addCashuMint.call(this, data);
+    this.scheduleRelaySync();
+    return result;
   }
 
   async deleteCashuMint(mintId: string): Promise<void> {
     await deleteCashuMint.call(this, mintId);
+    this.scheduleRelaySync();
   }
 
   async updateCashuMintProofs(
     mintId: string,
-    proofs: CashuProof[]
+    proofs: CashuProof[],
+    skipVaultProofs = false
   ): Promise<void> {
-    await updateCashuMintProofs.call(this, mintId, proofs);
+    await updateCashuMintProofs.call(this, mintId, proofs, skipVaultProofs);
+    this.scheduleRelaySync();
+  }
+
+  /**
+   * Strip proofs from vault — re-encrypt all mints with empty proofs.
+   * Used during NIP-60 migration to remove proofs from local storage
+   * after they've been pushed to relays.
+   */
+  async stripProofsFromVault(): Promise<void> {
+    this.assureIsInitialized();
+
+    const mints = this.getBrowserSessionHandler().browserSessionData?.cashuMints ?? [];
+    const encryptedMints = [];
+    for (const mint of mints) {
+      const metaOnly = { ...mint, proofs: [] as CashuProof[], cachedBalance: 0, cachedBalanceAt: undefined };
+      const encrypted = await encryptCashuMint.call(this, metaOnly);
+      encryptedMints.push(encrypted);
+    }
+    await this.getBrowserSyncHandler().saveAndSetPartialData_CashuMints({ cashuMints: encryptedMints });
+    this.scheduleRelaySync();
   }
 
   exportVault(): string {
@@ -268,18 +362,20 @@ export class StorageService {
     await this.getBrowserSyncHandler().saveAndSetFullData(
       allegedEncryptedVault
     );
+    this.scheduleRelaySync();
   }
 
   getBrowserSyncHandler(): BrowserSyncHandler {
     this.assureIsInitialized();
 
     switch (this.#signerMetaHandler.extensionSettings?.syncFlow) {
-      case SyncFlow.NO_SYNC:
-        return this.#browserSyncNoHandler;
-
       case SyncFlow.BROWSER_SYNC:
-      default:
         return this.#browserSyncYesHandler;
+
+      case SyncFlow.NO_SYNC:
+      case SyncFlow.RELAY_SYNC:
+      default:
+        return this.#browserSyncNoHandler;
     }
   }
 
@@ -304,6 +400,40 @@ export class StorageService {
       return SyncFlow.NO_SYNC;
     }
     return this.#signerMetaHandler.extensionSettings.syncFlow ?? SyncFlow.NO_SYNC;
+  }
+
+  // -----------------------------------------------------------------------
+  // Relay Sync scheduling
+  // -----------------------------------------------------------------------
+
+  #relaySyncTimer?: ReturnType<typeof setTimeout>;
+  #relaySyncCallback?: () => void;
+
+  /**
+   * Set the callback that pushes the vault to relays.
+   * Called by the app component after vault unlock.
+   */
+  setRelaySyncCallback(cb: () => void): void {
+    this.#relaySyncCallback = cb;
+  }
+
+  /**
+   * Schedule a debounced relay push (5s). Called after every mutating operation.
+   * No-op if sync flow is not RELAY_SYNC.
+   */
+  scheduleRelaySync(): void {
+    if (this.getSyncFlow() !== SyncFlow.RELAY_SYNC) return;
+    clearTimeout(this.#relaySyncTimer);
+    this.#relaySyncTimer = setTimeout(() => this.#relaySyncCallback?.(), 5000);
+  }
+
+  /**
+   * Flush any pending relay sync immediately (e.g., before locking vault).
+   */
+  flushRelaySync(): void {
+    if (this.getSyncFlow() !== SyncFlow.RELAY_SYNC) return;
+    clearTimeout(this.#relaySyncTimer);
+    this.#relaySyncCallback?.();
   }
 
   /**

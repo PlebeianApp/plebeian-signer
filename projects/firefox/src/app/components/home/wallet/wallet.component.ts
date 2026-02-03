@@ -12,8 +12,13 @@ import {
   CashuProof,
   NwcLookupInvoiceResult,
   BrowserSyncFlow,
+  Nip60Service,
+  Nip61Service,
+  pubkeyFromPrivkey,
 } from '@common';
+import type { IdentityData, NutzapReceived } from '@common';
 import * as QRCode from 'qrcode';
+import browser from 'webextension-polyfill';
 
 type WalletSection =
   | 'main'
@@ -23,6 +28,7 @@ type WalletSection =
   | 'cashu-receive'
   | 'cashu-send'
   | 'cashu-mint'
+  | 'cashu-nutzap'
   | 'lightning'
   | 'lightning-detail'
   | 'lightning-add'
@@ -40,6 +46,8 @@ export class WalletComponent extends NavComponent implements OnInit, OnDestroy {
   readonly #router = inject(Router);
   readonly nwcService = inject(NwcService);
   readonly cashuService = inject(CashuService);
+  readonly #nip60Service = inject(Nip60Service);
+  readonly #nip61Service = inject(Nip61Service);
 
   activeSection: WalletSection = 'main';
   selectedConnectionId: string | null = null;
@@ -83,6 +91,14 @@ export class WalletComponent extends NavComponent implements OnInit, OnDestroy {
   depositQuoteState: 'UNPAID' | 'PAID' | 'ISSUED' = 'UNPAID';
   private depositPollingInterval: ReturnType<typeof setInterval> | null = null;
 
+  // NWC auto-pay for deposit
+  payingDepositWithNwc = false;
+  nwcPayError = '';
+
+  // Delete confirmation
+  confirmingDeleteMint = false;
+  confirmingDeleteWallet = false;
+
   // Loading states
   loadingBalances = false;
   balanceError = '';
@@ -123,9 +139,39 @@ export class WalletComponent extends NavComponent implements OnInit, OnDestroy {
   refreshingMint = false;
   refreshError = '';
 
+  // Nutzap send fields
+  nutzapRecipient = '';
+  nutzapAmount = 0;
+  nutzapComment = '';
+  nutzapEventId = '';
+  sendingNutzap = false;
+  nutzapError = '';
+  nutzapResult = '';
+
+  // Nutzap redeem
+  redeemingNutzaps = false;
+  redeemError = '';
+  redeemResult: NutzapReceived[] = [];
+
+  // NIP-60 sync
+  nip60Active = false; // true when nip60Enabled AND identity has relay list
+  nip60NoRelays = false; // true when nip60 enabled but no relay list found
+  nip60Loading = false;
+  nip60LoadError = '';
+  pushingToRelays = false;
+  pullingFromRelays = false;
+  publishingNutzapInfo = false;
+  syncError = '';
+  syncResult = '';
+
+  // NIP-60 Migration
+  migrationNeeded = false;
+  migrating = false;
+  migrationError = '';
+
   // Suggested mints for quick-add
   readonly suggestedMints = [
-    { name: 'Minibits', url: 'https://mint.minibits.cash', description: 'Well-established mobile wallet mint' },
+    { name: 'Minibits', url: 'https://mint.minibits.cash/Bitcoin', description: 'Well-established mobile wallet mint' },
     { name: 'Coinos', url: 'https://mint.coinos.io', description: 'Lightning wallet with Cashu integration' },
     { name: '21Mint', url: 'https://21mint.me', description: 'Community mint' },
     { name: 'Macadamia', url: 'https://mint.macadamia.cash', description: 'Reliable community mint' },
@@ -146,6 +192,8 @@ export class WalletComponent extends NavComponent implements OnInit, OnDestroy {
         return 'Send';
       case 'cashu-mint':
         return 'Deposit';
+      case 'cashu-nutzap':
+        return 'Nutzap';
       case 'lightning':
         return 'Lightning';
       case 'lightning-detail':
@@ -201,17 +249,119 @@ export class WalletComponent extends NavComponent implements OnInit, OnDestroy {
     return this.cashuService.getProofs(this.selectedMintId);
   }
 
+  private walletResetHandler = () => {
+    this.activeSection = 'main';
+    this.selectedConnectionId = null;
+    this.selectedMintId = null;
+  };
+
   ngOnInit(): void {
     // Load current sync flow setting
     this.currentSyncFlow = this.storage.getSyncFlow();
+
+    // If NIP-60 is enabled, pull proofs from relays
+    if (this.cashuService.isNip60Enabled()) {
+      this.pullProofsOnInit();
+    }
 
     // Refresh balances on init if we have connections
     if (this.connections.length > 0) {
       this.refreshAllBalances();
     }
+
+    // Restore any pending deposit quote (survives popup close/reopen)
+    this.restorePendingDeposit();
+
+    // Listen for wallet tab re-click to reset to main
+    window.addEventListener('wallet-reset', this.walletResetHandler);
+  }
+
+  private async pullProofsOnInit() {
+    const identity = this.getActiveIdentity();
+    if (!identity) return;
+
+    // Check if identity has a published relay list (NIP-65)
+    const pubkey = pubkeyFromPrivkey(identity.privkey);
+    try {
+      const hasRelays = await this.#nip60Service.hasIdentityRelays(pubkey);
+      if (!hasRelays) {
+        this.nip60NoRelays = true;
+        this.nip60Active = false;
+        return;
+      }
+      this.nip60Active = true;
+      this.nip60NoRelays = false;
+    } catch {
+      this.nip60NoRelays = true;
+      this.nip60Active = false;
+      return;
+    }
+
+    this.nip60Loading = true;
+    this.nip60LoadError = '';
+
+    try {
+      await this.#nip60Service.pullWalletFromRelays(identity);
+    } catch (err) {
+      this.nip60LoadError = err instanceof Error ? err.message : 'Failed to sync wallet from relays';
+      console.error('NIP-60 pull failed:', err);
+    } finally {
+      this.nip60Loading = false;
+      this.checkMigrationNeeded();
+    }
+  }
+
+  checkMigrationNeeded(): void {
+    if (!this.cashuService.isNip60Enabled()) {
+      this.migrationNeeded = false;
+      return;
+    }
+    const mints = this.cashuService.getMints();
+    this.migrationNeeded = mints.some(m => m.proofs.length > 0);
+  }
+
+  get identities(): IdentityData[] {
+    const session = this.storage.getBrowserSessionHandler().browserSessionData;
+    return session?.identities ?? [];
+  }
+
+  migrationIdentityId = '';
+
+  async startMigration(): Promise<void> {
+    this.migrating = true;
+    this.migrationError = '';
+
+    try {
+      let identity: IdentityData | null;
+      if (this.migrationIdentityId) {
+        identity = this.identities.find(i => i.id === this.migrationIdentityId) ?? null;
+      } else {
+        identity = this.getActiveIdentity();
+      }
+      if (!identity) {
+        this.migrationError = 'No identity selected';
+        return;
+      }
+
+      await this.#nip60Service.getWalletPrivkey(identity);
+      const results = await this.#nip60Service.pushWalletToRelays(identity);
+      const successCount = results.filter(r => r.success).length;
+      if (successCount === 0) {
+        this.migrationError = 'Failed to push to any relay. Migration aborted.';
+        return;
+      }
+
+      await this.storage.stripProofsFromVault();
+      this.migrationNeeded = false;
+    } catch (err) {
+      this.migrationError = err instanceof Error ? err.message : 'Migration failed';
+    } finally {
+      this.migrating = false;
+    }
   }
 
   ngOnDestroy(): void {
+    window.removeEventListener('wallet-reset', this.walletResetHandler);
     this.nwcService.disconnectAll();
     this.stopDepositPolling();
   }
@@ -223,6 +373,8 @@ export class WalletComponent extends NavComponent implements OnInit, OnDestroy {
   }
 
   goBack() {
+    this.confirmingDeleteMint = false;
+    this.confirmingDeleteWallet = false;
     switch (this.activeSection) {
       case 'lightning-detail':
       case 'lightning-add':
@@ -245,9 +397,14 @@ export class WalletComponent extends NavComponent implements OnInit, OnDestroy {
       case 'cashu-receive':
       case 'cashu-send':
       case 'cashu-mint':
+      case 'cashu-nutzap':
         this.activeSection = 'cashu-detail';
         this.resetReceiveSendForm();
-        this.resetDepositForm();
+        // Only reset deposit if no active quote (let polling continue in background)
+        if (!this.depositPollingInterval && !this.depositQuoteId) {
+          this.resetDepositForm();
+        }
+        this.resetNutzapForm();
         break;
       case 'lightning':
       case 'cashu':
@@ -359,12 +516,11 @@ export class WalletComponent extends NavComponent implements OnInit, OnDestroy {
   async deleteConnection() {
     if (!this.selectedConnectionId) return;
 
-    const connection = this.selectedConnection;
-    if (
-      !confirm(`Delete wallet "${connection?.name}"? This cannot be undone.`)
-    ) {
+    if (!this.confirmingDeleteWallet) {
+      this.confirmingDeleteWallet = true;
       return;
     }
+    this.confirmingDeleteWallet = false;
 
     try {
       await this.nwcService.deleteConnection(this.selectedConnectionId);
@@ -449,6 +605,7 @@ export class WalletComponent extends NavComponent implements OnInit, OnDestroy {
     this.checkingDepositPayment = false;
     this.depositQuoteState = 'UNPAID';
     this.stopDepositPolling();
+    this.clearPendingDeposit();
   }
 
   private stopDepositPolling() {
@@ -540,10 +697,11 @@ export class WalletComponent extends NavComponent implements OnInit, OnDestroy {
   async deleteMint() {
     if (!this.selectedMintId) return;
 
-    const mint = this.selectedMint;
-    if (!confirm(`Delete mint "${mint?.name}"? Any tokens stored will be lost. This cannot be undone.`)) {
+    if (!this.confirmingDeleteMint) {
+      this.confirmingDeleteMint = true;
       return;
     }
+    this.confirmingDeleteMint = false;
 
     try {
       await this.cashuService.deleteMint(this.selectedMintId);
@@ -567,6 +725,7 @@ export class WalletComponent extends NavComponent implements OnInit, OnDestroy {
       const result = await this.cashuService.receive(this.receiveToken.trim());
       this.receiveResult = `Received ${result.amount} sats!`;
       this.receiveToken = '';
+      await this.pushProofsIfNip60(result.mintId);
     } catch (error) {
       this.receiveError =
         error instanceof Error ? error.message : 'Failed to receive token';
@@ -600,6 +759,7 @@ export class WalletComponent extends NavComponent implements OnInit, OnDestroy {
       );
       this.sendResult = result.token;
       this.sendAmount = 0;
+      await this.pushProofsIfNip60(this.selectedMintId);
     } catch (error) {
       this.sendError =
         error instanceof Error ? error.message : 'Failed to create token';
@@ -671,6 +831,9 @@ export class WalletComponent extends NavComponent implements OnInit, OnDestroy {
         },
       });
 
+      // Persist quote so it survives popup close
+      await this.savePendingDeposit();
+
       // Start polling for payment
       this.startDepositPolling();
     } catch (error) {
@@ -709,9 +872,11 @@ export class WalletComponent extends NavComponent implements OnInit, OnDestroy {
         // Already claimed
         this.stopDepositPolling();
         this.depositSuccess = 'Tokens already claimed!';
+        await this.clearPendingDeposit();
       }
     } catch (error) {
-      // Don't show error for polling failures, just log
+      this.depositError =
+        error instanceof Error ? error.message : 'Mint connection error';
       console.error('Failed to check payment:', error);
     } finally {
       this.checkingDepositPayment = false;
@@ -730,6 +895,8 @@ export class WalletComponent extends NavComponent implements OnInit, OnDestroy {
 
       this.depositSuccess = `Received ${result.amount} sats!`;
       this.depositQuoteState = 'ISSUED';
+      await this.clearPendingDeposit();
+      await this.pushProofsIfNip60(this.selectedMintId);
     } catch (error) {
       this.depositError =
         error instanceof Error ? error.message : 'Failed to claim tokens';
@@ -740,6 +907,268 @@ export class WalletComponent extends NavComponent implements OnInit, OnDestroy {
     if (this.depositInvoice) {
       await navigator.clipboard.writeText(this.depositInvoice);
     }
+  }
+
+  /** NWC wallets that can pay the current deposit invoice */
+  get nwcWalletsForDeposit(): NwcConnection_DECRYPTED[] {
+    if (!this.depositInvoice || this.depositAmount <= 0) return [];
+    return this.connections.filter(c =>
+      c.cachedBalance !== undefined && c.cachedBalance / 1000 >= this.depositAmount
+    );
+  }
+
+  async payDepositWithNwc(connectionId: string) {
+    if (!this.depositInvoice) return;
+
+    this.payingDepositWithNwc = true;
+    this.nwcPayError = '';
+
+    try {
+      await this.nwcService.payInvoice(connectionId, this.depositInvoice);
+      // Payment sent - polling will detect PAID and claim tokens
+    } catch (error) {
+      this.nwcPayError =
+        error instanceof Error ? error.message : 'NWC payment failed';
+    } finally {
+      this.payingDepositWithNwc = false;
+    }
+  }
+
+  private async savePendingDeposit() {
+    if (!this.selectedMintId || !this.depositQuoteId) return;
+    await browser.storage.session.set({
+      pendingDeposit: {
+        mintId: this.selectedMintId,
+        quoteId: this.depositQuoteId,
+        amount: this.depositAmount,
+        invoice: this.depositInvoice,
+      },
+    });
+  }
+
+  private async clearPendingDeposit() {
+    await browser.storage.session.remove('pendingDeposit');
+  }
+
+  private async restorePendingDeposit() {
+    const data = await browser.storage.session.get('pendingDeposit');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const pending = (data as Record<string, any>)?.['pendingDeposit'];
+    if (!pending?.mintId || !pending?.quoteId) return;
+
+    // Verify the mint still exists
+    const mint = this.cashuService.getMint(pending.mintId);
+    if (!mint) {
+      await this.clearPendingDeposit();
+      return;
+    }
+
+    // Restore state and navigate to deposit view
+    this.selectedMintId = pending.mintId;
+    this.depositQuoteId = pending.quoteId;
+    this.depositAmount = pending.amount;
+    this.depositInvoice = pending.invoice;
+    this.depositQuoteState = 'UNPAID';
+    this.activeSection = 'cashu-mint';
+
+    // Check the quote status immediately
+    await this.checkDepositPayment();
+
+    // If still unpaid, resume polling
+    if (this.depositQuoteState === 'UNPAID') {
+      this.startDepositPolling();
+    }
+  }
+
+  // Nutzap methods
+
+  showNutzap() {
+    this.resetNutzapForm();
+    this.activeSection = 'cashu-nutzap';
+  }
+
+  private resetNutzapForm() {
+    this.nutzapRecipient = '';
+    this.nutzapAmount = 0;
+    this.nutzapComment = '';
+    this.nutzapEventId = '';
+    this.sendingNutzap = false;
+    this.nutzapError = '';
+    this.nutzapResult = '';
+  }
+
+  private async pushProofsIfNip60(mintId: string): Promise<void> {
+    if (!this.nip60Active) return;
+    const identity = this.getActiveIdentity();
+    if (!identity) return;
+    const mint = this.cashuService.getMint(mintId);
+    if (!mint) return;
+    try {
+      await this.#nip60Service.pushMintProofsToRelays(identity, mint.mintUrl, mint.proofs);
+    } catch (err) {
+      console.error('Failed to push proofs to relays:', err);
+    }
+  }
+
+  private getActiveIdentity(): IdentityData | null {
+    const session = this.storage.getBrowserSessionHandler().browserSessionData;
+    if (!session) return null;
+    return session.identities.find(i => i.id === session.selectedIdentityId) ?? null;
+  }
+
+  async sendNutzap() {
+    if (!this.nutzapRecipient.trim()) {
+      this.nutzapError = 'Please enter a recipient pubkey';
+      return;
+    }
+    if (this.nutzapAmount <= 0) {
+      this.nutzapError = 'Please enter an amount';
+      return;
+    }
+
+    const identity = this.getActiveIdentity();
+    if (!identity) {
+      this.nutzapError = 'No active identity';
+      return;
+    }
+
+    this.sendingNutzap = true;
+    this.nutzapError = '';
+    this.nutzapResult = '';
+
+    try {
+      const result = await this.#nip61Service.sendNutzap(identity, {
+        recipientPubkey: this.nutzapRecipient.trim(),
+        amount: this.nutzapAmount,
+        mintUrl: this.selectedMint?.mintUrl,
+        eventId: this.nutzapEventId.trim() || undefined,
+        comment: this.nutzapComment.trim() || undefined,
+      });
+      this.nutzapResult = `Sent ${result.amount} sats nutzap!`;
+      if (this.selectedMintId) {
+        await this.pushProofsIfNip60(this.selectedMintId);
+      }
+      this.nutzapAmount = 0;
+      this.nutzapRecipient = '';
+      this.nutzapComment = '';
+      this.nutzapEventId = '';
+    } catch (error) {
+      this.nutzapError = error instanceof Error ? error.message : 'Failed to send nutzap';
+    } finally {
+      this.sendingNutzap = false;
+    }
+  }
+
+  async redeemNutzaps() {
+    const identity = this.getActiveIdentity();
+    if (!identity) {
+      this.redeemError = 'No active identity';
+      return;
+    }
+
+    this.redeemingNutzaps = true;
+    this.redeemError = '';
+    this.redeemResult = [];
+
+    try {
+      const redeemed = await this.#nip61Service.redeemNutzaps(identity);
+      this.redeemResult = redeemed;
+      if (redeemed.length === 0) {
+        this.redeemError = 'No pending nutzaps found';
+      } else if (this.cashuService.isNip60Enabled()) {
+        const affectedMintUrls = new Set(redeemed.map(r => r.mint).filter(Boolean));
+        for (const mintUrl of affectedMintUrls) {
+          const mint = this.cashuService.getMintByUrl(mintUrl);
+          if (mint) await this.pushProofsIfNip60(mint.id);
+        }
+      }
+    } catch (error) {
+      this.redeemError = error instanceof Error ? error.message : 'Failed to redeem nutzaps';
+    } finally {
+      this.redeemingNutzaps = false;
+    }
+  }
+
+  // NIP-60 Sync methods
+
+  private resetSyncState() {
+    this.syncError = '';
+    this.syncResult = '';
+  }
+
+  async pushToRelays() {
+    const identity = this.getActiveIdentity();
+    if (!identity) {
+      this.syncError = 'No active identity';
+      return;
+    }
+
+    this.pushingToRelays = true;
+    this.resetSyncState();
+
+    try {
+      const results = await this.#nip60Service.pushWalletToRelays(identity);
+      const successCount = results.filter(r => r.success).length;
+      this.syncResult = `Pushed wallet state (${successCount}/${results.length} relays)`;
+    } catch (error) {
+      this.syncError = error instanceof Error ? error.message : 'Failed to push to relays';
+    } finally {
+      this.pushingToRelays = false;
+    }
+  }
+
+  async pullFromRelays() {
+    const identity = this.getActiveIdentity();
+    if (!identity) {
+      this.syncError = 'No active identity';
+      return;
+    }
+
+    this.pullingFromRelays = true;
+    this.resetSyncState();
+
+    try {
+      const result = await this.#nip60Service.pullWalletFromRelays(identity);
+      const parts: string[] = [];
+      if (result.newMints.length > 0) parts.push(`${result.newMints.length} new mints`);
+      if (result.newProofsCount > 0) parts.push(`${result.newProofsCount} new proofs`);
+      this.syncResult = parts.length > 0
+        ? `Pulled: ${parts.join(', ')}`
+        : 'Already up to date';
+    } catch (error) {
+      this.syncError = error instanceof Error ? error.message : 'Failed to pull from relays';
+    } finally {
+      this.pullingFromRelays = false;
+    }
+  }
+
+  async publishNutzapInfo() {
+    const identity = this.getActiveIdentity();
+    if (!identity) {
+      this.syncError = 'No active identity';
+      return;
+    }
+
+    this.publishingNutzapInfo = true;
+    this.resetSyncState();
+
+    try {
+      const results = await this.#nip60Service.publishNutzapInfo(identity);
+      const successCount = results.filter(r => r.success).length;
+      this.syncResult = `Published nutzap info (${successCount}/${results.length} relays)`;
+    } catch (error) {
+      this.syncError = error instanceof Error ? error.message : 'Failed to publish nutzap info';
+    } finally {
+      this.publishingNutzapInfo = false;
+    }
+  }
+
+  get redeemTotalAmount(): number {
+    return this.redeemResult.reduce((sum, r) => sum + r.amount, 0);
+  }
+
+  get isSyncing(): boolean {
+    return this.pushingToRelays || this.pullingFromRelays || this.publishingNutzapInfo;
   }
 
   formatCashuBalance(sats: number | undefined): string {

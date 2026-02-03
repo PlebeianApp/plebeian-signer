@@ -37,6 +37,7 @@ export interface StoredIdentity {
   createdAt: string;
   nick: string;
   privkey: string;
+  walletPrivkey?: string; // NIP-60: hex private key for P2PK ecash (encrypted in vault)
 }
 
 /**
@@ -180,7 +181,7 @@ export type EncryptedVault = EncryptedVaultHeader & EncryptedVaultContent;
 export enum SyncFlow {
   NO_SYNC = 0,
   BROWSER_SYNC = 1,
-  SIGNER_SYNC = 2,
+  RELAY_SYNC = 2,
   CUSTOM_SYNC = 3,
 }
 
@@ -270,6 +271,17 @@ export interface ExtensionSettings {
   // Stay Unlocked: persist vault key so vault auto-unlocks on browser restart.
   // WARNING: Stores the vault password in plaintext in local storage.
   stayUnlocked?: boolean;
+
+  // NIP-60: When true, Cashu proofs are stored on Nostr relays instead of in the vault.
+  // This reduces vault size and re-enables browser sync for wallets with many proofs.
+  nip60Enabled?: boolean;
+
+  // Relay Sync: Identity whose keypair signs vault events on relays
+  relaySyncIdentityId?: string;
+  // Relay Sync: Only publish vault to relays that require NIP-42 AUTH
+  relaySyncAuthOnly?: boolean;
+  // Relay Sync: Unix timestamp of last successful push to relays
+  relaySyncLastPushed?: number;
 }
 
 /**

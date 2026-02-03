@@ -1,5 +1,5 @@
-import { Component } from '@angular/core';
-import { RouterModule, RouterOutlet } from '@angular/router';
+import { Component, inject } from '@angular/core';
+import { Router, RouterModule, RouterOutlet } from '@angular/router';
 
 @Component({
   selector: 'app-home',
@@ -7,4 +7,12 @@ import { RouterModule, RouterOutlet } from '@angular/router';
   styleUrl: './home.component.scss',
   imports: [RouterOutlet, RouterModule],
 })
-export class HomeComponent {}
+export class HomeComponent {
+  readonly #router = inject(Router);
+
+  onWalletTab() {
+    if (this.#router.url.startsWith('/home/wallet')) {
+      window.dispatchEvent(new CustomEvent('wallet-reset'));
+    }
+  }
+}

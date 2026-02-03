@@ -33,6 +33,16 @@
   <p class="toggle-note">Auto-unlock vault on browser restart. Stores password in plaintext.</p>
 </div>
 
+@if (syncFlowValue !== 1) {
+  <div class="dev-mode-row">
+    <label class="toggle-label">
+      <input type="checkbox" [checked]="nip60Enabled" (change)="onToggleNip60($event)" />
+      <span>Relay Wallet Sync (NIP-60)</span>
+    </label>
+    <p class="toggle-note">Store Cashu proofs on Nostr relays instead of locally. Enables cross-device wallet sync.</p>
+  </div>
+}
+
 <div class="dev-mode-row">
   <label class="toggle-label">
     <input type="checkbox" [checked]="devMode" (change)="onToggleDevMode($event)" />
@@ -42,13 +52,50 @@
 
 <div class="sam-flex-grow"></div>
 
-<div class="sync-info">
-  <span class="sync-label">SYNC: {{ syncFlow }}</span>
-  <p class="sync-note">
-    To change sync mode, export your vault, reset the extension,
-    and re-import with the desired sync setting.
-  </p>
+<div class="dev-mode-row">
+  <label class="toggle-label" for="vault-sync-select">
+    <span>Vault Sync</span>
+  </label>
+  <select id="vault-sync-select" class="form-select" [ngModel]="syncFlowValue" (ngModelChange)="onSyncFlowChange($event)" [disabled]="switchingSyncFlow">
+    <option value="0">Off (local only)</option>
+    <option value="1">Browser Sync (Firefox)</option>
+    <option value="2">Relay Sync</option>
+  </select>
+  @if (syncFlowValue === 0) {
+    <p class="toggle-note">Vault is stored locally only. No cross-device sync.</p>
+  } @else if (syncFlowValue === 1) {
+    <p class="toggle-note">Sync encrypted vault across Firefox browser instances via Mozilla account.</p>
+  } @else if (syncFlowValue === 2) {
+    <p class="toggle-note">Sync encrypted vault via Nostr relays. No size limits. Works across any browser.</p>
+  }
+  @if (syncMigrationStep) {
+    <p class="toggle-note" style="color: var(--bs-info, #0dcaf0);">{{ syncMigrationStep }}</p>
+  }
+  @if (syncFlowError) {
+    <p class="toggle-note" style="color: var(--bs-danger, #dc3545);">{{ syncFlowError }}</p>
+  }
 </div>
+
+@if (syncFlowValue === 2) {
+  <div class="dev-mode-row">
+    <label class="toggle-label" for="vault-owner-select">
+      <span>Vault Owner</span>
+    </label>
+    <select id="vault-owner-select" class="form-select" [ngModel]="relaySyncIdentityId" (ngModelChange)="onRelaySyncIdentityChange($event)">
+      @for (id of identities; track id.id) {
+        <option [value]="id.id">{{ id.nick }}</option>
+      }
+    </select>
+    <p class="toggle-note">Identity whose keys sign the vault event on relays.</p>
+  </div>
+  <div class="dev-mode-row">
+    <label class="toggle-label">
+      <input type="checkbox" [checked]="relaySyncAuthOnly" (change)="onToggleRelaySyncAuthOnly($event)" />
+      <span>AUTH-only relays</span>
+    </label>
+    <p class="toggle-note">Only store vault on relays that require NIP-42 authentication.</p>
+  </div>
+}
 
 <button
   class="btn btn-danger"

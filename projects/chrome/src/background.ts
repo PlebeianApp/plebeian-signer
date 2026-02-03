@@ -5,14 +5,26 @@ import {
   NwcConnection_DECRYPTED,
   WeblnMethod,
   Nip07Method,
+  NutzapMethod,
   GetInfoResponse,
   SendPaymentResponse,
   RequestInvoiceResponse,
+  pubkeyFromPrivkey,
+  getP2pkPubkey,
+  generateWalletPrivkey,
+  buildNutzapEvent,
+  buildUnspentProofEvent,
+  parseNutzapEvent,
+  parseNutzapInfoEvent,
+  signEvent as signNip60Event,
+  publishToRelaysWithAuth,
+  FALLBACK_PROFILE_RELAYS,
 } from '@common';
 import {
   BackgroundRequestMessage,
   checkPermissions,
   checkWeblnPermissions,
+  checkNutzapPermissions,
   debug,
   getBrowserSessionData,
   getPosition,
@@ -21,6 +33,7 @@ import {
   handleUnlockWithKey,
   isSignerPaused,
   isWeblnMethod,
+  isNutzapMethod,
   nip04Decrypt,
   nip04Encrypt,
   nip44Decrypt,
@@ -31,9 +44,14 @@ import {
   shouldRecklessModeApprove,
   signEvent,
   storePermission,
+  encryptCashuMintForVault,
+  saveCashuMintsToBrowserSyncStorage,
+  getBrowserSyncData,
   UnlockRequestMessage,
   UnlockResponseMessage,
 } from './background-common';
+import { SimplePool } from 'nostr-tools/pool';
+import { Mint, Wallet, P2PKBuilder, type Proof } from '@cashu/cashu-ts';
 import browser from 'webextension-polyfill';
 import { Buffer } from 'buffer';
 
@@ -571,10 +589,13 @@ browser.runtime.onMessage.addListener(async (message /*, sender*/) => {
     });
   }
 
-  // Process the request (NIP-07 or WebLN)
+  // Process the request (NIP-07, WebLN, or Nutzap)
   const req = request as BackgroundRequestMessage;
   if (isWeblnMethod(req.method)) {
     return processWeblnRequest(req);
+  }
+  if (isNutzapMethod(req.method)) {
+    return processNutzapRequest(req);
   }
   return processNip07Request(req);
 });
@@ -871,5 +892,463 @@ async function processWeblnRequest(req: BackgroundRequestMessage): Promise<any> 
 
     default:
       throw new Error(`Not supported WebLN method '${method}'.`);
+  }
+}
+
+// ==========================================
+// Nutzap Request Processing (NIP-61)
+// ==========================================
+
+const NUTZAP_QUERY_TIMEOUT_MS = 15000;
+
+/**
+ * Query relays with a timeout using SimplePool.
+ */
+function queryRelaysWithTimeout(pool: SimplePool, relays: string[], filters: any[]): Promise<any[]> {
+  return new Promise((resolve) => {
+    const events: any[] = [];
+    let settled = false;
+
+    const timeout = setTimeout(() => {
+      if (!settled) {
+        settled = true;
+        resolve(events);
+      }
+    }, NUTZAP_QUERY_TIMEOUT_MS);
+
+    const sub = pool.subscribeMany(relays, filters, {
+      onevent(event: any) {
+        events.push(event);
+      },
+      oneose() {
+        if (!settled) {
+          settled = true;
+          clearTimeout(timeout);
+          sub.close();
+          resolve(events);
+        }
+      },
+    });
+  });
+}
+
+/**
+ * Get relay URLs for a pubkey's NIP-65 read relays.
+ * Falls back to FALLBACK_PROFILE_RELAYS if none found.
+ */
+async function getRecipientReadRelays(pubkey: string): Promise<string[]> {
+  const pool = new SimplePool();
+  try {
+    const events = await queryRelaysWithTimeout(pool, FALLBACK_PROFILE_RELAYS, [{
+      kinds: [10002],
+      authors: [pubkey],
+    }]);
+
+    if (events.length === 0) return FALLBACK_PROFILE_RELAYS;
+
+    const latest = events.reduce((a: any, b: any) =>
+      a.created_at > b.created_at ? a : b
+    );
+
+    const readRelays = latest.tags
+      .filter((t: string[]) => t[0] === 'r' && (t.length === 2 || t[2] === 'read'))
+      .map((t: string[]) => t[1]);
+
+    return readRelays.length > 0 ? readRelays : FALLBACK_PROFILE_RELAYS;
+  } finally {
+    pool.close(FALLBACK_PROFILE_RELAYS);
+  }
+}
+
+/**
+ * Process a Nutzap request after vault is unlocked
+ */
+async function processNutzapRequest(req: BackgroundRequestMessage): Promise<any> {
+  // Check if signer is paused - silently reject
+  if (await isSignerPaused()) {
+    return undefined;
+  }
+
+  const browserSessionData = await getBrowserSessionData();
+
+  if (!browserSessionData) {
+    throw new Error('Plebeian Signer vault not unlocked by the user.');
+  }
+
+  const currentIdentity = browserSessionData.identities.find(
+    (x) => x.id === browserSessionData.selectedIdentityId
+  );
+
+  if (!currentIdentity) {
+    throw new Error('No Nostr identity available at endpoint.');
+  }
+
+  const method = req.method as NutzapMethod;
+  const cashuMints = browserSessionData.cashuMints ?? [];
+
+  // Check reckless mode (but still prompt for nutzap.send)
+  const recklessApprove = await shouldRecklessModeApprove(req.host);
+
+  // Check permissions
+  const permissionState = recklessApprove && method !== 'nutzap.send'
+    ? true
+    : checkNutzapPermissions(browserSessionData, currentIdentity, req.host, method);
+
+  if (permissionState === false) {
+    throw new Error('Permission denied');
+  }
+
+  if (permissionState === undefined) {
+    const width = 375;
+    const height = 600;
+
+    const base64Event = Buffer.from(
+      JSON.stringify(req.params ?? {}, undefined, 2)
+    ).toString('base64');
+
+    const queueSize = permissionQueue.length;
+    const promptUrl = `prompt.html?method=${method}&host=${req.host}&nick=${encodeURIComponent(currentIdentity.nick)}&event=${base64Event}&queueSize=${queueSize}`;
+    const response = await queuePermissionPromptDeduped(req.host, method, req.params, promptUrl, width, height);
+    debug(response);
+
+    // Store permission for non-send methods
+    if ((response === 'approve' || response === 'reject') && method !== 'nutzap.send') {
+      const policy = response === 'approve' ? 'allow' : 'deny';
+      await storePermission(
+        browserSessionData,
+        currentIdentity,
+        req.host,
+        method,
+        policy
+      );
+    } else if (response === 'approve-all' && method !== 'nutzap.send') {
+      await storePermission(
+        browserSessionData,
+        currentIdentity,
+        req.host,
+        method,
+        'allow'
+      );
+    }
+
+    if (['reject', 'reject-once', 'reject-all'].includes(response)) {
+      throw new Error('Permission denied');
+    }
+  }
+
+  switch (method) {
+    case 'nutzap.getInfo': {
+      // Return the current identity's nutzap info
+      let walletPrivkey = currentIdentity.walletPrivkey;
+      if (!walletPrivkey) {
+        // Auto-generate wallet privkey on first use
+        walletPrivkey = generateWalletPrivkey();
+        // Note: persisting walletPrivkey to vault requires re-encryption
+        // which is handled by the UI/StorageService. For now, return ephemeral info.
+        debug('nutzap.getInfo: No wallet privkey, generated ephemeral one');
+      }
+
+      const p2pkPubkey = getP2pkPubkey(walletPrivkey);
+      const mints = cashuMints.map(m => m.mintUrl);
+      const relays = browserSessionData.relays
+        .filter(r => r.write)
+        .map(r => r.url);
+
+      const result = { pubkey: p2pkPubkey, mints, relays };
+      debug('nutzap.getInfo result:');
+      debug(result);
+      return result;
+    }
+
+    case 'nutzap.send': {
+      const { recipientPubkey, amount, mintUrl: preferredMint, eventId, comment } = req.params;
+
+      if (!recipientPubkey || !amount || amount <= 0) {
+        throw new Error('nutzap.send requires recipientPubkey and a positive amount');
+      }
+
+      // 1. Fetch recipient's kind 10019 nutzap info
+      const recipientRelays = await getRecipientReadRelays(recipientPubkey);
+      const pool = new SimplePool();
+
+      let recipientInfo;
+      try {
+        const infoEvents = await queryRelaysWithTimeout(pool, recipientRelays, [{
+          kinds: [10019],
+          authors: [recipientPubkey],
+        }]);
+
+        if (infoEvents.length === 0) {
+          throw new Error('Recipient has no nutzap info (kind 10019). They may not accept nutzaps.');
+        }
+
+        const latest = infoEvents.reduce((a: any, b: any) =>
+          a.created_at > b.created_at ? a : b
+        );
+        recipientInfo = parseNutzapInfoEvent(latest);
+      } finally {
+        pool.close(recipientRelays);
+      }
+
+      if (!recipientInfo.pubkey) {
+        throw new Error('Recipient nutzap info has no P2PK pubkey.');
+      }
+
+      // 2. Find a shared mint
+      let selectedMintUrl = preferredMint;
+      if (!selectedMintUrl) {
+        const sharedMint = cashuMints.find(m =>
+          recipientInfo.mints.includes(m.mintUrl) &&
+          m.proofs.reduce((sum, p) => sum + p.amount, 0) >= amount
+        );
+        if (sharedMint) {
+          selectedMintUrl = sharedMint.mintUrl;
+        }
+      }
+
+      if (!selectedMintUrl) {
+        throw new Error('No shared mint with sufficient balance found. Recipient trusts: ' +
+          recipientInfo.mints.join(', '));
+      }
+
+      if (!recipientInfo.mints.includes(selectedMintUrl)) {
+        throw new Error(`Recipient does not trust mint ${selectedMintUrl}`);
+      }
+
+      const mintData = cashuMints.find(m => m.mintUrl === selectedMintUrl);
+      if (!mintData) {
+        throw new Error(`Mint ${selectedMintUrl} not found locally.`);
+      }
+
+      const balance = mintData.proofs.reduce((sum, p) => sum + p.amount, 0);
+      if (balance < amount) {
+        throw new Error(`Insufficient balance on mint ${selectedMintUrl}. Have ${balance} sats, need ${amount} sats.`);
+      }
+
+      // 3. P2PK-lock proofs to recipient
+      const localProofs: Proof[] = mintData.proofs.map(p => ({
+        id: p.id,
+        amount: p.amount,
+        secret: p.secret,
+        C: p.C,
+      }));
+
+      const mint = new Mint(selectedMintUrl);
+      const wallet = new Wallet(mint, { unit: mintData.unit || 'sat' });
+      await wallet.loadMint();
+
+      const p2pkOptions = new P2PKBuilder()
+        .addLockPubkey(recipientInfo.pubkey)
+        .toOptions();
+
+      const { send, keep } = await wallet.send(amount, localProofs, {}, {
+        send: { type: 'p2pk' as const, options: p2pkOptions },
+      });
+
+      // 4. Update local proofs in session storage AND vault
+      const now = new Date().toISOString();
+      const updatedMints = cashuMints.map(m => {
+        if (m.id !== mintData.id) return m;
+        return {
+          ...m,
+          proofs: keep.map((p: Proof) => ({
+            id: p.id,
+            amount: p.amount,
+            secret: p.secret,
+            C: p.C,
+            receivedAt: now,
+          })),
+          cachedBalance: keep.reduce((sum: number, p: Proof) => sum + p.amount, 0),
+          cachedBalanceAt: now,
+        };
+      });
+      await chrome.storage.session.set({ cashuMints: updatedMints });
+
+      // Persist proofs: vault or relay depending on NIP-60 setting
+      const signerMeta = await getSignerMetaData();
+      const writeRelays = browserSessionData.relays
+        .filter(r => r.write)
+        .map(r => r.url);
+      if (signerMeta.nip60Enabled && writeRelays.length > 0) {
+        // Push updated proofs to relays (only if identity has real relays, not fallback)
+        const updatedMint = updatedMints.find(m => m.id === mintData.id);
+        if (updatedMint && updatedMint.proofs.length > 0) {
+          const proofTemplate = buildUnspentProofEvent(
+            currentIdentity.privkey,
+            selectedMintUrl,
+            updatedMint.proofs.map((p: any) => ({ id: p.id, amount: p.amount, secret: p.secret, C: p.C })),
+            'sat'
+          );
+          const proofEvent = signNip60Event(proofTemplate, currentIdentity.privkey);
+          await publishToRelaysWithAuth(writeRelays, proofEvent, currentIdentity.privkey);
+        }
+      } else {
+        const syncData = await getBrowserSyncData();
+        if (syncData) {
+          const encryptedMints = await Promise.all(
+            updatedMints.map(m => encryptCashuMintForVault(m, browserSessionData))
+          );
+          await saveCashuMintsToBrowserSyncStorage(encryptedMints);
+        }
+      }
+
+      // 5. Build and publish kind 9321 nutzap event
+      const nutzapTemplate = buildNutzapEvent(
+        { recipientPubkey, amount, mintUrl: selectedMintUrl, eventId, comment },
+        send
+      );
+      const nutzapEvent = signNip60Event(nutzapTemplate, currentIdentity.privkey);
+
+      // Publish to recipient's relays
+      await publishToRelaysWithAuth(recipientRelays, nutzapEvent, currentIdentity.privkey);
+
+      const result = { eventId: nutzapEvent.id, amount };
+      debug('nutzap.send result:');
+      debug(result);
+      return result;
+    }
+
+    case 'nutzap.redeem': {
+      const pubkey = pubkeyFromPrivkey(currentIdentity.privkey);
+      const readRelays = browserSessionData.relays
+        .filter(r => r.read)
+        .map(r => r.url);
+      const queryRelays = readRelays.length > 0 ? readRelays : FALLBACK_PROFILE_RELAYS;
+
+      const pool = new SimplePool();
+      const redeemed: {
+        eventId: string;
+        senderPubkey: string;
+        amount: number;
+        mint: string;
+      }[] = [];
+
+      try {
+        // 1. Query for nutzaps addressed to us
+        const nutzapEvents = await queryRelaysWithTimeout(pool, queryRelays, [{
+          kinds: [9321],
+          '#p': [pubkey],
+        }]);
+
+        if (nutzapEvents.length === 0) {
+          return [];
+        }
+
+        // 2. Find already-redeemed nutzap IDs
+        const historyEvents = await queryRelaysWithTimeout(pool, queryRelays, [{
+          kinds: [7376],
+          authors: [pubkey],
+        }]);
+
+        const redeemedIds = new Set<string>();
+        for (const h of historyEvents) {
+          for (const tag of h.tags) {
+            if (tag[0] === 'e' && tag[3] === 'redeemed') {
+              redeemedIds.add(tag[1]);
+            }
+          }
+        }
+
+        // 3. Get trusted mint URLs
+        const trustedMintUrls = new Set(cashuMints.map(m => m.mintUrl));
+
+        // Get wallet privkey for P2PK unlocking
+        const walletPrivkey = currentIdentity.walletPrivkey;
+        if (!walletPrivkey) {
+          throw new Error('No wallet private key configured. Please set up NIP-60 wallet first.');
+        }
+
+        // 4. Process each unredeemed nutzap
+        for (const event of nutzapEvents) {
+          if (redeemedIds.has(event.id)) continue;
+
+          try {
+            const parsed = parseNutzapEvent(event);
+
+            if (!trustedMintUrls.has(parsed.mint)) {
+              debug(`Nutzap from untrusted mint ${parsed.mint}, skipping`);
+              continue;
+            }
+
+            // Swap P2PK proofs using wallet privkey
+            const mint = new Mint(parsed.mint);
+            const wallet = new Wallet(mint, { unit: 'sat' });
+            await wallet.loadMint();
+
+            const swappedProofs = await wallet.receive(
+              { mint: parsed.mint, proofs: parsed.proofs, unit: 'sat' },
+              { privkey: walletPrivkey }
+            );
+
+            // Store received proofs in session AND vault
+            const now = new Date().toISOString();
+            const updatedMints = (await getBrowserSessionData())?.cashuMints ?? cashuMints;
+            const targetMint = updatedMints.find(m => m.mintUrl === parsed.mint);
+
+            if (targetMint) {
+              const newProofs = swappedProofs.map((p: Proof) => ({
+                id: p.id,
+                amount: p.amount,
+                secret: p.secret,
+                C: p.C,
+                receivedAt: now,
+              }));
+              targetMint.proofs = [...(targetMint.proofs || []), ...newProofs];
+              targetMint.cachedBalance = targetMint.proofs.reduce((sum, p) => sum + p.amount, 0);
+              targetMint.cachedBalanceAt = now;
+              await chrome.storage.session.set({ cashuMints: updatedMints });
+
+              // Persist proofs: vault or relay depending on NIP-60 setting
+              const redeemSignerMeta = await getSignerMetaData();
+              const redeemWriteRelays = browserSessionData.relays
+                .filter(r => r.write)
+                .map(r => r.url);
+              if (redeemSignerMeta.nip60Enabled && redeemWriteRelays.length > 0) {
+                // Push updated proofs to relays (only if identity has real relays, not fallback)
+                if (targetMint.proofs.length > 0) {
+                  const proofTemplate = buildUnspentProofEvent(
+                    currentIdentity.privkey,
+                    parsed.mint,
+                    targetMint.proofs.map((p: any) => ({ id: p.id, amount: p.amount, secret: p.secret, C: p.C })),
+                    'sat'
+                  );
+                  const proofEvent = signNip60Event(proofTemplate, currentIdentity.privkey);
+                  await publishToRelaysWithAuth(redeemWriteRelays, proofEvent, currentIdentity.privkey);
+                }
+              } else {
+                const latestSession = await getBrowserSessionData();
+                if (latestSession) {
+                  const syncData = await getBrowserSyncData();
+                  if (syncData) {
+                    const encryptedMints = await Promise.all(
+                      updatedMints.map(m => encryptCashuMintForVault(m, latestSession))
+                    );
+                    await saveCashuMintsToBrowserSyncStorage(encryptedMints);
+                  }
+                }
+              }
+            }
+
+            redeemed.push({
+              eventId: event.id,
+              senderPubkey: event.pubkey,
+              amount: parsed.amount,
+              mint: parsed.mint,
+            });
+          } catch (err) {
+            debug(`Failed to redeem nutzap ${event.id}: ${err}`);
+          }
+        }
+      } finally {
+        pool.close(queryRelays);
+      }
+
+      debug('nutzap.redeem result:');
+      debug(redeemed);
+      return redeemed;
+    }
+
+    default:
+      throw new Error(`Not supported Nutzap method '${method}'.`);
   }
 }
