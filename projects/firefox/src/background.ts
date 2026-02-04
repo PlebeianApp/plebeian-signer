@@ -550,7 +550,7 @@ browser.runtime.onMessage.addListener(async (message /*, sender*/) => {
       const data = await browser.storage.local.get('vaultSnapshots') as { vaultSnapshots?: unknown[] };
       const existing = data.vaultSnapshots ?? [];
       // Check for duplicate filename
-      if (existing.some((s: Record<string, unknown>) => s['fileName'] === filename)) {
+      if (existing.some((s) => (s as Record<string, unknown>)['fileName'] === filename)) {
         return { success: false, error: 'A snapshot with this filename already exists.' };
       }
       const snapshot = {

@@ -7,6 +7,9 @@ import {
 } from '../storage/storage.service';
 import { SyncFlow } from '../storage/types';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+declare const chrome: any;
+
 @Injectable({
   providedIn: 'root',
 })
@@ -65,12 +68,25 @@ export class StartupService {
 
   async #initializeFlow_B() {
     // Stating with browser session data available. The user has already unlocked the vault before.
-    // Route to VAULT HOME.
 
     this.#logger.log('Browser session data is available.');
 
     // Also load the browser sync data. This is needed, if the user adds or deletes anything.
     await this.#storage.loadAndMigrateBrowserSyncData();
+
+    // Restore the last popup route if available (persists across popup close/reopen, clears on browser restart)
+    try {
+      const result = await chrome.storage.session.get('lastPopupRoute');
+      const saved = result?.['lastPopupRoute'] as string | undefined;
+      if (saved && (saved.startsWith('/home/') || saved.startsWith('/edit-identity/') ||
+          saved.startsWith('/new-identity') || saved.startsWith('/whitelisted-apps') ||
+          saved.startsWith('/profile-edit'))) {
+        this.#router.navigateByUrl(saved);
+        return;
+      }
+    } catch {
+      // Session storage unavailable - fall through to default
+    }
 
     const selectedIdentityId =
       this.#storage.getBrowserSessionHandler().browserSessionData
