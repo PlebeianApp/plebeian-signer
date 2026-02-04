@@ -491,6 +491,14 @@ function queuePermissionPromptDeduped(
 browser.runtime.onMessage.addListener(async (message /*, sender*/) => {
   debug('Message received');
 
+  // Handle download request from UI (avoids popup-context download crash in Brave)
+  if ((message as { type: string })?.type === 'download-json') {
+    const { json, filename } = message as { type: string; json: string; filename: string };
+    const dataUrl = 'data:application/json;base64,' + btoa(unescape(encodeURIComponent(json)));
+    chrome.downloads.download({ url: dataUrl, filename, saveAs: true });
+    return { success: true };
+  }
+
   // Handle pause state change from UI
   if ((message as { type: string; paused: boolean })?.type === 'set-paused') {
     const pausedMsg = message as { type: string; paused: boolean };

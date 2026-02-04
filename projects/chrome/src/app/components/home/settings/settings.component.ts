@@ -339,14 +339,7 @@ export class SettingsComponent extends NavComponent implements OnInit {
   }
 
   #downloadJson(jsonString: string, fileName: string) {
-    const dataStr =
-      'data:text/json;charset=utf-8,' + encodeURIComponent(jsonString);
-    const downloadAnchorNode = document.createElement('a');
-    downloadAnchorNode.setAttribute('href', dataStr);
-    downloadAnchorNode.setAttribute('download', fileName);
-    document.body.appendChild(downloadAnchorNode);
-    downloadAnchorNode.click();
-    downloadAnchorNode.remove();
+    chrome.runtime.sendMessage({ type: 'download-json', json: jsonString, filename: fileName });
   }
 
   async onClickLock() {
