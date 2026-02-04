@@ -245,6 +245,15 @@ export interface Bookmark {
 /**
  * Extension settings - non-vault configuration
  */
+/**
+ * Permission level controlling how the extension handles permission prompts.
+ * - 'cautious': Always prompt, never remember decisions
+ * - 'session': Prompt and remember for current session only (cleared on browser restart)
+ * - 'forever': Prompt and remember permanently in vault (default)
+ * - 'reckless': Auto-approve all requests without prompting
+ */
+export type PermissionLevel = 'cautious' | 'session' | 'forever' | 'reckless';
+
 export interface ExtensionSettings {
   syncFlow?: number; // 0 = no sync, 1 = browser sync, (future: 2 = Signer sync, 3 = Custom sync)
 
@@ -253,7 +262,10 @@ export interface ExtensionSettings {
   // Maximum number of automatic backups to keep (default: 5)
   maxBackups?: number;
 
-  // Reckless mode: auto-approve all actions without prompting
+  // Permission level: controls how permission decisions are handled
+  permissionLevel?: PermissionLevel;
+
+  /** @deprecated Use permissionLevel instead. Kept for migration from older versions. */
   recklessMode?: boolean;
 
   // Whitelisted hosts: auto-approve all actions from these hosts

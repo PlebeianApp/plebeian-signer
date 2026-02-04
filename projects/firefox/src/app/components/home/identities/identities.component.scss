@@ -62,54 +62,39 @@
     }
   }
 
-  .reckless-mode-row {
+  .permission-settings-row {
     display: flex;
     flex-direction: row;
     align-items: center;
-    justify-content: space-between;
-    padding: 8px 12px;
+    padding: 10px 12px;
     margin-bottom: 12px;
     background: var(--background-light);
     border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    color: var(--foreground);
+    box-sizing: border-box;
+    transition: background-color 0.15s ease;
 
-    .reckless-label {
-      display: flex;
-      flex-direction: row;
-      align-items: center;
-      gap: 8px;
-      cursor: pointer;
-      user-select: none;
-
-      input[type="checkbox"] {
-        width: 16px;
-        height: 16px;
-        accent-color: var(--primary);
-        cursor: pointer;
-      }
-
-      .reckless-text {
-        font-size: 14px;
-        color: var(--foreground);
-      }
+    &:hover {
+      background: var(--background-light-hover, var(--background-light));
     }
 
-    .gear-btn {
-      background: transparent;
-      border: none;
+    .permission-label {
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .permission-level {
+      margin-left: auto;
+      font-size: 13px;
       color: var(--muted-foreground);
-      padding: 4px 8px;
-      cursor: pointer;
-      border-radius: 4px;
-      transition: color 0.15s ease, background-color 0.15s ease;
+    }
 
-      &:hover {
-        color: var(--foreground);
-        background: var(--background-light-hover);
-      }
-
-      i {
-        font-size: 16px;
-      }
+    .permission-chevron {
+      margin-left: 8px;
+      font-size: 14px;
+      color: var(--muted-foreground);
     }
   }
 

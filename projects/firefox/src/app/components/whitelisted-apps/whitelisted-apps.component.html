@@ -2,24 +2,28 @@
   <button class="back-btn" (click)="onClickBack()">
     <i class="bi bi-chevron-left"></i>
   </button>
-  <span class="text">Whitelisted Apps</span>
+  <span class="text">Trusted Sites</span>
 </div>
 
 <div class="content">
+  <div class="info-note">
+    <span>Trusted sites are always auto-approved, regardless of the permission level above.</span>
+  </div>
+
   <button
     class="btn btn-primary whitelist-btn"
     (click)="onClickWhitelistCurrentTab()"
   >
     <i class="bi bi-plus-lg"></i>
-    <span>Whitelist current tab</span>
+    <span>Trust current tab</span>
   </button>
 
   <div class="hosts-list">
     @if (whitelistedHosts.length === 0) {
       <div class="empty-state">
-        <span class="sam-text-muted">No whitelisted apps yet</span>
+        <span class="sam-text-muted">No trusted sites yet</span>
       </div>
-      @if (isRecklessMode) {
+      @if (isAutoApprove) {
         <div class="warning-note">
           <span>&#9888; All sites will be auto-approved without prompting</span>
         </div>
@@ -31,7 +35,7 @@
         <span class="host-name">{{ host }}</span>
         <button
           class="remove-btn"
-          title="Remove from whitelist"
+          title="Remove from trusted sites"
           (click)="onClickRemoveHost(host)"
         >
           <i class="bi bi-trash"></i>

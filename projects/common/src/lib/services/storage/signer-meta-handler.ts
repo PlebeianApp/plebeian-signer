@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Bookmark, EncryptedVault, SyncFlow, ExtensionSettings, VaultSnapshot } from './types';
+import { Bookmark, EncryptedVault, PermissionLevel, SyncFlow, ExtensionSettings, VaultSnapshot } from './types';
 import { v4 as uuidv4 } from 'uuid';
 
 /**
@@ -18,7 +18,7 @@ export abstract class SignerMetaHandler {
 
   #extensionSettings?: ExtensionSettings;
 
-  readonly metaProperties = ['syncFlow', 'vaultSnapshots', 'maxBackups', 'recklessMode', 'whitelistedHosts', 'bookmarks', 'devMode', 'paused', 'stayUnlocked', 'nip60Enabled', 'relaySyncIdentityId', 'relaySyncAuthOnly', 'relaySyncLastPushed'];
+  readonly metaProperties = ['syncFlow', 'vaultSnapshots', 'maxBackups', 'permissionLevel', 'recklessMode', 'whitelistedHosts', 'bookmarks', 'devMode', 'paused', 'stayUnlocked', 'nip60Enabled', 'relaySyncIdentityId', 'relaySyncAuthOnly', 'relaySyncLastPushed'];
   readonly DEFAULT_MAX_BACKUPS = 5;
   /**
    * Load the full data from the storage. If the storage is used for storing
@@ -58,18 +58,39 @@ export abstract class SignerMetaHandler {
   abstract clearData(keep: string[]): Promise<void>;
 
   /**
-   * Sets the reckless mode and immediately saves it.
+   * Gets the current permission level with migration from legacy recklessMode.
    */
-  async setRecklessMode(enabled: boolean): Promise<void> {
+  getPermissionLevel(): PermissionLevel {
+    if (this.#extensionSettings?.permissionLevel) {
+      return this.#extensionSettings.permissionLevel;
+    }
+    // Migrate from legacy recklessMode
+    if (this.#extensionSettings?.recklessMode) {
+      return 'reckless';
+    }
+    return 'forever'; // Default: remember permissions permanently
+  }
+
+  /**
+   * Sets the permission level and immediately saves it.
+   */
+  async setPermissionLevel(level: PermissionLevel): Promise<void> {
     if (!this.#extensionSettings) {
       this.#extensionSettings = {
-        recklessMode: enabled,
+        permissionLevel: level,
       };
     } else {
-      this.#extensionSettings.recklessMode = enabled;
+      this.#extensionSettings.permissionLevel = level;
+      // Clear legacy recklessMode to avoid confusion
+      delete this.#extensionSettings.recklessMode;
     }
 
     await this.saveFullData(this.#extensionSettings);
+  }
+
+  /** @deprecated Use setPermissionLevel instead */
+  async setRecklessMode(enabled: boolean): Promise<void> {
+    await this.setPermissionLevel(enabled ? 'reckless' : 'forever');
   }
 
   /**

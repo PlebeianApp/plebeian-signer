@@ -24,8 +24,8 @@ export class WhitelistedAppsComponent extends NavComponent {
     return this.storage.getSignerMetaHandler().signerMetaData?.whitelistedHosts ?? [];
   }
 
-  get isRecklessMode(): boolean {
-    return this.storage.getSignerMetaHandler().signerMetaData?.recklessMode ?? false;
+  get isAutoApprove(): boolean {
+    return this.storage.getSignerMetaHandler().getPermissionLevel() === 'reckless';
   }
 
   async onClickWhitelistCurrentTab() {
@@ -45,14 +45,14 @@ export class WhitelistedAppsComponent extends NavComponent {
         return;
       }
 
-      // Check if already whitelisted
+      // Check if already trusted
       if (this.whitelistedHosts.includes(host)) {
-        this.toast.show(`${host} is already whitelisted`);
+        this.toast.show(`${host} is already trusted`);
         return;
       }
 
       await this.storage.getSignerMetaHandler().addWhitelistedHost(host);
-      this.toast.show(`Added ${host} to whitelist`);
+      this.toast.show(`Added ${host} to trusted sites`);
     } catch (error) {
       console.error('Error getting current tab:', error);
       this.toast.show('Error getting current tab');
@@ -60,13 +60,13 @@ export class WhitelistedAppsComponent extends NavComponent {
   }
 
   onClickRemoveHost(host: string) {
-    this.confirm.show(`Remove ${host} from whitelist?`, async () => {
+    this.confirm.show(`Remove ${host} from trusted sites?`, async () => {
       await this.storage.getSignerMetaHandler().removeWhitelistedHost(host);
-      this.toast.show(`Removed ${host} from whitelist`);
+      this.toast.show(`Removed ${host} from trusted sites`);
     });
   }
 
   onClickBack() {
-    this.#router.navigateByUrl('/home/identities');
+    this.#router.navigateByUrl('/permission-settings');
   }
 }

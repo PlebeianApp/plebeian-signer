@@ -1,0 +1,44 @@
+<!-- eslint-disable @angular-eslint/template/interactive-supports-focus -->
+<!-- eslint-disable @angular-eslint/template/click-events-have-key-events -->
+<div class="custom-header">
+  <button class="back-btn" (click)="onClickBack()">
+    <i class="bi bi-chevron-left"></i>
+  </button>
+  <span class="text">Permission Settings</span>
+</div>
+
+<div class="content">
+  <div class="levels-list">
+    @for (level of levels; track level.value) {
+      <div
+        class="level-card"
+        [class.selected]="currentLevel === level.value"
+        [class.danger]="level.value === 'reckless'"
+        (click)="onSelectLevel(level.value)"
+      >
+        <div class="level-header">
+          <div class="radio-circle" [class.checked]="currentLevel === level.value"></div>
+          <span class="level-label">{{ level.label }}</span>
+        </div>
+        <span class="level-desc">{{ level.description }}</span>
+      </div>
+    }
+  </div>
+
+  <button
+    class="whitelist-link"
+    (click)="onClickWhitelistedApps()"
+  >
+    <div class="whitelist-link-text">
+      <span>Trusted Sites</span>
+      <span class="whitelist-link-desc">Sites that are always auto-approved</span>
+    </div>
+    <i class="bi bi-chevron-right"></i>
+  </button>
+
+  @if (currentLevel === 'reckless') {
+    <div class="warning-note">
+      <span>&#9888; All requests will be auto-approved. Add trusted sites to limit auto-approval to specific sites only.</span>
+    </div>
+  }
+</div>

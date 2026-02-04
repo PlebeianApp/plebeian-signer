@@ -12,6 +12,7 @@ import {
   NostrHelper,
   Permission_DECRYPTED,
   Permission_ENCRYPTED,
+  PermissionLevel,
   Relay_DECRYPTED,
   Relay_ENCRYPTED,
   NwcConnection_DECRYPTED,
@@ -110,34 +111,43 @@ export const getSignerMetaData = async function (): Promise<SignerMetaData> {
 };
 
 /**
- * Check if reckless mode should auto-approve the request.
+ * Get the current permission level from extension settings with migration support.
+ */
+export const getPermissionLevel = async function (): Promise<PermissionLevel> {
+  const signerMetaHandler = new ChromeMetaHandler();
+  await signerMetaHandler.loadFullData();
+  return signerMetaHandler.getPermissionLevel();
+};
+
+/**
+ * Check if the current request should be auto-approved based on permission level and trusted sites.
  * Returns true if should auto-approve, false if should use normal permission flow.
  *
  * Logic:
- * - If reckless mode is OFF → return false (use normal flow)
- * - If reckless mode is ON and whitelist is empty → return true (approve all)
- * - If reckless mode is ON and whitelist has entries → return true only if host is in whitelist
+ * - If host is in the trusted sites list → return true (auto-approve regardless of permission level)
+ * - If permission level is 'reckless' and trusted sites list is empty → return true (approve all)
+ * - Otherwise → return false (use normal permission flow)
  */
 export const shouldRecklessModeApprove = async function (
   host: string
 ): Promise<boolean> {
-  const signerMetaData = await getSignerMetaData();
-  debug(`shouldRecklessModeApprove: recklessMode=${signerMetaData.recklessMode}, host=${host}`);
-  debug(`Full signerMetaData: ${JSON.stringify(signerMetaData)}`);
+  const signerMetaHandler = new ChromeMetaHandler();
+  const signerMetaData = (await signerMetaHandler.loadFullData()) as SignerMetaData;
+  const level = signerMetaHandler.getPermissionLevel();
+  const trustedSites = signerMetaData.whitelistedHosts ?? [];
+  debug(`shouldRecklessModeApprove: permissionLevel=${level}, host=${host}, trustedSites=${trustedSites.length}`);
 
-  if (!signerMetaData.recklessMode) {
-    return false;
-  }
-
-  const whitelistedHosts = signerMetaData.whitelistedHosts ?? [];
-
-  if (whitelistedHosts.length === 0) {
-    // Reckless mode ON, no whitelist → approve all
+  // Trusted sites always get auto-approved regardless of permission level
+  if (trustedSites.includes(host)) {
     return true;
   }
 
-  // Reckless mode ON, whitelist has entries → only approve if host is whitelisted
-  return whitelistedHosts.includes(host);
+  // Reckless mode with no trusted sites list → approve everything
+  if (level === 'reckless' && trustedSites.length === 0) {
+    return true;
+  }
+
+  return false;
 };
 
 /**
@@ -341,11 +351,12 @@ export const storePermission = async function (
   host: string,
   method: ExtensionMethod,
   methodPolicy: Nip07MethodPolicy,
-  kind?: number
+  kind?: number,
+  permissionLevel?: PermissionLevel
 ) {
-  const browserSyncData = await getBrowserSyncData();
-  if (!browserSyncData) {
-    throw new Error(`Could not retrieve sync data`);
+  // In 'cautious' mode, never store permissions
+  if (permissionLevel === 'cautious') {
+    return;
   }
 
   // For WebLN methods, use 'webln' as identityId since wallet is global
@@ -360,12 +371,22 @@ export const storePermission = async function (
     kind,
   };
 
-  // Store session data
+  // Store in session data (applies to both 'session' and 'forever' modes)
   await chrome.storage.session.set({
     permissions: [...browserSessionData.permissions, permission],
   });
 
-  // Encrypt permission to store in sync storage (depending on sync flow).
+  // In 'session' mode, skip vault storage (permissions cleared on browser restart)
+  if (permissionLevel === 'session') {
+    return;
+  }
+
+  // In 'forever' mode (or unset/default): encrypt and store in vault
+  const browserSyncData = await getBrowserSyncData();
+  if (!browserSyncData) {
+    throw new Error(`Could not retrieve sync data`);
+  }
+
   const encryptedPermission = await encryptPermission(
     permission,
     browserSessionData

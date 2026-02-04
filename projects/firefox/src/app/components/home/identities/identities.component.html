@@ -18,29 +18,11 @@
   </button>
 </div>
 
-<div class="reckless-mode-row">
-  <label class="reckless-label" (click)="onToggleRecklessMode()">
-    <input
-      type="checkbox"
-      [checked]="isRecklessMode"
-      (click)="$event.stopPropagation()"
-      (change)="onToggleRecklessMode()"
-    />
-    <span
-      class="reckless-text"
-      data-bs-toggle="tooltip"
-      data-bs-placement="bottom"
-      title="Auto-approve all actions. If whitelist has entries, only those apps are auto-approved."
-    >Reckless mode</span>
-  </label>
-  <button
-    class="gear-btn"
-    title="Manage whitelisted apps"
-    (click)="onClickWhitelistedApps()"
-  >
-    <span class="emoji">⚙️</span>
-  </button>
-</div>
+<button class="permission-settings-row" (click)="onClickPermissionSettings()">
+  <span class="permission-label">Permissions</span>
+  <span class="permission-level">{{ permissionLevelLabel }}</span>
+  <i class="bi bi-chevron-right permission-chevron"></i>
+</button>
 
 @let sessionData = storage.getBrowserSessionHandler().browserSessionData;
 @let identities = sessionData?.identities ?? [];

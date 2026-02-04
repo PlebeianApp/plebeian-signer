@@ -27,7 +27,7 @@ export class AppComponent implements OnInit {
         const url = e.urlAfterRedirects;
         if (url.startsWith('/home/') || url.startsWith('/edit-identity/') ||
             url.startsWith('/new-identity') || url.startsWith('/whitelisted-apps') ||
-            url.startsWith('/profile-edit')) {
+            url.startsWith('/permission-settings') || url.startsWith('/profile-edit')) {
           chrome.storage.session.set({ lastPopupRoute: url }).catch(() => { /* noop */ });
         }
       });

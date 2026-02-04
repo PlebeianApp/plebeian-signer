@@ -20,6 +20,7 @@ import { RelaysComponent as EditIdentityRelaysComponent } from './components/edi
 import { VaultLoginComponent } from './components/vault-login/vault-login.component';
 import { VaultCreateComponent } from './components/vault-create/vault-create.component';
 import { WhitelistedAppsComponent } from './components/whitelisted-apps/whitelisted-apps.component';
+import { PermissionSettingsComponent } from './components/permission-settings/permission-settings.component';
 import { ProfileEditComponent } from './components/profile-edit/profile-edit.component';
 
 export const routes: Routes = [
@@ -86,6 +87,10 @@ export const routes: Routes = [
   {
     path: 'whitelisted-apps',
     component: WhitelistedAppsComponent,
+  },
+  {
+    path: 'permission-settings',
+    component: PermissionSettingsComponent,
   },
   {
     path: 'profile-edit',

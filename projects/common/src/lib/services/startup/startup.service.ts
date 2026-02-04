@@ -80,7 +80,7 @@ export class StartupService {
       const saved = result?.['lastPopupRoute'] as string | undefined;
       if (saved && (saved.startsWith('/home/') || saved.startsWith('/edit-identity/') ||
           saved.startsWith('/new-identity') || saved.startsWith('/whitelisted-apps') ||
-          saved.startsWith('/profile-edit'))) {
+          saved.startsWith('/permission-settings') || saved.startsWith('/profile-edit'))) {
         this.#router.navigateByUrl(saved);
         return;
       }

@@ -6,11 +6,19 @@ import {
   LoggerService,
   NavComponent,
   NostrHelper,
+  PermissionLevel,
   ProfileMetadata,
   ProfileMetadataService,
   StorageService,
   ToastComponent,
 } from '@common';
+
+const PERMISSION_LEVEL_LABELS: Record<PermissionLevel, string> = {
+  cautious: 'Always Ask',
+  session: 'Remember for Session',
+  forever: 'Remember Forever',
+  reckless: 'Auto-Approve',
+};
 
 @Component({
   selector: 'app-identities',
@@ -27,8 +35,9 @@ export class IdentitiesComponent extends NavComponent implements OnInit {
   // Cache of pubkey -> profile for quick lookup
   #profileCache = new Map<string, ProfileMetadata | null>();
 
-  get isRecklessMode(): boolean {
-    return this.storage.getSignerMetaHandler().signerMetaData?.recklessMode ?? false;
+  get permissionLevelLabel(): string {
+    const level = this.storage.getSignerMetaHandler().getPermissionLevel();
+    return PERMISSION_LEVEL_LABELS[level];
   }
 
   async ngOnInit() {
@@ -68,13 +77,8 @@ export class IdentitiesComponent extends NavComponent implements OnInit {
     await this.storage.switchIdentity(identityId);
   }
 
-  async onToggleRecklessMode() {
-    const newValue = !this.isRecklessMode;
-    await this.storage.getSignerMetaHandler().setRecklessMode(newValue);
-  }
-
-  onClickWhitelistedApps() {
-    this.#router.navigateByUrl('/whitelisted-apps');
+  onClickPermissionSettings() {
+    this.#router.navigateByUrl('/permission-settings');
   }
 
   async onClickLock() {

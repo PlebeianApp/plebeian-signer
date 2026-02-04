@@ -41,6 +41,7 @@ import {
   openUnlockPopup,
   PromptResponse,
   PromptResponseMessage,
+  getPermissionLevel,
   shouldRecklessModeApprove,
   signEvent,
   storePermission,
@@ -726,6 +727,9 @@ async function processNip07Request(req: BackgroundRequestMessage): Promise<any> 
       const response = await queuePermissionPromptDeduped(req.host, req.method, req.params, promptUrl, width, height);
       debug(response);
 
+      // Get current permission level to control storage behavior
+      const permLevel = await getPermissionLevel();
+
       // Handle permission storage based on response type
       if (response === 'approve' || response === 'reject') {
         // Store permission for this specific kind (if signEvent) or method
@@ -736,7 +740,8 @@ async function processNip07Request(req: BackgroundRequestMessage): Promise<any> 
           req.host,
           req.method,
           policy,
-          req.params?.kind
+          req.params?.kind,
+          permLevel
         );
       } else if (response === 'approve-all') {
         // P2: Store permission for ALL kinds/uses of this method from this host
@@ -746,7 +751,8 @@ async function processNip07Request(req: BackgroundRequestMessage): Promise<any> 
           req.host,
           req.method,
           'allow',
-          undefined // undefined kind = allow all kinds for signEvent
+          undefined, // undefined kind = allow all kinds for signEvent
+          permLevel
         );
       } else if (response === 'reject-all') {
         // P2: Store deny permission for ALL uses of this method from this host
@@ -756,7 +762,8 @@ async function processNip07Request(req: BackgroundRequestMessage): Promise<any> 
           req.host,
           req.method,
           'deny',
-          undefined
+          undefined,
+          permLevel
         );
       }
 
@@ -884,6 +891,9 @@ async function processWeblnRequest(req: BackgroundRequestMessage): Promise<any> 
 
     debug(response);
 
+    // Get current permission level to control storage behavior
+    const weblnPermLevel = await getPermissionLevel();
+
     // Store permission for non-payment methods
     if ((response === 'approve' || response === 'reject') && method !== 'webln.sendPayment' && method !== 'webln.keysend') {
       const policy = response === 'approve' ? 'allow' : 'deny';
@@ -892,7 +902,9 @@ async function processWeblnRequest(req: BackgroundRequestMessage): Promise<any> 
         null, // WebLN has no identity
         req.host,
         method,
-        policy
+        policy,
+        undefined,
+        weblnPermLevel
       );
     } else if (response === 'approve-all' && method !== 'webln.sendPayment' && method !== 'webln.keysend') {
       // P2: Store permission for all uses of this WebLN method
@@ -901,7 +913,9 @@ async function processWeblnRequest(req: BackgroundRequestMessage): Promise<any> 
         null,
         req.host,
         method,
-        'allow'
+        'allow',
+        undefined,
+        weblnPermLevel
       );
     }
 
@@ -1079,6 +1093,9 @@ async function processNutzapRequest(req: BackgroundRequestMessage): Promise<any>
     const response = await queuePermissionPromptDeduped(req.host, method, req.params, promptUrl, width, height);
     debug(response);
 
+    // Get current permission level to control storage behavior
+    const nutzapPermLevel = await getPermissionLevel();
+
     // Store permission for non-send methods
     if ((response === 'approve' || response === 'reject') && method !== 'nutzap.send') {
       const policy = response === 'approve' ? 'allow' : 'deny';
@@ -1087,7 +1104,9 @@ async function processNutzapRequest(req: BackgroundRequestMessage): Promise<any>
         currentIdentity,
         req.host,
         method,
-        policy
+        policy,
+        undefined,
+        nutzapPermLevel
       );
     } else if (response === 'approve-all' && method !== 'nutzap.send') {
       await storePermission(
@@ -1095,7 +1114,9 @@ async function processNutzapRequest(req: BackgroundRequestMessage): Promise<any>
         currentIdentity,
         req.host,
         method,
-        'allow'
+        'allow',
+        undefined,
+        nutzapPermLevel
       );
     }
 
