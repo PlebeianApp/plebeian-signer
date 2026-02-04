@@ -507,22 +507,12 @@ browser.runtime.onMessage.addListener(async (message /*, sender*/) => {
     return { success: true };
   }
 
-  // Open the import file picker window
+  // Open the import file picker in a new tab
   if ((message as { type: string })?.type === 'open-import') {
     const { action } = message as { type: string; action: string };
-    const width = 400;
-    const height = 350;
-    const left = Math.round((screen.width - width) / 2);
-    const top = Math.round((screen.height - height) / 2);
-    try {
-      await browser.windows.create({
-        type: 'popup',
-        url: `import.html?action=${action || 'import'}`,
-        width, height, left, top,
-      });
-    } catch {
-      await browser.tabs.create({ url: `import.html?action=${action || 'import'}` });
-    }
+    await browser.tabs.create({
+      url: browser.runtime.getURL(`import.html?action=${action || 'import'}`),
+    });
     return { success: true };
   }
 

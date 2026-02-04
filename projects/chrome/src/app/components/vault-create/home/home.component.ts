@@ -52,10 +52,6 @@ export class HomeComponent extends NavComponent implements OnInit {
     });
   }
 
-  /**
-   * Handle file button click - opens a dedicated import window via the
-   * background service worker to avoid popup-context crashes in Brave.
-   */
   onFileButtonClick(): void {
     browser.runtime.sendMessage({ type: 'open-import', action: 'snapshot' });
   }

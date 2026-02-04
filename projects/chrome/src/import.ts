@@ -10,7 +10,6 @@ const action = params.get('action') ?? 'import'; // 'import' or 'snapshot'
 
 const fileInput = document.getElementById('fileInput') as HTMLInputElement;
 const pickButton = document.getElementById('pickButton') as HTMLButtonElement;
-const cancelButton = document.getElementById('cancelButton') as HTMLButtonElement;
 const errorSpan = document.getElementById('error') as HTMLSpanElement;
 const successSpan = document.getElementById('success') as HTMLSpanElement;
 
@@ -26,23 +25,25 @@ function showSuccess(msg: string) {
   errorSpan.style.display = 'none';
 }
 
+let pickerOpen = false;
+
 pickButton.addEventListener('click', () => {
+  pickerOpen = true;
   fileInput.click();
 });
 
-cancelButton.addEventListener('click', () => {
-  window.close();
-});
-
 fileInput.addEventListener('change', async () => {
+  pickerOpen = false;
   const file = fileInput.files?.[0];
-  if (!file) return;
+  if (!file) {
+    window.close();
+    return;
+  }
 
   try {
     const text = await file.text();
     const vault = JSON.parse(text);
 
-    // Basic validation: must have identities array and version
     if (!vault.identities || !Array.isArray(vault.identities)) {
       showError('Invalid vault file: missing identities.');
       return;
@@ -55,13 +56,12 @@ fileInput.addEventListener('change', async () => {
         filename: file.name,
       }) as ImportResponse;
       if (response?.success) {
-        showSuccess('Vault file added. You can close this window.');
-        setTimeout(() => window.close(), 800);
+        showSuccess('Vault file added.');
+        setTimeout(() => window.close(), 600);
       } else {
         showError(response?.error ?? 'Failed to add vault snapshot.');
       }
     } else {
-      // Direct import - replace current vault
       const response = await browser.runtime.sendMessage({
         type: 'import-vault-data',
         vault,
@@ -69,7 +69,6 @@ fileInput.addEventListener('change', async () => {
       }) as ImportResponse;
       if (response?.success) {
         showSuccess('Vault imported. Extension reloading...');
-        // Background will reload the extension
       } else {
         showError(response?.error ?? 'Failed to import vault.');
       }
@@ -77,7 +76,16 @@ fileInput.addEventListener('change', async () => {
   } catch {
     showError('Failed to read file. Make sure it is a valid JSON vault export.');
   }
+});
 
-  // Reset input so same file can be selected again
-  fileInput.value = '';
+// When window regains focus after the file picker closes, if no file was
+// selected the change event won't fire. Close the window in that case.
+window.addEventListener('focus', () => {
+  if (!pickerOpen) return;
+  setTimeout(() => {
+    if (!fileInput.files?.length) {
+      window.close();
+    }
+    pickerOpen = false;
+  }, 300);
 });
