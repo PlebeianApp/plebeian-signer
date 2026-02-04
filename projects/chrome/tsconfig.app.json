@@ -13,7 +13,8 @@
     "src/plebian-signer-content-script.ts",
     "src/prompt.ts",
     "src/options.ts",
-    "src/unlock.ts"
+    "src/unlock.ts",
+    "src/import.ts"
   ],
   "include": ["src/**/*.d.ts"]
 }

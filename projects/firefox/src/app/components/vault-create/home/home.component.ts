@@ -7,12 +7,10 @@ import {
   StorageService,
   StartupService,
   SignerMetaData_VaultSnapshot,
-  BrowserSyncData,
   VaultRelayService,
 } from '@common';
 import { generateSecretKey } from 'nostr-tools';
 import { bytesToHex } from '@noble/hashes/utils';
-import { v4 as uuidv4 } from 'uuid';
 import browser from 'webextension-polyfill';
 import { getNewStorageServiceConfig } from '../../../common/data/get-new-storage-service-config';
 
@@ -35,7 +33,6 @@ export class HomeComponent extends NavComponent implements OnInit {
   isNsecValid = false;
   snapshots: SignerMetaData_VaultSnapshot[] = [];
   selectedSnapshot: SignerMetaData_VaultSnapshot | undefined;
-  isPopup = false;
 
   // Restore from relays
   relayRestoreNsec = '';
@@ -45,25 +42,22 @@ export class HomeComponent extends NavComponent implements OnInit {
   relayRestoreError = '';
 
   ngOnInit(): void {
-    // Detect if running in popup (popups are typically narrow)
-    // Extension tabs are full width, popups are constrained
-    this.isPopup = window.innerWidth < 500;
     this.#loadSnapshots();
+
+    // Refresh snapshots when storage changes (e.g., import window added one)
+    browser.storage.onChanged.addListener((changes) => {
+      if (changes['vaultSnapshots']) {
+        this.#loadSnapshots();
+      }
+    });
   }
 
   /**
-   * Handle file button click - opens options page if in popup
-   * due to browser bugs where file inputs can crash the browser in extension popups
+   * Handle file button click - opens a dedicated import window via the
+   * background service worker to avoid popup-context crashes in Brave.
    */
-  onFileButtonClick(fileInput: HTMLInputElement): void {
-    if (this.isPopup) {
-      // Open options page directly where file picker works
-      browser.runtime.openOptionsPage();
-      window.close(); // Close the popup
-    } else {
-      // In a tab, file picker works normally
-      fileInput.click();
-    }
+  onFileButtonClick(): void {
+    browser.runtime.sendMessage({ type: 'open-import', action: 'snapshot' });
   }
 
   generateKey() {
@@ -105,47 +99,6 @@ export class HomeComponent extends NavComponent implements OnInit {
     this.router.navigateByUrl('/vault-create/new', {
       state: { nsec: this.nsecInput, nickname: this.nickname },
     });
-  }
-
-  async onFileSelected(event: Event) {
-    const input = event.target as HTMLInputElement;
-    const files = input.files;
-    if (!files || files.length === 0) {
-      return;
-    }
-
-    try {
-      const file = files[0];
-      const text = await file.text();
-      const vault = JSON.parse(text) as BrowserSyncData;
-
-      // Check if file already exists
-      if (this.snapshots.some((s) => s.fileName === file.name)) {
-        input.value = '';
-        return;
-      }
-
-      const newSnapshot: SignerMetaData_VaultSnapshot = {
-        id: uuidv4(),
-        fileName: file.name,
-        createdAt: new Date().toISOString(),
-        data: vault,
-        identityCount: vault.identities?.length ?? 0,
-        reason: 'manual',
-      };
-
-      this.snapshots = [...this.snapshots, newSnapshot].sort((a, b) =>
-        b.fileName.localeCompare(a.fileName)
-      );
-      this.selectedSnapshot = newSnapshot;
-
-      await this.#saveSnapshots();
-    } catch (error) {
-      console.error('Failed to load vault file:', error);
-    }
-
-    // Reset input so same file can be selected again
-    input.value = '';
   }
 
   async onImport() {
@@ -240,9 +193,4 @@ export class HomeComponent extends NavComponent implements OnInit {
     }
   }
 
-  async #saveSnapshots() {
-    await browser.storage.local.set({
-      [VAULT_SNAPSHOTS_KEY]: this.snapshots,
-    });
-  }
 }

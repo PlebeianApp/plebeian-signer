@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <title>Plebeian Signer - Import</title>
+    <link rel="stylesheet" type="text/css" href="styles.css" />
+    <script src="scripts.js"></script>
+    <style>
+      /* Prevent white flash on load */
+      html { background-color: #0a0a0a; }
+      @media (prefers-color-scheme: light) {
+        html { background-color: #ffffff; }
+      }
+
+      body {
+        background: var(--background);
+        height: 100vh;
+        width: 100vw;
+        color: var(--foreground);
+        font-size: 16px;
+        margin: 0;
+      }
+
+      .page {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: var(--size);
+        box-sizing: border-box;
+        gap: 16px;
+      }
+
+      .title {
+        font-size: 18px;
+        font-weight: 500;
+      }
+
+      .note {
+        font-size: 13px;
+        color: var(--muted-foreground);
+        text-align: center;
+        max-width: 300px;
+      }
+
+      .error {
+        font-size: 13px;
+        color: var(--bs-danger, #dc3545);
+        text-align: center;
+        max-width: 300px;
+        display: none;
+      }
+
+      .success {
+        font-size: 13px;
+        color: var(--bs-success, #198754);
+        text-align: center;
+        display: none;
+      }
+
+      .file-input {
+        display: none;
+      }
+
+      .btn-pick {
+        padding: 12px 24px;
+        border-radius: 6px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        border: none;
+        background: var(--primary);
+        color: var(--primary-foreground);
+      }
+
+      .btn-pick:hover {
+        opacity: 0.9;
+      }
+
+      .btn-cancel {
+        padding: 8px 16px;
+        border-radius: 6px;
+        font-size: 13px;
+        font-weight: 500;
+        cursor: pointer;
+        border: none;
+        background: var(--muted);
+        color: var(--foreground);
+      }
+
+      .btn-cancel:hover {
+        background: var(--border);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <span class="title">Import Vault</span>
+      <span class="note">Select a previously exported vault JSON file.</span>
+      <span id="error" class="error"></span>
+      <span id="success" class="success"></span>
+      <input id="fileInput" class="file-input" type="file" accept=".json" />
+      <button id="pickButton" type="button" class="btn-pick">Choose File</button>
+      <button id="cancelButton" type="button" class="btn-cancel">Cancel</button>
+    </div>
+    <script src="import.js"></script>
+  </body>
+</html>

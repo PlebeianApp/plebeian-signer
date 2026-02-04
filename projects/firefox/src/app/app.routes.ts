@@ -19,7 +19,6 @@ import { PermissionsComponent as EditIdentityPermissionsComponent } from './comp
 import { RelaysComponent as EditIdentityRelaysComponent } from './components/edit-identity/relays/relays.component';
 import { VaultLoginComponent } from './components/vault-login/vault-login.component';
 import { VaultCreateComponent } from './components/vault-create/vault-create.component';
-import { VaultImportComponent } from './components/vault-import/vault-import.component';
 import { WhitelistedAppsComponent } from './components/whitelisted-apps/whitelisted-apps.component';
 import { ProfileEditComponent } from './components/profile-edit/profile-edit.component';
 
@@ -41,10 +40,6 @@ export const routes: Routes = [
         component: VaultCreateNewComponent,
       },
     ],
-  },
-  {
-    path: 'vault-import',
-    component: VaultImportComponent,
   },
   {
     path: 'home',

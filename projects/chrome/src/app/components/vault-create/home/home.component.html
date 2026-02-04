@@ -77,19 +77,11 @@
   <div class="section">
     <h2 class="section-heading">Import a Vault</h2>
 
-    <input
-      #fileInput
-      type="file"
-      class="file-input"
-      accept=".json"
-      (change)="onFileSelected($event)"
-    />
-
     <div class="import-controls">
       <button
         type="button"
         class="btn btn-outline-secondary file-btn"
-        (click)="onFileButtonClick(fileInput)"
+        (click)="onFileButtonClick()"
       >
         <i class="bi bi-folder2-open"></i>
         <span>Add vault file</span>

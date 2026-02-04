@@ -37,20 +37,8 @@ export class LogsComponent extends NavComponent implements OnInit {
       return `[${ts}] [${log.level.toUpperCase()}] [${log.category}] ${log.message}${data}`;
     });
     const text = lines.join('\n');
-    const blob = new Blob([text], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
     const filename = `plebeian-signer-logs-${new Date().toISOString().replace(/[:.]/g, '-')}.txt`;
-    chrome.downloads.download({ url, filename, saveAs: false }, (downloadId: number) => {
-      if (downloadId !== undefined) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        chrome.downloads.onChanged.addListener(function onChanged(delta: any) {
-          if (delta.id === downloadId && delta.state?.current === 'complete') {
-            chrome.downloads.onChanged.removeListener(onChanged);
-            chrome.downloads.open(downloadId);
-          }
-        });
-      }
-    });
+    chrome.runtime.sendMessage({ type: 'download-text', text, filename });
   }
 
   getLevelClass(level: LogEntry['level']): string {

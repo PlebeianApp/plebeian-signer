@@ -499,6 +499,76 @@ browser.runtime.onMessage.addListener(async (message /*, sender*/) => {
     return { success: true };
   }
 
+  // Handle text download (for log export)
+  if ((message as { type: string })?.type === 'download-text') {
+    const { text, filename } = message as { type: string; text: string; filename: string };
+    const dataUrl = 'data:text/plain;base64,' + btoa(unescape(encodeURIComponent(text)));
+    chrome.downloads.download({ url: dataUrl, filename, saveAs: true });
+    return { success: true };
+  }
+
+  // Open the import file picker window
+  if ((message as { type: string })?.type === 'open-import') {
+    const { action } = message as { type: string; action: string };
+    const width = 400;
+    const height = 350;
+    const left = Math.round((screen.width - width) / 2);
+    const top = Math.round((screen.height - height) / 2);
+    try {
+      await browser.windows.create({
+        type: 'popup',
+        url: `import.html?action=${action || 'import'}`,
+        width, height, left, top,
+      });
+    } catch {
+      await browser.tabs.create({ url: `import.html?action=${action || 'import'}` });
+    }
+    return { success: true };
+  }
+
+  // Handle direct vault import from import window
+  if ((message as { type: string })?.type === 'import-vault-data') {
+    try {
+      const { vault } = message as { type: string; vault: Record<string, unknown> };
+      // Determine storage target based on current sync flow
+      const meta = await browser.storage.local.get('syncFlow');
+      const syncFlow = (meta as { syncFlow?: number }).syncFlow ?? 0;
+      const storage = syncFlow === 1 ? browser.storage.sync : browser.storage.local;
+      await storage.set(vault);
+      // Reload extension to pick up the new vault
+      setTimeout(() => browser.runtime.reload(), 500);
+      return { success: true };
+    } catch (e) {
+      return { success: false, error: e instanceof Error ? e.message : 'Import failed' };
+    }
+  }
+
+  // Handle adding a vault snapshot from import window
+  if ((message as { type: string })?.type === 'add-vault-snapshot') {
+    try {
+      const { vault, filename } = message as { type: string; vault: Record<string, unknown>; filename: string };
+      const data = await browser.storage.local.get('vaultSnapshots') as { vaultSnapshots?: unknown[] };
+      const existing = data.vaultSnapshots ?? [];
+      // Check for duplicate filename
+      if (existing.some((s: Record<string, unknown>) => s['fileName'] === filename)) {
+        return { success: false, error: 'A snapshot with this filename already exists.' };
+      }
+      const snapshot = {
+        id: crypto.randomUUID(),
+        fileName: filename,
+        createdAt: new Date().toISOString(),
+        data: vault,
+        identityCount: (vault['identities'] as unknown[] | undefined)?.length ?? 0,
+        reason: 'manual',
+      };
+      existing.push(snapshot);
+      await browser.storage.local.set({ vaultSnapshots: existing });
+      return { success: true };
+    } catch (e) {
+      return { success: false, error: e instanceof Error ? e.message : 'Failed to add snapshot' };
+    }
+  }
+
   // Handle pause state change from UI
   if ((message as { type: string; paused: boolean })?.type === 'set-paused') {
     const pausedMsg = message as { type: string; paused: boolean };

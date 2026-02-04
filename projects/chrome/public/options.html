@@ -95,12 +95,7 @@
 
       .option-text {
         color: gray;
-
         margin-top: 4px;
-      }
-
-      .snapshots-list {
-        margin-top: 8px;
       }
     </style>
   </head>
@@ -125,55 +120,13 @@
 
       <div class="middle">
         <div class="container sam-flex-column">
-          <!-- VAULT SNAPSHOTS -->
-          <span class="option-label">Vault Snapshots</span>
+          <span class="option-label">Vault Management</span>
           <span class="option-text">
-            Importing a previously exported vault snapshot is not
-            <b>directly</b>
-            possible in the extension's popup window. This is due to the
-            browser's limitation of automatically closing the popup when it
-            looses focus, making it impossible to drop or select a file there.
+            Use the extension popup to import and export vault data.
+            Vault import and export are available in Settings.
           </span>
-          <span class="option-text">
-            To circumvent this limitation, you need to upload your snapshot here
-            and make it available for the extension to import in the popup.
-          </span>
-          <span class="option-text">
-            <b>
-              Uploading a snapshot here does NOT automatically start an import!
-            </b>
-          </span>
-          <span class="option-text">
-            <b>
-              The data remains inside this browser and is NOT uploaded to
-              any server!
-            </b>
-          </span>
-
-          <div class="sam-mt-h sam-flex-row gap">
-            <button id="uploadSnapshotsButton" class="btn btn-primary">
-              Upload Snapshots
-            </button>
-
-            <button id="deleteSnapshotsButton" class="btn btn-danger">
-              Delete Snapshots
-            </button>
-          </div>
-
-          <ul id="snapshotsList" class="snapshots-list">
-            <!-- will be filled by JS -->
-          </ul>
         </div>
       </div>
     </div>
-
-    <input
-      id="uploadSnapshotInput"
-      type="file"
-      multiple
-      style="position: absolute; top: 0; display: none"
-      accept=".json"
-    />
-    <script src="options.js"></script>
   </body>
 </html>

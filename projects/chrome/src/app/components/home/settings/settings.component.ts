@@ -2,7 +2,6 @@ import { Component, inject, OnInit, ViewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import {
-  BrowserSyncData,
   ConfirmComponent,
   DateHelper,
   IdentityData,
@@ -302,30 +301,8 @@ export class SettingsComponent extends NavComponent implements OnInit {
     }
   }
 
-  onImportVault() {
-    (this as unknown as HTMLInputElement).click();
-  }
-
-  async onImportFileChange(event: Event) {
-    try {
-      const element = event.currentTarget as HTMLInputElement;
-      const file = element.files !== null ? element.files[0] : undefined;
-      if (!file) {
-        return;
-      }
-
-      const text = await file.text();
-      const vault = JSON.parse(text) as BrowserSyncData;
-
-      await this.#storage.deleteVault(true);
-      await this.#storage.importVault(vault);
-      this.#logger.logVaultImport(file.name);
-      this.#storage.isInitialized = false;
-      this.#startup.startOver(getNewStorageServiceConfig());
-    } catch (error) {
-      console.log(error);
-      // TODO
-    }
+  onClickImportVault() {
+    chrome.runtime.sendMessage({ type: 'open-import', action: 'import' });
   }
 
   async onClickExportVault() {

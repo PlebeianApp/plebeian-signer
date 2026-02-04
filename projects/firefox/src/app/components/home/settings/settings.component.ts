@@ -303,6 +303,10 @@ export class SettingsComponent extends NavComponent implements OnInit {
     }
   }
 
+  onClickImportVault() {
+    browser.runtime.sendMessage({ type: 'open-import', action: 'import' });
+  }
+
   async onClickExportVault() {
     const jsonVault = this.#storage.exportVault();
 
