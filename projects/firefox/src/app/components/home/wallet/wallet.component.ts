@@ -300,14 +300,19 @@ export class WalletComponent extends NavComponent implements OnInit, OnDestroy {
     this.nip60Loading = true;
     this.nip60LoadError = '';
 
+    let pullSucceeded = false;
     try {
       await this.#nip60Service.pullWalletFromRelays(identity);
+      pullSucceeded = true;
     } catch (err) {
       this.nip60LoadError = err instanceof Error ? err.message : 'Failed to sync wallet from relays';
       console.error('NIP-60 pull failed:', err);
     } finally {
       this.nip60Loading = false;
-      this.checkMigrationNeeded();
+      // Only check migration if pull failed — proofs pulled from relays are already synced
+      if (!pullSucceeded) {
+        this.checkMigrationNeeded();
+      }
     }
   }
 

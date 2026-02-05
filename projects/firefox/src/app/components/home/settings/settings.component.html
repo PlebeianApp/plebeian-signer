@@ -41,6 +41,22 @@
     </label>
     <p class="toggle-note">Store Cashu proofs on Nostr relays instead of locally. Enables cross-device wallet sync.</p>
   </div>
+  @if (nip60Enabled) {
+    <div class="dev-mode-row">
+      <label class="toggle-label">
+        <input type="checkbox" [checked]="nip60CustomRelaysEnabled" (change)="onToggleNip60CustomRelays($event)" />
+        <span>Custom NIP-60 Sync Relays</span>
+      </label>
+      <p class="toggle-note">Add extra relays for wallet sync so other apps can see the same nutstash.</p>
+      @if (nip60CustomRelaysEnabled) {
+        <textarea class="form-control" rows="3" [(ngModel)]="nip60CustomRelaysInput" placeholder="wss://relay.example.com&#10;ws://localhost:10547"></textarea>
+        <button class="btn btn-sm btn-primary" style="margin-top: 4px;" (click)="onSaveNip60CustomRelays()">Save Relays</button>
+        @if (nip60CustomRelaysSaved) {
+          <p class="toggle-note" style="color: var(--bs-success, #198754);">{{ nip60CustomRelaysSaved }}</p>
+        }
+      }
+    </div>
+  }
 }
 
 <div class="dev-mode-row">

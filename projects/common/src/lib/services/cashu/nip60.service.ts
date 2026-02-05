@@ -74,8 +74,20 @@ export class Nip60Service {
   }
 
   /**
+   * Get any user-configured custom NIP-60 relay URLs.
+   */
+  private getCustomRelays(): string[] {
+    const meta = this.storageService.getSignerMetaHandler();
+    if (meta.isNip60CustomRelaysEnabled()) {
+      return meta.getNip60CustomRelays();
+    }
+    return [];
+  }
+
+  /**
    * Get relay URLs for publishing wallet events.
    * Priority: user's NIP-65 write relays → fallback relays.
+   * Custom relays (if enabled) are always merged in.
    */
   async getWalletRelays(pubkey: string): Promise<string[]> {
     const nip65 = await this.relayListService.fetchRelayList(pubkey);
@@ -83,15 +95,14 @@ export class Nip60Service {
       .filter(r => r.write)
       .map(r => r.url);
 
-    if (writeRelays.length > 0) {
-      return writeRelays;
-    }
-
-    return FALLBACK_PROFILE_RELAYS;
+    const baseRelays = writeRelays.length > 0 ? writeRelays : FALLBACK_PROFILE_RELAYS;
+    const custom = this.getCustomRelays();
+    return [...new Set([...baseRelays, ...custom])];
   }
 
   /**
    * Get relay URLs for reading wallet events (including read relays).
+   * Custom relays (if enabled) are always merged in.
    */
   async getReadRelays(pubkey: string): Promise<string[]> {
     const nip65 = await this.relayListService.fetchRelayList(pubkey);
@@ -99,11 +110,9 @@ export class Nip60Service {
       .filter(r => r.read)
       .map(r => r.url);
 
-    if (readRelays.length > 0) {
-      return readRelays;
-    }
-
-    return FALLBACK_PROFILE_RELAYS;
+    const baseRelays = readRelays.length > 0 ? readRelays : FALLBACK_PROFILE_RELAYS;
+    const custom = this.getCustomRelays();
+    return [...new Set([...baseRelays, ...custom])];
   }
 
   // ---------------------------------------------------------------------------
@@ -270,7 +279,7 @@ export class Nip60Service {
                   receivedAt: now,
                 })),
               ];
-              await this.storageService.updateCashuMintProofs(existingMint.id, mergedProofs);
+              await this.storageService.updateCashuMintProofs(existingMint.id, mergedProofs, true);
               newProofsCount += newProofs.length;
             }
           }

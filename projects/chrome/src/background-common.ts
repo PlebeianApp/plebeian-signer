@@ -168,10 +168,11 @@ export const getBrowserSyncData = async function (): Promise<
 
   let browserSyncData: BrowserSyncData | undefined;
 
-  if (signerMetaData.syncFlow === BrowserSyncFlow.NO_SYNC) {
-    browserSyncData = (await chrome.storage.local.get(null)) as BrowserSyncData;
-  } else if (signerMetaData.syncFlow === BrowserSyncFlow.BROWSER_SYNC) {
+  if (signerMetaData.syncFlow === BrowserSyncFlow.BROWSER_SYNC) {
     browserSyncData = (await chrome.storage.sync.get(null)) as BrowserSyncData;
+  } else {
+    // NO_SYNC, RELAY_SYNC, and CUSTOM_SYNC all use local storage
+    browserSyncData = (await chrome.storage.local.get(null)) as BrowserSyncData;
   }
 
   return browserSyncData;
@@ -184,10 +185,11 @@ export const savePermissionsToBrowserSyncStorage = async function (
   const signerMetaData =
     (await signerMetaHandler.loadFullData()) as SignerMetaData;
 
-  if (signerMetaData.syncFlow === BrowserSyncFlow.NO_SYNC) {
-    await chrome.storage.local.set({ permissions });
-  } else if (signerMetaData.syncFlow === BrowserSyncFlow.BROWSER_SYNC) {
+  if (signerMetaData.syncFlow === BrowserSyncFlow.BROWSER_SYNC) {
     await chrome.storage.sync.set({ permissions });
+  } else {
+    // NO_SYNC, RELAY_SYNC, and CUSTOM_SYNC all use local storage
+    await chrome.storage.local.set({ permissions });
   }
 };
 
@@ -763,10 +765,11 @@ export async function saveCashuMintsToBrowserSyncStorage(
   const signerMetaData =
     (await signerMetaHandler.loadFullData()) as SignerMetaData;
 
-  if (signerMetaData.syncFlow === BrowserSyncFlow.NO_SYNC) {
-    await chrome.storage.local.set({ cashuMints });
-  } else if (signerMetaData.syncFlow === BrowserSyncFlow.BROWSER_SYNC) {
+  if (signerMetaData.syncFlow === BrowserSyncFlow.BROWSER_SYNC) {
     await chrome.storage.sync.set({ cashuMints });
+  } else {
+    // NO_SYNC, RELAY_SYNC, and CUSTOM_SYNC all use local storage
+    await chrome.storage.local.set({ cashuMints });
   }
 }
 

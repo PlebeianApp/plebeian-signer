@@ -18,7 +18,7 @@ export abstract class SignerMetaHandler {
 
   #extensionSettings?: ExtensionSettings;
 
-  readonly metaProperties = ['syncFlow', 'vaultSnapshots', 'maxBackups', 'permissionLevel', 'recklessMode', 'whitelistedHosts', 'bookmarks', 'devMode', 'paused', 'stayUnlocked', 'nip60Enabled', 'relaySyncIdentityId', 'relaySyncAuthOnly', 'relaySyncLastPushed'];
+  readonly metaProperties = ['syncFlow', 'vaultSnapshots', 'maxBackups', 'permissionLevel', 'recklessMode', 'whitelistedHosts', 'bookmarks', 'devMode', 'paused', 'stayUnlocked', 'nip60Enabled', 'relaySyncIdentityId', 'relaySyncAuthOnly', 'relaySyncLastPushed', 'nip60CustomRelaysEnabled', 'nip60CustomRelays'];
   readonly DEFAULT_MAX_BACKUPS = 5;
   /**
    * Load the full data from the storage. If the storage is used for storing
@@ -221,6 +221,50 @@ export abstract class SignerMetaHandler {
    */
   getRelaySyncLastPushed(): number {
     return this.#extensionSettings?.relaySyncLastPushed ?? 0;
+  }
+
+  /**
+   * Sets whether custom NIP-60 sync relays are enabled.
+   */
+  async setNip60CustomRelaysEnabled(enabled: boolean): Promise<void> {
+    if (!this.#extensionSettings) {
+      this.#extensionSettings = {
+        nip60CustomRelaysEnabled: enabled,
+      };
+    } else {
+      this.#extensionSettings.nip60CustomRelaysEnabled = enabled;
+    }
+
+    await this.saveFullData(this.#extensionSettings);
+  }
+
+  /**
+   * Returns whether custom NIP-60 sync relays are enabled.
+   */
+  isNip60CustomRelaysEnabled(): boolean {
+    return this.#extensionSettings?.nip60CustomRelaysEnabled ?? false;
+  }
+
+  /**
+   * Sets the custom NIP-60 relay URLs.
+   */
+  async setNip60CustomRelays(relays: string[]): Promise<void> {
+    if (!this.#extensionSettings) {
+      this.#extensionSettings = {
+        nip60CustomRelays: relays,
+      };
+    } else {
+      this.#extensionSettings.nip60CustomRelays = relays;
+    }
+
+    await this.saveFullData(this.#extensionSettings);
+  }
+
+  /**
+   * Returns the custom NIP-60 relay URLs (empty array if none configured).
+   */
+  getNip60CustomRelays(): string[] {
+    return this.#extensionSettings?.nip60CustomRelays ?? [];
   }
 
   /**

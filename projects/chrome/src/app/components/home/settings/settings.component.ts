@@ -36,6 +36,11 @@ export class SettingsComponent extends NavComponent implements OnInit {
   stayUnlocked = false;
   nip60Enabled = false;
 
+  // NIP-60 custom relay settings
+  nip60CustomRelaysEnabled = false;
+  nip60CustomRelaysInput = '';
+  nip60CustomRelaysSaved = '';
+
   // Relay sync settings
   relaySyncIdentityId = '';
   relaySyncAuthOnly = false;
@@ -69,6 +74,9 @@ export class SettingsComponent extends NavComponent implements OnInit {
     this.stayUnlocked = this.#storage.getSignerMetaHandler().extensionSettings?.stayUnlocked ?? false;
     // Load NIP-60 setting
     this.nip60Enabled = this.#storage.getSignerMetaHandler().isNip60Enabled();
+    // Load NIP-60 custom relay settings
+    this.nip60CustomRelaysEnabled = this.#storage.getSignerMetaHandler().isNip60CustomRelaysEnabled();
+    this.nip60CustomRelaysInput = this.#storage.getSignerMetaHandler().getNip60CustomRelays().join('\n');
   }
 
   async onSyncFlowChange(value: string) {
@@ -226,6 +234,22 @@ export class SettingsComponent extends NavComponent implements OnInit {
     const checked = (event.target as HTMLInputElement).checked;
     this.nip60Enabled = checked;
     await this.#storage.getSignerMetaHandler().setNip60Enabled(checked);
+  }
+
+  async onToggleNip60CustomRelays(event: Event) {
+    const checked = (event.target as HTMLInputElement).checked;
+    this.nip60CustomRelaysEnabled = checked;
+    await this.#storage.getSignerMetaHandler().setNip60CustomRelaysEnabled(checked);
+  }
+
+  async onSaveNip60CustomRelays() {
+    const relays = this.nip60CustomRelaysInput
+      .split('\n')
+      .map(r => r.trim())
+      .filter(r => r.length > 0 && (r.startsWith('wss://') || r.startsWith('ws://')));
+    await this.#storage.getSignerMetaHandler().setNip60CustomRelays(relays);
+    this.nip60CustomRelaysSaved = `Saved ${relays.length} relay${relays.length !== 1 ? 's' : ''}`;
+    setTimeout(() => this.nip60CustomRelaysSaved = '', 3000);
   }
 
   async onToggleDevMode(event: Event) {

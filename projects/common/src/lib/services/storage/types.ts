@@ -294,6 +294,12 @@ export interface ExtensionSettings {
   relaySyncAuthOnly?: boolean;
   // Relay Sync: Unix timestamp of last successful push to relays
   relaySyncLastPushed?: number;
+
+  // NIP-60 Custom Relays: additional relay URLs for wallet sync.
+  // When enabled, these are merged with NIP-65/fallback relays so other apps
+  // (e.g. Plebeian Market) on different relay sets can see the same nutstash.
+  nip60CustomRelaysEnabled?: boolean;
+  nip60CustomRelays?: string[];
 }
 
 /**
