@@ -30,6 +30,7 @@ To build and run the Chrome extension from this code:
 ```
 git clone https://github.com/PlebeianApp/plebeian-signer.git
 cd plebeian-signer
+npm install
 npm ci
 npm run build:chrome
 ```
@@ -48,6 +49,7 @@ To build and run the Firefox extension from this code:
 ```
 git clone https://github.com/PlebeianApp/plebeian-signer.git
 cd plebeian-signer
+npm install
 npm ci
 npm run build:firefox
 ```
