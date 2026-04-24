@@ -18,8 +18,12 @@ export abstract class SignerMetaHandler {
 
   #extensionSettings?: ExtensionSettings;
 
-  readonly metaProperties = ['syncFlow', 'vaultSnapshots', 'maxBackups', 'permissionLevel', 'recklessMode', 'whitelistedHosts', 'bookmarks', 'devMode', 'paused', 'stayUnlocked', 'nip60Enabled', 'relaySyncIdentityId', 'relaySyncAuthOnly', 'relaySyncLastPushed', 'nip60CustomRelaysEnabled', 'nip60CustomRelays'];
+  readonly metaProperties = ['syncFlow', 'vaultSnapshots', 'maxBackups', 'permissionLevel', 'recklessMode', 'whitelistedHosts', 'domainIdentitySelections', 'bookmarks', 'devMode', 'paused', 'stayUnlocked', 'nip60Enabled', 'relaySyncIdentityId', 'relaySyncAuthOnly', 'relaySyncLastPushed', 'nip60CustomRelaysEnabled', 'nip60CustomRelays'];
   readonly DEFAULT_MAX_BACKUPS = 5;
+
+  #normalizeHost(host: string): string {
+    return host.trim().toLowerCase();
+  }
   /**
    * Load the full data from the storage. If the storage is used for storing
    * other data (e.g. browser sync data when the user decided to NOT sync),
@@ -314,6 +318,60 @@ export abstract class SignerMetaHandler {
     this.#extensionSettings.whitelistedHosts = this.#extensionSettings.whitelistedHosts.filter(
       (h) => h !== host
     );
+
+    await this.saveFullData(this.#extensionSettings);
+  }
+
+  getSelectedIdentityIdForHost(host: string | null | undefined): string | undefined {
+    if (!host) {
+      return undefined;
+    }
+
+    return this.#extensionSettings?.domainIdentitySelections?.[this.#normalizeHost(host)];
+  }
+
+  async setSelectedIdentityIdForHost(
+    host: string,
+    identityId: string | null | undefined
+  ): Promise<void> {
+    const normalizedHost = this.#normalizeHost(host);
+    if (!normalizedHost) {
+      return;
+    }
+
+    if (!this.#extensionSettings) {
+      this.#extensionSettings = {};
+    }
+
+    const selections = {
+      ...(this.#extensionSettings.domainIdentitySelections ?? {}),
+    };
+
+    if (identityId) {
+      selections[normalizedHost] = identityId;
+    } else {
+      delete selections[normalizedHost];
+    }
+
+    this.#extensionSettings.domainIdentitySelections =
+      Object.keys(selections).length > 0 ? selections : undefined;
+
+    await this.saveFullData(this.#extensionSettings);
+  }
+
+  async removeSelectedIdentityIdForIdentity(identityId: string): Promise<void> {
+    if (!this.#extensionSettings?.domainIdentitySelections) {
+      return;
+    }
+
+    const selections = Object.fromEntries(
+      Object.entries(this.#extensionSettings.domainIdentitySelections).filter(
+        ([, selectedIdentityId]) => selectedIdentityId !== identityId
+      )
+    );
+
+    this.#extensionSettings.domainIdentitySelections =
+      Object.keys(selections).length > 0 ? selections : undefined;
 
     await this.saveFullData(this.#extensionSettings);
   }

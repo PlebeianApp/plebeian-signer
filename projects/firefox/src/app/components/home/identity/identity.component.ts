@@ -12,6 +12,7 @@ import {
   VisualNip05Pipe,
   validateNip05,
 } from '@common';
+import browser from 'webextension-polyfill';
 
 @Component({
   selector: 'app-identity',
@@ -26,6 +27,7 @@ export class IdentityComponent extends NavComponent implements OnInit {
   nip05isValidated: boolean | undefined;
   validating = false;
   loading = true;
+  activeHost: string | null = null;
 
   readonly #router = inject(Router);
   readonly #profileMetadata = inject(ProfileMetadataService);
@@ -87,9 +89,11 @@ export class IdentityComponent extends NavComponent implements OnInit {
 
   async #loadData() {
     try {
+      this.activeHost = await this.#getActiveHost();
       const selectedIdentityId =
-        this.storage.getBrowserSessionHandler().browserSessionData
-          ?.selectedIdentityId ?? null;
+        this.storage.getSignerMetaHandler().getSelectedIdentityIdForHost(this.activeHost)
+        ?? this.storage.getBrowserSessionHandler().browserSessionData?.selectedIdentityId
+        ?? null;
 
       const identity = this.storage
         .getBrowserSessionHandler()
@@ -136,6 +140,20 @@ export class IdentityComponent extends NavComponent implements OnInit {
     } catch (error) {
       console.error(error);
       this.loading = false;
+    }
+  }
+
+  async #getActiveHost(): Promise<string | null> {
+    try {
+      const tabs = await browser.tabs.query({ active: true, currentWindow: true });
+      const activeTabUrl = tabs[0]?.url;
+      if (!activeTabUrl) {
+        return null;
+      }
+
+      return new URL(activeTabUrl).host || null;
+    } catch {
+      return null;
     }
   }
 

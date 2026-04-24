@@ -271,6 +271,9 @@ export interface ExtensionSettings {
   // Whitelisted hosts: auto-approve all actions from these hosts
   whitelistedHosts?: string[];
 
+  // Host-scoped identity selection so each site can use its own default identity.
+  domainIdentitySelections?: Record<string, string>;
+
   // User bookmarks
   bookmarks?: Bookmark[];
 

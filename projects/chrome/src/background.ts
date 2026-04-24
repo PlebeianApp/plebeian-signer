@@ -28,6 +28,7 @@ import {
   debug,
   getBrowserSessionData,
   getPosition,
+  getSelectedIdentityForHost,
   getSignerMetaData,
   handleUnlockRequest,
   handleUnlockWithKey,
@@ -408,7 +409,7 @@ function queuePermissionPrompt(
 
     const id = crypto.randomUUID();
     const separator = urlWithoutId.includes('?') ? '&' : '?';
-    const url = `${urlWithoutId}${separator}id=${id}`;
+    const url = browser.runtime.getURL(`${urlWithoutId}${separator}id=${id}`);
 
     openPrompts.set(id, { resolve, reject });
     permissionQueue.push({ id, url, width, height, resolve, reject });
@@ -684,9 +685,7 @@ async function processNip07Request(req: BackgroundRequestMessage): Promise<any> 
     throw new Error('Plebeian Signer vault not unlocked by the user.');
   }
 
-  const currentIdentity = browserSessionData.identities.find(
-    (x) => x.id === browserSessionData.selectedIdentityId
-  );
+  const currentIdentity = await getSelectedIdentityForHost(browserSessionData, req.host);
 
   if (!currentIdentity) {
     throw new Error('No Nostr identity available at endpoint.');
@@ -1057,9 +1056,7 @@ async function processNutzapRequest(req: BackgroundRequestMessage): Promise<any>
     throw new Error('Plebeian Signer vault not unlocked by the user.');
   }
 
-  const currentIdentity = browserSessionData.identities.find(
-    (x) => x.id === browserSessionData.selectedIdentityId
-  );
+  const currentIdentity = await getSelectedIdentityForHost(browserSessionData, req.host);
 
   if (!currentIdentity) {
     throw new Error('No Nostr identity available at endpoint.');

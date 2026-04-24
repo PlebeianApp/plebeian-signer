@@ -31,6 +31,8 @@ export class IdentitiesComponent extends NavComponent implements OnInit {
   readonly #router = inject(Router);
   readonly #profileMetadata = inject(ProfileMetadataService);
   readonly #logger = inject(LoggerService);
+  activeHost: string | null = null;
+  effectiveSelectedIdentityId: string | null = null;
 
   // Cache of pubkey -> profile for quick lookup
   #profileCache = new Map<string, ProfileMetadata | null>();
@@ -41,8 +43,31 @@ export class IdentitiesComponent extends NavComponent implements OnInit {
   }
 
   async ngOnInit() {
+    this.activeHost = await this.#getActiveHost();
+    this.effectiveSelectedIdentityId = this.#getEffectiveSelectedIdentityId();
     await this.#profileMetadata.initialize();
     this.#loadProfiles();
+  }
+
+  async #getActiveHost(): Promise<string | null> {
+    try {
+      const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+      const activeTabUrl = tabs[0]?.url;
+      if (!activeTabUrl) {
+        return null;
+      }
+
+      return new URL(activeTabUrl).host || null;
+    } catch {
+      return null;
+    }
+  }
+
+  #getEffectiveSelectedIdentityId(): string | null {
+    const sessionData = this.storage.getBrowserSessionHandler().browserSessionData;
+    return this.storage.getSignerMetaHandler().getSelectedIdentityIdForHost(this.activeHost)
+      ?? sessionData?.selectedIdentityId
+      ?? null;
   }
 
   #loadProfiles() {
@@ -74,7 +99,15 @@ export class IdentitiesComponent extends NavComponent implements OnInit {
   }
 
   async onClickSelectIdentity(identityId: string) {
+    if (this.activeHost) {
+      await this.storage.getSignerMetaHandler().setSelectedIdentityIdForHost(this.activeHost, identityId);
+      this.effectiveSelectedIdentityId = identityId;
+    }
     await this.storage.switchIdentity(identityId);
+  }
+
+  isIdentitySelected(identityId: string): boolean {
+    return identityId === this.effectiveSelectedIdentityId;
   }
 
   onClickPermissionSettings() {
