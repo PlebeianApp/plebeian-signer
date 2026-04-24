@@ -294,6 +294,29 @@ async function showNextPermissionPrompt(): Promise<void> {
   const next = permissionQueue[0];
   activePromptId = next.id;
 
+  async function ensureWindowSize(windowId: number, width: number, height: number): Promise<void> {
+    try {
+      const win = await browser.windows.get(windowId);
+      if (win.width !== width || win.height !== height) {
+        debug(`Window ${windowId} size mismatch: got ${win.width}x${win.height}, expected ${width}x${height}. Forcing resize.`);
+        await browser.windows.update(windowId, { width, height });
+      }
+    } catch (e) {
+      debug(`ensureWindowSize failed: ${e}`);
+    }
+  }
+
+  function setupPrompt(windowId: number | undefined): void {
+    const promptData = openPrompts.get(next.id);
+    if (promptData && windowId) {
+      promptData.windowId = windowId;
+      promptData.timeoutId = setTimeout(() => {
+        debug(`Prompt ${next.id} timed out after ${PROMPT_TIMEOUT_MS}ms`);
+        cleanupPrompt(next.id, 'timeout');
+      }, PROMPT_TIMEOUT_MS);
+    }
+  }
+
   // Try creating a positioned popup window with retries
   for (let attempt = 0; attempt < WINDOW_CREATE_MAX_RETRIES; attempt++) {
     try {
@@ -308,14 +331,8 @@ async function showNextPermissionPrompt(): Promise<void> {
         left,
       });
 
-      const promptData = openPrompts.get(next.id);
-      if (promptData && window.id) {
-        promptData.windowId = window.id;
-        promptData.timeoutId = setTimeout(() => {
-          debug(`Prompt ${next.id} timed out after ${PROMPT_TIMEOUT_MS}ms`);
-          cleanupPrompt(next.id, 'timeout');
-        }, PROMPT_TIMEOUT_MS);
-      }
+      setupPrompt(window.id);
+      if (window.id) await ensureWindowSize(window.id, next.width, next.height);
       return; // Success
     } catch (error) {
       debug(`Failed to create prompt window (attempt ${attempt + 1}/${WINDOW_CREATE_MAX_RETRIES}): ${error}`);
@@ -335,13 +352,8 @@ async function showNextPermissionPrompt(): Promise<void> {
       height: next.height,
       width: next.width,
     });
-    const promptData = openPrompts.get(next.id);
-    if (promptData && window.id) {
-      promptData.windowId = window.id;
-      promptData.timeoutId = setTimeout(() => {
-        cleanupPrompt(next.id, 'timeout');
-      }, PROMPT_TIMEOUT_MS);
-    }
+    setupPrompt(window.id);
+    if (window.id) await ensureWindowSize(window.id, next.width, next.height);
     return; // Success
   } catch (error) {
     debug(`Popup without position also failed: ${error}`);
@@ -720,9 +732,7 @@ async function processNip07Request(req: BackgroundRequestMessage): Promise<any> 
         JSON.stringify(req.params ?? {}, undefined, 2)
       ).toString('base64');
 
-      // Include queue info for user awareness
-      const queueSize = permissionQueue.length;
-      const promptUrl = `prompt.html?method=${req.method}&host=${req.host}&nick=${encodeURIComponent(currentIdentity.nick)}&event=${base64Event}&queueSize=${queueSize}`;
+      const promptUrl = `prompt.html?method=${req.method}&host=${req.host}&nick=${encodeURIComponent(currentIdentity.nick)}&event=${base64Event}`;
       const response = await queuePermissionPromptDeduped(req.host, req.method, req.params, promptUrl, width, height);
       debug(response);
 
@@ -742,31 +752,9 @@ async function processNip07Request(req: BackgroundRequestMessage): Promise<any> 
           req.params?.kind,
           permLevel
         );
-      } else if (response === 'approve-all') {
-        // P2: Store permission for ALL kinds/uses of this method from this host
-        await storePermission(
-          browserSessionData,
-          currentIdentity,
-          req.host,
-          req.method,
-          'allow',
-          undefined, // undefined kind = allow all kinds for signEvent
-          permLevel
-        );
-      } else if (response === 'reject-all') {
-        // P2: Store deny permission for ALL uses of this method from this host
-        await storePermission(
-          browserSessionData,
-          currentIdentity,
-          req.host,
-          req.method,
-          'deny',
-          undefined,
-          permLevel
-        );
       }
 
-      if (['reject', 'reject-once', 'reject-all'].includes(response)) {
+      if (['reject', 'reject-once'].includes(response)) {
         throw new Error('Permission denied');
       }
     } else {
@@ -883,9 +871,7 @@ async function processWeblnRequest(req: BackgroundRequestMessage): Promise<any> 
       JSON.stringify(promptParams, undefined, 2)
     ).toString('base64');
 
-    // Include queue info for user awareness
-    const queueSize = permissionQueue.length;
-    const promptUrl = `prompt.html?method=${method}&host=${req.host}&nick=WebLN&event=${base64Event}&queue=${queueSize}`;
+    const promptUrl = `prompt.html?method=${method}&host=${req.host}&nick=WebLN&event=${base64Event}`;
     const response = await queuePermissionPromptDeduped(req.host, method, req.params, promptUrl, width, height);
 
     debug(response);
@@ -905,20 +891,9 @@ async function processWeblnRequest(req: BackgroundRequestMessage): Promise<any> 
         undefined,
         weblnPermLevel
       );
-    } else if (response === 'approve-all' && method !== 'webln.sendPayment' && method !== 'webln.keysend') {
-      // P2: Store permission for all uses of this WebLN method
-      await storePermission(
-        browserSessionData,
-        null,
-        req.host,
-        method,
-        'allow',
-        undefined,
-        weblnPermLevel
-      );
     }
 
-    if (['reject', 'reject-once', 'reject-all'].includes(response)) {
+    if (['reject', 'reject-once'].includes(response)) {
       throw new Error('Permission denied');
     }
   }
@@ -1085,8 +1060,7 @@ async function processNutzapRequest(req: BackgroundRequestMessage): Promise<any>
       JSON.stringify(req.params ?? {}, undefined, 2)
     ).toString('base64');
 
-    const queueSize = permissionQueue.length;
-    const promptUrl = `prompt.html?method=${method}&host=${req.host}&nick=${encodeURIComponent(currentIdentity.nick)}&event=${base64Event}&queueSize=${queueSize}`;
+    const promptUrl = `prompt.html?method=${method}&host=${req.host}&nick=${encodeURIComponent(currentIdentity.nick)}&event=${base64Event}`;
     const response = await queuePermissionPromptDeduped(req.host, method, req.params, promptUrl, width, height);
     debug(response);
 
@@ -1105,19 +1079,9 @@ async function processNutzapRequest(req: BackgroundRequestMessage): Promise<any>
         undefined,
         nutzapPermLevel
       );
-    } else if (response === 'approve-all' && method !== 'nutzap.send') {
-      await storePermission(
-        browserSessionData,
-        currentIdentity,
-        req.host,
-        method,
-        'allow',
-        undefined,
-        nutzapPermLevel
-      );
     }
 
-    if (['reject', 'reject-once', 'reject-all'].includes(response)) {
+    if (['reject', 'reject-once'].includes(response)) {
       throw new Error('Permission denied');
     }
   }
