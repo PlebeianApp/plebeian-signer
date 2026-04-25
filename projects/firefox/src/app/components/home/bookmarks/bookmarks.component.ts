@@ -18,6 +18,14 @@ export class BookmarksComponent extends NavComponent implements OnInit {
   bookmarks: Bookmark[] = [];
   isLoading = true;
 
+  readonly #defaultBookmarks: { title: string; url: string }[] = [
+    { title: 'Plebeian Market', url: 'https://plebeian.market/' },
+    { title: 'YakiHonne', url: 'https://yakihonne.com/' },
+    { title: 'Primal', url: 'https://primal.net/' },
+    { title: 'HiveTalk', url: 'https://hivetalk.org/' },
+    { title: 'Shakespeare', url: 'https://shakespeare.diy/' },
+  ];
+
   async ngOnInit() {
     await this.loadBookmarks();
   }
@@ -28,11 +36,33 @@ export class BookmarksComponent extends NavComponent implements OnInit {
       const metaData = await this.#metaHandler.loadFullData() as SignerMetaData;
       this.#metaHandler.setFullData(metaData);
       this.bookmarks = this.#metaHandler.getBookmarks();
+      await this.ensureDefaultBookmarks();
     } catch (error) {
       console.error('Failed to load bookmarks:', error);
     } finally {
       this.isLoading = false;
     }
+  }
+
+  async ensureDefaultBookmarks() {
+    const normalize = (url: string) => url.replace(/\/$/, '');
+    const existing = new Set(this.bookmarks.map((b) => normalize(b.url)));
+
+    const missing: Bookmark[] = this.#defaultBookmarks
+      .filter((b) => !existing.has(normalize(b.url)))
+      .map((b) => ({
+        id: crypto.randomUUID(),
+        url: b.url,
+        title: b.title,
+        createdAt: Date.now(),
+      }));
+
+    if (missing.length === 0) {
+      return;
+    }
+
+    this.bookmarks = [...missing, ...this.bookmarks];
+    await this.saveBookmarks();
   }
 
   async onBookmarkThisPage() {
