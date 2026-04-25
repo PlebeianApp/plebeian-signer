@@ -9,6 +9,7 @@ declare const chrome: any;
 
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 const FETCH_TIMEOUT_MS = 10000; // 10 seconds
+const FAST_FIRST_EVENT_SETTLE_MS = 350;
 const STORAGE_KEY = 'profileMetadataCache';
 
 @Injectable({
@@ -23,7 +24,7 @@ export class ProfileMetadataService {
   #initPromise: Promise<void> | null = null;
 
   /**
-   * Initialize the service by loading cache from session storage
+    * Initialize the service by loading cache from browser storage
    */
   async initialize(): Promise<void> {
     if (this.#initialized) {
@@ -40,18 +41,44 @@ export class ProfileMetadataService {
   }
 
   /**
-   * Load cache from browser session storage
+   * Load cache from browser storage.
+   * Prefer session for speed, fall back to local for persistence across restarts.
    */
   async #loadCacheFromStorage(): Promise<void> {
     try {
-      // Use chrome API (works in both Chrome and Firefox with polyfill)
-      if (typeof chrome !== 'undefined' && chrome.storage?.session) {
-        const result = await chrome.storage.session.get(STORAGE_KEY);
-        if (result[STORAGE_KEY]) {
-          this.#cache = result[STORAGE_KEY];
-          // Clean up stale entries
-          this.#pruneStaleCache();
+      if (typeof chrome === 'undefined' || !chrome.storage) {
+        return;
+      }
+
+      let loaded = false;
+
+      // First try session cache (fast in-memory browser storage)
+      if (chrome.storage.session) {
+        const sessionResult = await chrome.storage.session.get(STORAGE_KEY);
+        if (sessionResult[STORAGE_KEY]) {
+          this.#cache = sessionResult[STORAGE_KEY];
+          loaded = true;
         }
+      }
+
+      // If session cache is empty (e.g. after browser restart), hydrate from local cache
+      if (!loaded && chrome.storage.local) {
+        const localResult = await chrome.storage.local.get(STORAGE_KEY);
+        if (localResult[STORAGE_KEY]) {
+          this.#cache = localResult[STORAGE_KEY];
+          loaded = true;
+
+          // Warm session cache for faster subsequent reads in this run
+          if (chrome.storage.session) {
+            await chrome.storage.session.set({ [STORAGE_KEY]: this.#cache });
+          }
+        }
+      }
+
+      if (loaded) {
+        // Clean up stale entries and persist pruned cache
+        this.#pruneStaleCache();
+        await this.#saveCacheToStorage();
       }
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Unknown error';
@@ -60,12 +87,21 @@ export class ProfileMetadataService {
   }
 
   /**
-   * Save cache to browser session storage
+   * Save cache to browser storage.
+   * Write-through to both session and local to combine speed + persistence.
    */
   async #saveCacheToStorage(): Promise<void> {
     try {
-      if (typeof chrome !== 'undefined' && chrome.storage?.session) {
+      if (typeof chrome === 'undefined' || !chrome.storage) {
+        return;
+      }
+
+      if (chrome.storage.session) {
         await chrome.storage.session.set({ [STORAGE_KEY]: this.#cache });
+      }
+
+      if (chrome.storage.local) {
+        await chrome.storage.local.set({ [STORAGE_KEY]: this.#cache });
       }
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Unknown error';
@@ -249,7 +285,7 @@ export class ProfileMetadataService {
     const pool = this.#getPool();
 
     try {
-      const events = await this.#queryWithTimeout(
+      const events = await this.#querySingleProfileFast(
         pool,
         FALLBACK_PROFILE_RELAYS,
         [{ kinds: [0], authors: [pubkey] }],
@@ -326,6 +362,54 @@ export class ProfileMetadataService {
             sub.close();
             resolve(events);
           }
+        },
+      });
+    });
+  }
+
+  /**
+   * Query a single profile quickly: as soon as we get first event,
+   * wait a short settle window for potentially newer events, then return.
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  async #querySingleProfileFast(pool: SimplePool, relays: string[], filters: any[], timeoutMs: number): Promise<any[]> {
+    return new Promise((resolve) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const events: any[] = [];
+      let settled = false;
+      let settleTimer: ReturnType<typeof setTimeout> | null = null;
+
+      const finish = () => {
+        if (!settled) {
+          settled = true;
+          if (settleTimer) {
+            clearTimeout(settleTimer);
+          }
+          clearTimeout(timeout);
+          sub.close();
+          resolve(events);
+        }
+      };
+
+      const timeout = setTimeout(() => {
+        finish();
+      }, timeoutMs);
+
+      const sub = pool.subscribeMany(relays, filters, {
+        onevent(event) {
+          events.push(event);
+
+          // Return quickly after first result, but allow a short window
+          // to collect any fresher duplicate profile events.
+          if (settleTimer) {
+            clearTimeout(settleTimer);
+          }
+          settleTimer = setTimeout(() => {
+            finish();
+          }, FAST_FIRST_EVENT_SETTLE_MS);
+        },
+        oneose() {
+          finish();
         },
       });
     });
