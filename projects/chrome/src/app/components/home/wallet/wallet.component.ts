@@ -177,6 +177,8 @@ export class WalletComponent extends NavComponent implements OnInit, OnDestroy {
     { name: 'Stablenut (USD)', url: 'https://stablenut.umint.cash', unit: 'usd', description: 'USD-denominated mint' },
   ];
 
+  readonly discoverMintsUrl = 'https://cashumints.space/discover';
+
   get title(): string {
     switch (this.activeSection) {
       case 'cashu':
@@ -682,6 +684,10 @@ export class WalletComponent extends NavComponent implements OnInit, OnDestroy {
     this.newMintUrl = mint.url;
     this.mintError = '';
     this.mintTestResult = '';
+  }
+
+  openDiscoverMints() {
+    window.open(this.discoverMintsUrl, '_blank', 'noopener,noreferrer');
   }
 
   isMintAlreadyAdded(mintUrl: string): boolean {
