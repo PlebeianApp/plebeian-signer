@@ -1251,6 +1251,13 @@
   flex-direction: column;
   gap: var(--size-h);
 
+  .suggested-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--size-h);
+  }
+
   &.centered {
     align-items: center;
     margin-top: var(--size);
@@ -1265,6 +1272,23 @@
     color: var(--muted-foreground);
     text-transform: uppercase;
     font-weight: 500;
+  }
+
+  .discover-mints-btn {
+    padding: 6px 10px;
+    background: var(--background-light);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    color: var(--foreground);
+    font-size: 0.75rem;
+    line-height: 1;
+    cursor: pointer;
+    transition: all 0.15s ease;
+
+    &:hover {
+      background: var(--background-light-hover);
+      border-color: var(--primary);
+    }
   }
 
   .suggested-list {

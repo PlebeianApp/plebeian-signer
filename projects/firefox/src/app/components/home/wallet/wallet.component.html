@@ -300,7 +300,12 @@
     <div class="add-wallet-form">
       <!-- Suggested mints -->
       <div class="suggested-mints">
-        <div class="suggested-label">Quick Add</div>
+        <div class="suggested-header">
+          <div class="suggested-label">Quick Add</div>
+          <button class="discover-mints-btn" type="button" (click)="openDiscoverMints()">
+            Discover more mints
+          </button>
+        </div>
         <div class="suggested-list">
           @for (mint of suggestedMints; track mint.url) {
             <button

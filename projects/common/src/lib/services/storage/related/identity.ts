@@ -127,6 +127,7 @@ export const deleteIdentity = async function (
         ? null
         : await this.encrypt(browserSessionData.selectedIdentityId),
   });
+  await this.getSignerMetaHandler().removeSelectedIdentityIdForIdentity(identityId);
 };
 
 export const switchIdentity = async function (

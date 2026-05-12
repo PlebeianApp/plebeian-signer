@@ -72,8 +72,15 @@ export class CashuService {
    * Add a new Cashu mint connection
    */
   async addMint(name: string, mintUrl: string): Promise<CashuMint_DECRYPTED> {
-    // Test the mint connection first
-    await this.testMintConnection(mintUrl);
+    // Test the mint connection first, but allow adding while offline.
+    // The user can still add the mint URL and reconnect later.
+    try {
+      await this.testMintConnection(mintUrl);
+    } catch (error) {
+      if (!this.isOfflineConnectionError(error)) {
+        throw error;
+      }
+    }
 
     // Add to storage
     return await this.storageService.addCashuMint({
@@ -81,6 +88,24 @@ export class CashuService {
       mintUrl,
       unit: 'sat',
     });
+  }
+
+  private isOfflineConnectionError(error: unknown): boolean {
+    if (!error) return false;
+    const msg = (error instanceof Error ? error.message : String(error)).toLowerCase();
+
+    return (
+      msg.includes('failed to fetch mint') ||
+      msg.includes('networkerror') ||
+      msg.includes('network error') ||
+      msg.includes('load failed') ||
+      msg.includes('timed out') ||
+      msg.includes('timeout') ||
+      msg.includes('offline') ||
+      msg.includes('econnrefused') ||
+      msg.includes('enotfound') ||
+      msg.includes('could not connect')
+    );
   }
 
   /**

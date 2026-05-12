@@ -79,10 +79,17 @@ export const debug = function (message: any) {
 export type PromptResponse =
   | 'reject'
   | 'reject-once'
-  | 'reject-all'      // P2: Reject all requests of this type from this host
   | 'approve'
-  | 'approve-once'
-  | 'approve-all';    // P2: Approve all requests of this type from this host
+  | 'approve-once';
+
+export const PROMPT_DATA_PREFIX = 'prompt-session-';
+
+export interface PromptSessionData {
+  method: string;
+  host: string;
+  nick: string;
+  event: string;
+}
 
 export interface PromptResponseMessage {
   id: string;
@@ -109,6 +116,30 @@ export const getBrowserSessionData = async function (): Promise<
 export const getSignerMetaData = async function (): Promise<SignerMetaData> {
   const signerMetaHandler = new FirefoxMetaHandler();
   return (await signerMetaHandler.loadFullData()) as SignerMetaData;
+};
+
+export const getSelectedIdentityForHost = async function (
+  browserSessionData: BrowserSessionData,
+  host: string
+): Promise<Identity_DECRYPTED | undefined> {
+  const normalizedHost = host.trim().toLowerCase();
+  const signerMetaHandler = new FirefoxMetaHandler();
+  signerMetaHandler.setFullData((await signerMetaHandler.loadFullData()) as SignerMetaData);
+
+  const hostIdentityId = signerMetaHandler.getSelectedIdentityIdForHost(normalizedHost);
+  if (hostIdentityId) {
+    const hostIdentity = browserSessionData.identities.find(
+      (identity) => identity.id === hostIdentityId
+    );
+    if (hostIdentity) {
+      return hostIdentity;
+    }
+    debug(`Host identity mapping for ${normalizedHost} points to a missing identity.`);
+  }
+
+  return browserSessionData.identities.find(
+    (identity) => identity.id === browserSessionData.selectedIdentityId
+  );
 };
 
 /**
@@ -1041,6 +1072,7 @@ export async function openUnlockPopup(host?: string): Promise<void> {
   if (host) {
     url += `&host=${encodeURIComponent(host)}`;
   }
+  const extensionUrl = browser.runtime.getURL(url);
 
   for (let attempt = 0; attempt < UNLOCK_WINDOW_MAX_RETRIES; attempt++) {
     try {
@@ -1048,7 +1080,7 @@ export async function openUnlockPopup(host?: string): Promise<void> {
 
       await browser.windows.create({
         type: 'popup',
-        url,
+        url: extensionUrl,
         height,
         width,
         top,
